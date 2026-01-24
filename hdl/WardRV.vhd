@@ -24,6 +24,7 @@ use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 library asylum;
 use     asylum.math_pkg.all;
+use     asylum.RV_pkg.all;
 use     asylum.WardRV_pkg.all;
 
 entity WardRV is
@@ -39,9 +40,8 @@ entity WardRV is
     arst_b_i          : in  std_logic;
 
     -- Instructions
-    ics_o            : out std_logic;
-    iaddr_o          : out std_logic_vector(32-1 downto 0);
-    idata_i          : in  std_logic_vector(32-1 downto 0);
+    inst_ini_o       : out   inst_ini_t;
+    inst_tgt_i       : in    inst_tgt_t;
     
     -- Bus
     sbi_ini_o        : out   sbi_ini_t;

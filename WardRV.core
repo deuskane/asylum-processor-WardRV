@@ -27,6 +27,7 @@ filesets:
   files_hdl:
   #---------------------------------------
     files        :
+      - hdl/RV_pkg.vhd
       - hdl/WardRV_pkg.vhd
       - hdl/WardRV.vhd
     file_type    : vhdlSource-2008
