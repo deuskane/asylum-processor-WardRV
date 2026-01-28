@@ -36,6 +36,16 @@ package RV_pkg is
   -- RV32I Funct3 (Branch)
   constant F3_BEQ       : std_logic_vector(2 downto 0) := "000";
   
+  -- RV32I Funct3 (Load/Store)
+  constant F3_LB        : std_logic_vector(2 downto 0) := "000";
+  constant F3_LH        : std_logic_vector(2 downto 0) := "001";
+  constant F3_LW        : std_logic_vector(2 downto 0) := "010";
+  constant F3_LBU       : std_logic_vector(2 downto 0) := "100";
+  constant F3_LHU       : std_logic_vector(2 downto 0) := "101";
+  constant F3_SB        : std_logic_vector(2 downto 0) := "000";
+  constant F3_SH        : std_logic_vector(2 downto 0) := "001";
+  constant F3_SW        : std_logic_vector(2 downto 0) := "010";
+
   -- ===========================================================================
   -- RISC-V Compressed Opcodes (RV32C)
   -- ===========================================================================
@@ -79,6 +89,6 @@ package RV_pkg is
   constant F3_MAXU      : std_logic_vector(2 downto 0) := "111";
   constant F3_MIN       : std_logic_vector(2 downto 0) := "100";
   constant F3_MINU      : std_logic_vector(2 downto 0) := "101";
-  constant F7_MINMAX    : std_logic_vector(6 downto 0) := "
+  constant F7_MINMAX    : std_logic_vector(6 downto 0) := "0000101";
 
 end RV_pkg;

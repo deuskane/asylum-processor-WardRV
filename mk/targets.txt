@@ -1,1 +1,4 @@
-default                        : Default Target
+default   : Default Target
+sim       : default rule to sim (DON'T RUN)
+sim_basic : default rule to sim (DON'T RUN)
+

@@ -6,22 +6,36 @@ package WardRV_pkg is
 
   type inst_ini_t is record
     valid        : std_logic;        -- Access Valid
-    addr         : std_logic_vector; -- Instruction Address
+    addr         : std_logic_vector(31 downto 0); -- Instruction Address
   end record inst_ini_t;
 
   type inst_tgt_t is record
     ready        : std_logic;        -- Access Ready
-    inst         : std_logic_vector; -- Instruction
+    inst         : std_logic_vector(31 downto 0); -- Instruction
   end record inst_tgt_t;
 
+  type sbi_ini_t is record
+    valid        : std_logic;
+    addr         : std_logic_vector(31 downto 0);
+    wdata        : std_logic_vector(31 downto 0);
+    we           : std_logic;
+    be           : std_logic_vector(3 downto 0);
+  end record sbi_ini_t;
+
+  type sbi_tgt_t is record
+    ready        : std_logic;
+    rdata        : std_logic_vector(31 downto 0);
+    err          : std_logic;
+  end record sbi_tgt_t;
 
 -- [COMPONENT_INSERT][BEGIN]
 component WardRV is
   -- =====[ Parameters ]==========================
   generic (
     
-     RESET_ADDR        : std_logic_vector := (others => '0');
-     IT_ADDR           : std_logic_vector := (others => '0')
+     RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0');
+     IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
+     BIG_ENDIAN        : boolean          := false
      );
   -- =====[ Interfaces ]==========================
   port (

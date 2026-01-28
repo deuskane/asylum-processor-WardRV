@@ -35,6 +35,14 @@ filesets:
     depend       :
       - ">=asylum:utils:pkg:1.0.0"
       - ">=asylum:component:ram:1.0.0"
+
+  #---------------------------------------
+  files_sim:
+  #---------------------------------------
+    files        :
+      - sim/tb_WardRV.vhd
+      - esw/firmware.hex          : {file_type : user, copyto : firmware.hex}
+    file_type    : vhdlSource-2008
       
 #=========================================
 targets:
@@ -49,3 +57,47 @@ targets:
       - files_hdl
     toplevel        : WardRV
     default_tool    : ghdl
+
+  #---------------------------------------
+  sim: &sim
+  #---------------------------------------
+    << : *default
+    description     : default rule to sim (DON'T RUN)
+    default_tool    : ghdl
+    toplevel        : tb_WardRV
+    filesets_append :
+      - files_sim
+    tools :
+      ghdl :
+        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
+
+  #---------------------------------------
+  sim_basic:
+  #---------------------------------------
+    << : *sim
+    description     : default rule to sim (DON'T RUN)
+    parameters      :
+      - FIRMWARE_FILE=firmware.hex
+      - VERBOSE=true
+    tools :
+      ghdl :
+        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
+
+
+#=========================================
+parameters :
+#=========================================
+
+  FIRMWARE_FILE :
+    description : Firmware
+    datatype    : str
+    default     : firmware.hex
+    paramtype   : generic
+
+  VERBOSE :
+    description : Verbose mode
+    datatype    : bool
+    default     : true
+    paramtype   : generic
