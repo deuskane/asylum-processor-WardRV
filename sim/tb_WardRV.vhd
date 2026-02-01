@@ -7,6 +7,9 @@ library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
 
+library uvvm_util;
+context uvvm_util.uvvm_util_context;
+
 entity tb_WardRV is
   generic (
     FIRMWARE_FILE  : string  := "firmware.hex";
@@ -23,7 +26,6 @@ architecture rtl of tb_WardRV is
   constant TOHOST_ADDR : std_logic_vector(31 downto 0) := x"80001000";
 
   -- Signals
-  signal  test_done                : std_logic := '0';
   signal clk_i    : std_logic := '0';
   signal arst_b_i : std_logic := '0';
   signal sim_end  : boolean   := false;
@@ -52,7 +54,7 @@ architecture rtl of tb_WardRV is
     -- Example: Dump a specific range if needed by the compliance framework
     -- Typically, the framework parses the ELF to find begin_signature symbol
     -- Here we just report completion.
-    report "Simulation finished. Signature dump logic can be added here.";
+    log(ID_SEQUENCER, "Simulation finished. Signature dump logic can be added here.");
   end procedure;
 
   -- Helper to read Hex
@@ -92,12 +94,10 @@ architecture rtl of tb_WardRV is
     variable word : std_logic_vector(31 downto 0);
   begin
     if VERBOSE then
-      write(l, string'("Firmware Content:"));
-      writeline(output, l);
+      log(ID_SEQUENCER, "Firmware Content:");
       for i in 0 to (size/4)-1 loop
         word := ram(i*4+3) & ram(i*4+2) & ram(i*4+1) & ram(i*4);
-        write(l, string'("  @") & to_hstring(std_logic_vector(to_unsigned(i*4, 32))) & string'(": ") & to_hstring(word));
-        writeline(output, l);
+        log(ID_SEQUENCER, "  @" & to_hstring(std_logic_vector(to_unsigned(i*4, 32))) & ": " & to_hstring(word));
       end loop;
     end if;
   end procedure;
@@ -105,14 +105,14 @@ architecture rtl of tb_WardRV is
   procedure print_instruction(addr : std_logic_vector; inst : std_logic_vector) is
   begin
     if VERBOSE then
-      report "Fetch @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(inst);
+      log(ID_BFM, "Fetch @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(inst));
     end if;
   end procedure;
 
 begin
 
   -- Clock Generation
-  clk_i <= not test_done and not clk_i after CLK_PERIOD / 2 when not sim_end else '0';
+  clock_generator(clk_i, CLK_PERIOD);
   arst_b_i <= '1' after 5 * CLK_PERIOD;
 
   -- DUT Instance
@@ -139,13 +139,21 @@ begin
   -- Initial Load
   process
   begin
+    -- UVVM Setup
+    report_global_ctrl(VOID);
+    enable_log_msg(ALL_MESSAGES);
+    log(ID_LOG_HDR, "Starting Simulation of WardRV");
+
     -- Wait for 1 delta cycle to ensure signals are initialized
     wait for 0 ns;
-    wait for 1000 ns;
+    wait until sim_end for 100 us;
 
-    report "[TESTBENCH] Test OK";
-    test_done <= '1';
-    wait;
+    if not sim_end then
+      alert(TB_ERROR, "Simulation Timeout");
+    end if;
+
+    report_alert_counters(FINAL);
+    std.env.stop;
 
   end process;
 
@@ -184,9 +192,9 @@ begin
         -- Assuming writing to a specific high address signals end
         if sbi_ini.addr = TOHOST_ADDR and sbi_ini.we = '1' then
            if to_integer(unsigned(sbi_ini.wdata)) = 1 then
-             report "TEST PASSED (tohost = 1)";
+             log(ID_LOG_HDR, "TEST PASSED (tohost = 1)");
            else
-             report "TEST FAILED (tohost = " & integer'image(to_integer(unsigned(sbi_ini.wdata))) & ")";
+             alert(TB_ERROR, "TEST FAILED (tohost = " & integer'image(to_integer(unsigned(sbi_ini.wdata))) & ")");
            end if;
            sim_end <= true;
            

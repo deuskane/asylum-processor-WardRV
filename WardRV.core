@@ -4,7 +4,7 @@ CAPI=2:
 # Title      : WardRV Core file
 # Project    : Asylum
 #-----------------------------------------------------------------------------
-# File       : Openblaze8.core
+# File       : WardRV.core
 # Author     : mrosiere
 #-----------------------------------------------------------------------------
 # Description: 
@@ -45,6 +45,8 @@ filesets:
       - sim/tb_WardRV.vhd
       - esw/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
     file_type    : vhdlSource-2008
+    depend :
+      - bitvis:verification:uvvm
       
 #=========================================
 targets:
