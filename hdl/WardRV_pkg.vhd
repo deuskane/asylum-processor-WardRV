@@ -28,6 +28,18 @@ package WardRV_pkg is
     err          : std_logic;
   end record sbi_tgt_t;
 
+  type jtag_ini_t is record
+    tck          : std_logic;
+    trst_n       : std_logic;
+    tms          : std_logic;
+    tdi          : std_logic;
+  end record jtag_ini_t;
+
+  type jtag_tgt_t is record
+    tdo          : std_logic;
+    tdo_en       : std_logic;
+  end record jtag_tgt_t;
+
 -- [COMPONENT_INSERT][BEGIN]
 component WardRV is
   -- =====[ Parameters ]==========================
@@ -35,7 +47,8 @@ component WardRV is
     
      RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0');
      IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
-     BIG_ENDIAN        : boolean          := false
+     BIG_ENDIAN        : boolean          := false;
+     DM_ENABLE         : boolean          := true
      );
   -- =====[ Interfaces ]==========================
   port (
@@ -52,7 +65,11 @@ component WardRV is
 
     -- To/From IT Ctrl
     it_val_i         : in    std_logic;
-    it_ack_o         : out   std_logic
+    it_ack_o         : out   std_logic;
+
+    -- JTAG
+    jtag_ini_i       : in    jtag_ini_t;
+    jtag_tgt_o       : out   jtag_tgt_t
     );
 end component WardRV;
 

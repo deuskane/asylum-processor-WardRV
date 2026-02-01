@@ -26,6 +26,7 @@ library asylum;
 use     asylum.math_pkg.all;
 use     asylum.RV_pkg.all;
 use     asylum.WardRV_pkg.all;
+use     asylum.WardRV_debug_pkg.all;
 
 entity WardRV is
   -- =====[ Parameters ]==========================
@@ -33,7 +34,8 @@ entity WardRV is
     
      RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0');
      IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
-     BIG_ENDIAN        : boolean          := false
+     BIG_ENDIAN        : boolean          := false;
+     DM_ENABLE         : boolean          := true
      );
   -- =====[ Interfaces ]==========================
   port (
@@ -50,7 +52,11 @@ entity WardRV is
 
     -- To/From IT Ctrl
     it_val_i         : in    std_logic;
-    it_ack_o         : out   std_logic
+    it_ack_o         : out   std_logic;
+
+    -- JTAG
+    jtag_ini_i       : in    jtag_ini_t;
+    jtag_tgt_o       : out   jtag_tgt_t
     );
 end WardRV;
 
@@ -139,6 +145,7 @@ architecture rtl of WardRV is
   constant UOP_ADDR_ALU_REG_EXEC : integer := 12;
   constant UOP_ADDR_BRANCH_EXEC : integer := 13;
   constant UOP_ADDR_STORE_EXEC  : integer := 14;
+  constant UOP_ADDR_DBG_HALT    : integer := 15;
 
   -- Microcode Table (ROM)
   type uop_rom_t is array (0 to 15) of uop_inst_t;
@@ -174,6 +181,8 @@ architecture rtl of WardRV is
     UOP_ADDR_BRANCH_EXEC => (UOP_ALU_ADD, UOP_SRC_A_TMP,  UOP_SRC_B_RF,  UOP_MEM_NONE, UOP_RF_RD_NONE, UOP_RF_NONE,      true,  UOP_SEQ_GOTO,      UOP_ADDR_FETCH),
     -- 14: STORE (Exec)
     UOP_ADDR_STORE_EXEC => (UOP_ALU_ADD,  UOP_SRC_A_TMP,  UOP_SRC_B_IMM, UOP_MEM_WR,   UOP_RF_RD_NONE, UOP_RF_NONE,      true,  UOP_SEQ_WAIT_SBI,  UOP_ADDR_FETCH),
+    -- 15: DBG HALT
+    UOP_ADDR_DBG_HALT   => (UOP_ALU_ADD,  UOP_SRC_A_ZERO, UOP_SRC_B_ZERO, UOP_MEM_NONE, UOP_RF_RD_NONE, UOP_RF_NONE,      false, UOP_SEQ_GOTO,      UOP_ADDR_DBG_HALT),
 
     others           => (UOP_ALU_ADD,    UOP_SRC_A_ZERO, UOP_SRC_B_ZERO, UOP_MEM_NONE, UOP_RF_RD_NONE, UOP_RF_NONE,      false, UOP_SEQ_GOTO,      UOP_ADDR_FETCH)
   );
@@ -194,6 +203,11 @@ architecture rtl of WardRV is
   signal mem_wdata         : std_logic_vector(31 downto 0);
   signal mem_be            : std_logic_vector(3 downto 0);
   signal mem_rdata_aligned : std_logic_vector(31 downto 0);
+
+  -- Debug
+  signal loc_arst_b : std_logic;
+  signal dbg_req    : dbg_req_t;
+  signal dbg_rsp    : dbg_rsp_t;
 
   -- Internal Signals
   signal imm_val      : std_logic_vector(31 downto 0);
@@ -218,38 +232,48 @@ begin
   -- ==========================================================================
   uop_inst <= UOP_ROM(uop_pc_r);
 
-  p_seq_comb : process(uop_pc_r, uop_inst, opcode, inst_tgt_i, sbi_tgt_i)
+  p_seq_comb : process(uop_pc_r, uop_inst, opcode, inst_tgt_i, sbi_tgt_i, dbg_req)
   begin
     uop_pc_next <= uop_pc_r; -- Default hold
 
-    case uop_inst.seq is
-      when UOP_SEQ_GOTO =>
-        uop_pc_next <= uop_inst.next_uop;
-
-      when UOP_SEQ_WAIT_INST =>
-        if inst_tgt_i.ready = '1' then
+    if uop_pc_r = UOP_ADDR_DBG_HALT then
+      if dbg_req.resume = '1' then
+        uop_pc_next <= UOP_ADDR_FETCH;
+      else
+        uop_pc_next <= UOP_ADDR_DBG_HALT;
+      end if;
+    elsif dbg_req.halt = '1' and uop_pc_r = UOP_ADDR_FETCH then
+      uop_pc_next <= UOP_ADDR_DBG_HALT;
+    else
+      case uop_inst.seq is
+        when UOP_SEQ_GOTO =>
           uop_pc_next <= uop_inst.next_uop;
-        end if;
 
-      when UOP_SEQ_WAIT_SBI =>
-        if sbi_tgt_i.ready = '1' then
-          uop_pc_next <= uop_inst.next_uop;
-        end if;
+        when UOP_SEQ_WAIT_INST =>
+          if inst_tgt_i.ready = '1' then
+            uop_pc_next <= uop_inst.next_uop;
+          end if;
 
-      when UOP_SEQ_DISPATCH =>
-        case opcode is
-          when OPC_LUI      => uop_pc_next <= UOP_ADDR_LUI;
-          when OPC_AUIPC    => uop_pc_next <= UOP_ADDR_AUIPC;
-          when OPC_JAL      => uop_pc_next <= UOP_ADDR_JAL;
-          when OPC_JALR     => uop_pc_next <= UOP_ADDR_JALR;
-          when OPC_BRANCH   => uop_pc_next <= UOP_ADDR_BRANCH_RS2;
-          when OPC_LOAD     => uop_pc_next <= UOP_ADDR_LOAD;
-          when OPC_STORE    => uop_pc_next <= UOP_ADDR_STORE_RS2;
-          when OPC_OP_IMM   => uop_pc_next <= UOP_ADDR_ALU_IMM;
-          when OPC_OP       => uop_pc_next <= UOP_ADDR_ALU_REG_RS2;
-          when others       => uop_pc_next <= UOP_ADDR_FETCH; -- NOP/Trap
-        end case;
-    end case;
+        when UOP_SEQ_WAIT_SBI =>
+          if sbi_tgt_i.ready = '1' then
+            uop_pc_next <= uop_inst.next_uop;
+          end if;
+
+        when UOP_SEQ_DISPATCH =>
+          case opcode is
+            when OPC_LUI      => uop_pc_next <= UOP_ADDR_LUI;
+            when OPC_AUIPC    => uop_pc_next <= UOP_ADDR_AUIPC;
+            when OPC_JAL      => uop_pc_next <= UOP_ADDR_JAL;
+            when OPC_JALR     => uop_pc_next <= UOP_ADDR_JALR;
+            when OPC_BRANCH   => uop_pc_next <= UOP_ADDR_BRANCH_RS2;
+            when OPC_LOAD     => uop_pc_next <= UOP_ADDR_LOAD;
+            when OPC_STORE    => uop_pc_next <= UOP_ADDR_STORE_RS2;
+            when OPC_OP_IMM   => uop_pc_next <= UOP_ADDR_ALU_IMM;
+            when OPC_OP       => uop_pc_next <= UOP_ADDR_ALU_REG_RS2;
+            when others       => uop_pc_next <= UOP_ADDR_FETCH; -- NOP/Trap
+          end case;
+      end case;
+    end if;
   end process;
 
   -- ==========================================================================
@@ -351,9 +375,11 @@ begin
   -- ==========================================================================
   -- 4. Sequential Logic (PC, Regs, State)
   -- ==========================================================================
-  process(clk_i, arst_b_i)
+  loc_arst_b <= arst_b_i and not dbg_req.ndmreset;
+
+  process(clk_i, loc_arst_b)
   begin
-    if arst_b_i = '0' then
+    if loc_arst_b = '0' then
       uop_pc_r <= UOP_ADDR_FETCH;
       pc_r     <= RESET_ADDR;
       ir_r     <= (others => '0');
@@ -508,5 +534,32 @@ begin
   sbi_ini_o.be     <= mem_be;
 
   it_ack_o <= '0'; -- Stub
+
+  -- Debug Module
+  gen_dm : if DM_ENABLE generate
+    u_debug : WardRV_debug
+      generic map (
+        IDCODE_VALUE => x"10000001"
+      )
+      port map (
+        jtag_ini_i => jtag_ini_i,
+        jtag_tgt_o => jtag_tgt_o,
+        clk_i     => clk_i,
+        arst_b_i  => arst_b_i,
+        dbg_req_o => dbg_req,
+        dbg_rsp_i => dbg_rsp
+      );
+  end generate gen_dm;
+
+  gen_no_dm : if not DM_ENABLE generate
+    dbg_req.halt     <= '0';
+    dbg_req.resume   <= '0';
+    dbg_req.ndmreset <= '0';
+    jtag_tgt_o.tdo   <= '0';
+    jtag_tgt_o.tdo_en<= '0';
+  end generate gen_no_dm;
+
+  dbg_rsp.halted  <= '1' when uop_pc_r = UOP_ADDR_DBG_HALT else '0';
+  dbg_rsp.running <= '1' when uop_pc_r /= UOP_ADDR_DBG_HALT else '0';
 
 end rtl;

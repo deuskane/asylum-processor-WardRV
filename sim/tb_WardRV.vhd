@@ -37,22 +37,12 @@ architecture rtl of tb_WardRV is
   signal it_val   : std_logic := '0';
   signal it_ack   : std_logic;
 
+  -- JTAG
+  signal jtag_ini : jtag_ini_t := (tck => '0', trst_n => '0', tms => '0', tdi => '0');
+  signal jtag_tgt : jtag_tgt_t;
+
   -- Memory
   type ram_t is array (0 to MEM_SIZE-1) of std_logic_vector(7 downto 0);
-  signal mem : ram_t := (others => x"00");
-
-
-  -- Helper to dump signature (Optional placeholder)
-  procedure dump_signature(file_name : in string; signal ram : in ram_t) is
-    file f_out      : text open write_mode is file_name;
-    variable l      : line;
-    variable word   : std_logic_vector(31 downto 0);
-  begin
-    -- Example: Dump a specific range if needed by the compliance framework
-    -- Typically, the framework parses the ELF to find begin_signature symbol
-    -- Here we just report completion.
-    report "Simulation finished. Signature dump logic can be added here.";
-  end procedure;
 
   function to_hex_string(slv : std_logic_vector) return string is
     variable hex_digits : string(1 to 16) := "0123456789abcdef";
@@ -66,13 +56,26 @@ architecture rtl of tb_WardRV is
     return result;
   end function;
 
+  -- Helper to dump signature (Optional placeholder)
+  procedure dump_signature(file_name : in string; signal ram : in ram_t) is
+    file f_out      : text open write_mode is file_name;
+    variable l      : line;
+    variable word   : std_logic_vector(31 downto 0);
+  begin
+    -- Example: Dump a specific range if needed by the compliance framework
+    -- Typically, the framework parses the ELF to find begin_signature symbol
+    -- Here we just report completion.
+    report "Simulation finished. Signature dump logic can be added here.";
+  end procedure;
+
   -- Helper to read Hex
-  procedure load_hex(file_name : in string; signal ram : inout ram_t; size : out integer) is
+  impure function init_ram(file_name : string) return ram_t is
     file f_in       : text open read_mode is file_name;
     variable l      : line;
     variable word   : std_logic_vector(31 downto 0);
     variable addr   : integer := 0;
     variable good   : boolean;
+    variable ram    : ram_t := (others => x"00");
   begin
     while not endfile(f_in) and addr < MEM_SIZE loop
       readline(f_in, l);
@@ -82,20 +85,20 @@ architecture rtl of tb_WardRV is
         report integer'image(addr) & "  " & to_hex_string(word);
 
         -- Little Endian loading
-        ram(addr)   <= word(7 downto 0);
-        ram(addr+1) <= word(15 downto 8);
-        ram(addr+2) <= word(23 downto 16);
-        ram(addr+3) <= word(31 downto 24);
+        ram(addr)   := word(7 downto 0);
+        ram(addr+1) := word(15 downto 8);
+        ram(addr+2) := word(23 downto 16);
+        ram(addr+3) := word(31 downto 24);
 
-        --wait for 0 ns;
-        --report integer'image(addr) & "  " & to_hex_string(ram(addr+3));
 
         addr := addr + 4;
       end if;
     end loop;
-    size := addr;
     report "Loaded " & integer'image(addr) & " bytes from " & file_name;
-  end procedure;
+    return ram;
+  end function;
+
+  signal mem : ram_t := init_ram(FIRMWARE_FILE);
 
   procedure print_firmware(signal ram : in ram_t; size : in integer) is
     variable l : line;
@@ -140,18 +143,16 @@ begin
       sbi_ini_o  => sbi_ini,
       sbi_tgt_i  => sbi_tgt,
       it_val_i   => it_val,
-      it_ack_o   => it_ack
+      it_ack_o   => it_ack,
+      jtag_ini_i => jtag_ini,
+      jtag_tgt_o => jtag_tgt
     );
 
   -- Initial Load
   process
-    variable fw_size : integer;
   begin
     -- Wait for 1 delta cycle to ensure signals are initialized
     wait for 0 ns;
-    load_hex(FIRMWARE_FILE, mem, fw_size);
-    wait for 0 ns;
-    print_firmware(mem, fw_size);
     wait for 1000 ns;
 
     report "[TESTBENCH] Test OK";
