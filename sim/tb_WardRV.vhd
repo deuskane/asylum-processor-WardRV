@@ -1,7 +1,6 @@
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
-use     ieee.std_logic_textio.all;
 use     std.textio.all;
 
 library asylum;
@@ -44,18 +43,6 @@ architecture rtl of tb_WardRV is
   -- Memory
   type ram_t is array (0 to MEM_SIZE-1) of std_logic_vector(7 downto 0);
 
-  function to_hex_string(slv : std_logic_vector) return string is
-    variable hex_digits : string(1 to 16) := "0123456789abcdef";
-    variable result     : string(1 to slv'length/4);
-    variable nibble     : integer;
-  begin
-    for i in result'range loop
-      nibble := to_integer(unsigned(slv(slv'length - (i-1)*4 - 1 downto slv'length - i*4)));
-      result(i) := hex_digits(nibble + 1);
-    end loop;
-    return result;
-  end function;
-
   -- Helper to dump signature (Optional placeholder)
   procedure dump_signature(file_name : in string; signal ram : in ram_t) is
     file f_out      : text open write_mode is file_name;
@@ -82,7 +69,7 @@ architecture rtl of tb_WardRV is
       hread(l, word, good);
       if good then
 
-        report integer'image(addr) & "  " & to_hex_string(word);
+        report integer'image(addr) & "  " & to_hstring(word);
 
         -- Little Endian loading
         ram(addr)   := word(7 downto 0);
@@ -109,7 +96,7 @@ architecture rtl of tb_WardRV is
       writeline(output, l);
       for i in 0 to (size/4)-1 loop
         word := ram(i*4+3) & ram(i*4+2) & ram(i*4+1) & ram(i*4);
-        write(l, string'("  @") & to_hex_string(std_logic_vector(to_unsigned(i*4, 32))) & string'(": ") & to_hex_string(word));
+        write(l, string'("  @") & to_hstring(std_logic_vector(to_unsigned(i*4, 32))) & string'(": ") & to_hstring(word));
         writeline(output, l);
       end loop;
     end if;
@@ -118,7 +105,7 @@ architecture rtl of tb_WardRV is
   procedure print_instruction(addr : std_logic_vector; inst : std_logic_vector) is
   begin
     if VERBOSE then
-      report "Fetch @ 0x" & to_hex_string(addr) & " : 0x" & to_hex_string(inst);
+      report "Fetch @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(inst);
     end if;
   end procedure;
 

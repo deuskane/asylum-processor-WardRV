@@ -161,7 +161,7 @@ begin
   end process;
 
   -- TDO Mux
-  process(ir_reg, tap_state, dmi_dr, bypass_dr)
+  process(all)
   begin
     if tap_state = SHIFT_IR then
       tdo_mux <= dmi_dr(0);

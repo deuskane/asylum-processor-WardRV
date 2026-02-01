@@ -8,7 +8,7 @@
 -- Created    : 2026-01-24
 -- Last update: 2026-01-28
 -- Platform   : 
--- Standard   : VHDL'87
+-- Standard   : VHDL'08
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -233,7 +233,7 @@ begin
   -- ==========================================================================
   uop_inst <= UOP_ROM(uop_pc_r);
 
-  p_seq_comb : process(uop_pc_r, uop_inst, opcode, inst_tgt_i, sbi_tgt_i, dbg_req)
+  p_seq_comb : process(all)
   begin
     uop_pc_next <= uop_pc_r; -- Default hold
 
@@ -280,7 +280,7 @@ begin
   -- ==========================================================================
   -- 2. Datapath: Immediate Generation
   -- ==========================================================================
-  process(ir_r, opcode)
+  process(all)
   begin
     case opcode is
       when OPC_LUI | OPC_AUIPC              => imm_val <= ir_r(31 downto 12) & x"000";
@@ -310,7 +310,7 @@ begin
                 (others => '0')                      when others;
 
   -- ALU Logic
-  process(alu_op_a, alu_op_b, uop_inst, funct3, funct7, opcode)
+  process(all)
     variable v_op  : uop_alu_t;
     variable v_sub : boolean;
   begin
@@ -355,7 +355,7 @@ begin
   end process;
 
   -- Branch Condition
-  process(funct3, alu_res)
+  process(all)
     variable v_zero : boolean;
     variable v_neg  : boolean;
   begin
@@ -441,7 +441,7 @@ begin
   -- ==========================================================================
   
   -- Write Data & Byte Enable Generation
-  process(funct3, rf_rdata, alu_res)
+  process(all)
     variable v_off   : integer;
     variable v_byte  : std_logic_vector(7 downto 0);
     variable v_half  : std_logic_vector(15 downto 0);
@@ -486,7 +486,7 @@ begin
   end process;
 
   -- Read Data Alignment & Sign Extension
-  process(funct3, sbi_tgt_i.rdata, alu_res)
+  process(all)
     variable v_off   : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
     variable v_byte  : std_logic_vector(7 downto 0);
@@ -530,17 +530,6 @@ begin
 
   -- Debug Process
   p_debug : process(clk_i)
-    function to_hex_string(slv : std_logic_vector) return string is
-      variable hex_digits : string(1 to 16) := "0123456789abcdef";
-      variable result     : string(1 to slv'length/4);
-      variable nibble     : integer;
-    begin
-      for i in result'range loop
-        nibble := to_integer(unsigned(slv(slv'length - (i-1)*4 - 1 downto slv'length - i*4)));
-        result(i) := hex_digits(nibble + 1);
-      end loop;
-      return result;
-    end function;
   begin
     if rising_edge(clk_i) then
       if DEBUG then
@@ -551,15 +540,15 @@ begin
 
         -- Instruction Fetched
         if uop_pc_r = UOP_ADDR_FETCH and inst_tgt_i.ready = '1' then
-          report "FETCH: Inst=0x" & to_hex_string(inst_tgt_i.inst) & " @ PC=0x" & to_hex_string(pc_r);
+          report "FETCH: Inst=0x" & to_hstring(inst_tgt_i.inst) & " @ PC=0x" & to_hstring(pc_r);
         end if;
 
         -- Memory Access
         if (uop_pc_r = UOP_ADDR_LOAD or uop_pc_r = UOP_ADDR_STORE_EXEC) then
            if uop_inst.mem_op = UOP_MEM_WR then
-             report "MEM WRITE: Data=0x" & to_hex_string(mem_wdata) & " @ Addr=0x" & to_hex_string(alu_res);
+             report "MEM WRITE: Data=0x" & to_hstring(mem_wdata) & " @ Addr=0x" & to_hstring(alu_res);
            elsif uop_inst.mem_op = UOP_MEM_RD then
-             report "MEM READ Req @ Addr=0x" & to_hex_string(alu_res);
+             report "MEM READ Req @ Addr=0x" & to_hstring(alu_res);
            end if;
         end if;
       end if;
