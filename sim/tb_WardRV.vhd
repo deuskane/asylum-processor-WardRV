@@ -133,7 +133,8 @@ begin
     generic map (
       RESET_ADDR => x"00000000",
       IT_ADDR    => x"00000000",
-      BIG_ENDIAN => false
+      BIG_ENDIAN => false,
+      DEBUG      => true
     )
     port map (
       clk_i      => clk_i,
@@ -173,8 +174,8 @@ begin
       inst_tgt.inst  <= (others => '0');
       
       if inst_ini.valid = '1' then
-        i_addr := to_integer(unsigned(inst_ini.addr));
-        if i_addr < MEM_SIZE - 3 then
+        if unsigned(inst_ini.addr) < MEM_SIZE - 3 then
+          i_addr := to_integer(unsigned(inst_ini.addr));
           v_inst := mem(i_addr+3) & mem(i_addr+2) & mem(i_addr+1) & mem(i_addr);
           inst_tgt.inst <= v_inst;
           print_instruction(inst_ini.addr, v_inst);
@@ -191,7 +192,6 @@ begin
       sbi_tgt.err   <= '0';
 
       if sbi_ini.valid = '1' then
-        d_addr := to_integer(unsigned(sbi_ini.addr));
         
         -- Check for TOHOST (Simulation Exit)
         -- Assuming writing to a specific high address signals end
@@ -203,7 +203,8 @@ begin
            end if;
            sim_end <= true;
            
-        elsif d_addr < MEM_SIZE - 3 then
+        elsif unsigned(sbi_ini.addr) < MEM_SIZE - 3 then
+          d_addr := to_integer(unsigned(sbi_ini.addr));
           sbi_tgt.ready <= '1';
           
           -- Write

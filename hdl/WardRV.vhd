@@ -35,7 +35,8 @@ entity WardRV is
      RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0');
      IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
      BIG_ENDIAN        : boolean          := false;
-     DM_ENABLE         : boolean          := true
+     DM_ENABLE         : boolean          := true;
+     DEBUG             : boolean          := false
      );
   -- =====[ Interfaces ]==========================
   port (
@@ -194,10 +195,10 @@ architecture rtl of WardRV is
 
   -- Register File (Inferred as RAM)
   type reg_file_t is array (0 to 31) of std_logic_vector(31 downto 0);
-  signal regs         : reg_file_t; -- Now accessed via process
-  signal rf_rdata     : std_logic_vector(31 downto 0);
+  signal regs         : reg_file_t := (others => (others => '0')); -- Now accessed via process
+  signal rf_rdata     : std_logic_vector(31 downto 0) := (others => '0');
   signal rf_addr      : std_logic_vector(4 downto 0);
-  signal reg_a        : std_logic_vector(31 downto 0); -- Temp register for RS1
+  signal reg_a        : std_logic_vector(31 downto 0) := (others => '0'); -- Temp register for RS1
 
   -- Memory Access Signals
   signal mem_wdata         : std_logic_vector(31 downto 0);
@@ -526,6 +527,44 @@ begin
   -- Outputs
   inst_ini_o.valid <= '1' when uop_pc_r = UOP_ADDR_FETCH else '0';
   inst_ini_o.addr  <= pc_r;
+
+  -- Debug Process
+  p_debug : process(clk_i)
+    function to_hex_string(slv : std_logic_vector) return string is
+      variable hex_digits : string(1 to 16) := "0123456789abcdef";
+      variable result     : string(1 to slv'length/4);
+      variable nibble     : integer;
+    begin
+      for i in result'range loop
+        nibble := to_integer(unsigned(slv(slv'length - (i-1)*4 - 1 downto slv'length - i*4)));
+        result(i) := hex_digits(nibble + 1);
+      end loop;
+      return result;
+    end function;
+  begin
+    if rising_edge(clk_i) then
+      if DEBUG then
+        -- Microcode Instruction
+        report "UOP PC: " & integer'image(uop_pc_r) & 
+               " | ALU: " & uop_alu_t'image(uop_inst.alu_op) &
+               " | SEQ: " & uop_seq_t'image(uop_inst.seq);
+
+        -- Instruction Fetched
+        if uop_pc_r = UOP_ADDR_FETCH and inst_tgt_i.ready = '1' then
+          report "FETCH: Inst=0x" & to_hex_string(inst_tgt_i.inst) & " @ PC=0x" & to_hex_string(pc_r);
+        end if;
+
+        -- Memory Access
+        if (uop_pc_r = UOP_ADDR_LOAD or uop_pc_r = UOP_ADDR_STORE_EXEC) then
+           if uop_inst.mem_op = UOP_MEM_WR then
+             report "MEM WRITE: Data=0x" & to_hex_string(mem_wdata) & " @ Addr=0x" & to_hex_string(alu_res);
+           elsif uop_inst.mem_op = UOP_MEM_RD then
+             report "MEM READ Req @ Addr=0x" & to_hex_string(alu_res);
+           end if;
+        end if;
+      end if;
+    end if;
+  end process;
 
   sbi_ini_o.valid  <= '1' when (uop_pc_r = UOP_ADDR_LOAD or uop_pc_r = UOP_ADDR_STORE_EXEC) else '0';
   sbi_ini_o.addr   <= alu_res;

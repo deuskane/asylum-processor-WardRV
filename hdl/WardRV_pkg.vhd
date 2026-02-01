@@ -48,7 +48,8 @@ component WardRV is
      RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0');
      IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
      BIG_ENDIAN        : boolean          := false;
-     DM_ENABLE         : boolean          := true
+     DM_ENABLE         : boolean          := true;
+     DEBUG             : boolean          := false
      );
   -- =====[ Interfaces ]==========================
   port (
