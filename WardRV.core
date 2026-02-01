@@ -42,6 +42,7 @@ filesets:
   files_sim:
   #---------------------------------------
     files        :
+      - sim/WardRV_vips.vhd
       - sim/tb_WardRV.vhd
       - esw/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
     file_type    : vhdlSource-2008

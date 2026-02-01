@@ -10,6 +10,8 @@ use     asylum.RV_pkg.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+use work.WardRV_vips.all;
+
 entity tb_WardRV is
   generic (
     FIRMWARE_FILE  : string  := "firmware.hex";
@@ -113,7 +115,13 @@ begin
 
   -- Clock Generation
   clock_generator(clk_i, CLK_PERIOD);
-  arst_b_i <= '1' after 5 * CLK_PERIOD;
+
+  -- Reset Generation
+  p_reset : process
+  begin
+    vip_reset_pulse(arst_b_i, 5 * CLK_PERIOD, "System Reset");
+    wait;
+  end process;
 
   -- DUT Instance
   dut : entity asylum.WardRV
@@ -144,8 +152,12 @@ begin
     enable_log_msg(ALL_MESSAGES);
     log(ID_LOG_HDR, "Starting Simulation of WardRV");
 
-    -- Wait for 1 delta cycle to ensure signals are initialized
-    wait for 0 ns;
+    -- Wait for reset deassertion
+    wait until arst_b_i = '1';
+
+    -- VIP Initialization
+    vip_jtag_init(jtag_ini);
+    
     wait until sim_end for 100 us;
 
     if not sim_end then
