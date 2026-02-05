@@ -146,6 +146,7 @@ begin
 
   -- Initial Load
   process
+    variable v_data : std_logic_vector(31 downto 0);
   begin
     -- UVVM Setup
     report_global_ctrl(VOID);
@@ -155,10 +156,31 @@ begin
     -- Wait for reset deassertion
     wait until arst_b_i = '1';
 
-    -- VIP Initialization
-    vip_jtag_init(jtag_ini);
-    
-    wait until sim_end for 100 us;
+    ---- VIP Initialization
+    --vip_jtag_init(jtag_ini);
+    --
+    ---- JTAG Debug Scenario
+    --log(ID_LOG_HDR, "Starting JTAG Debug Scenario");
+--
+    ---- 1. Check IDCODE
+    --vip_jtag_read_idcode(jtag_ini, jtag_tgt, x"10000001", "Check IDCODE");
+--
+    ---- 2. Select DMI IR
+    --vip_jtag_write_ir(jtag_ini, jtag_tgt, "10001", "Select DMI");
+--
+    ---- 3. Halt Core (DMCONTROL=0x10, Write 0x80000001)
+    --vip_jtag_dmi_write(jtag_ini, jtag_tgt, "0010000", x"80000001", "Halt Core");
+    --wait for 1 us;
+    --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
+    --check_value(v_data(9), '1', ERROR, "Core should be halted");
+--
+    ---- 4. Resume Core (DMCONTROL=0x10, Write 0x40000001)
+    --vip_jtag_dmi_write(jtag_ini, jtag_tgt, "0010000", x"40000001", "Resume Core");
+    --wait for 1 us;
+    --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
+    --check_value(v_data(8), '1', ERROR, "Core should be running");
+--
+    wait until sim_end for 100 ms;
 
     if not sim_end then
       alert(TB_ERROR, "Simulation Timeout");

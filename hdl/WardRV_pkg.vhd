@@ -28,6 +28,19 @@ package WardRV_pkg is
     err          : std_logic;
   end record sbi_tgt_t;
 
+  type sbi_8b_ini_t is record
+    valid        : std_logic;
+    addr         : std_logic_vector(31 downto 0);
+    wdata        : std_logic_vector(7 downto 0);
+    we           : std_logic;
+  end record sbi_8b_ini_t;
+
+  type sbi_8b_tgt_t is record
+    ready        : std_logic;
+    rdata        : std_logic_vector(7 downto 0);
+    err          : std_logic;
+  end record sbi_8b_tgt_t;
+
   type jtag_ini_t is record
     tck          : std_logic;
     trst_n       : std_logic;

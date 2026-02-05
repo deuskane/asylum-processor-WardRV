@@ -38,7 +38,7 @@ architecture rtl of WardRV_debug is
   signal ir_reg    : std_logic_vector(4 downto 0); -- Instruction Register
   signal idcode_dr : std_logic_vector(31 downto 0);
   signal dtmcs_dr  : std_logic_vector(31 downto 0);
-  signal dmi_dr    : std_logic_vector(40 downto 0); -- Address(7) + Data(32) + Op(2)
+  signal dmi_dr    : std_logic_vector(40 downto 0) := (others => '0'); -- Address(7) + Data(32) + Op(2)
   signal bypass_dr : std_logic;
 
   -- JTAG Instructions (RISC-V Standard)
@@ -129,8 +129,7 @@ begin
       
       -- Shift
       elsif tap_state = SHIFT_IR then
-        dmi_dr <= "0" & dmi_dr(40 downto 1); -- Shift Right
-        dmi_dr(40) <= jtag_ini_i.tdi;
+        dmi_dr(4 downto 0) <= jtag_ini_i.tdi & dmi_dr(4 downto 1);
       elsif tap_state = SHIFT_DR then
         case ir_reg is
           when IR_IDCODE | IR_DTMCS =>
@@ -140,11 +139,6 @@ begin
           when others =>
             bypass_dr <= jtag_ini_i.tdi;
         end case;
-      end if;
-
-      -- Update IR (Corrected location)
-      if tap_state = UPDATE_IR then
-        ir_reg <= dmi_dr(4 downto 0);
       end if;
 
       -- DMI Request Generation (Update DR)
