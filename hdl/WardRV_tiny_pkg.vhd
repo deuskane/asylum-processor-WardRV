@@ -21,6 +21,6 @@ package WardRV_tiny_pkg is
   end record;
 
   -- From WardRV_tiny_lsu_8b
-  type lsu_8b_state_t is (IDLE, MEM_ACCESS);
+  type lsu_8b_state_t is (IDLE, MEM_ACCESS, UPDATE_PIPE);
 
 end package;

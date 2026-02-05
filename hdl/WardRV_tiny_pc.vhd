@@ -30,12 +30,10 @@ begin
     if arst_b_i = '0' then
       pc_r <= RESET_ADDR;
     elsif rising_edge(clk_i) then
-      if stall_i = '0' then
-        if branch_req_i = '1' then
-          pc_r <= branch_tgt_i;
-        else
-          pc_r <= std_logic_vector(unsigned(pc_r) + 4);
-        end if;
+      if branch_req_i = '1' then
+        pc_r <= branch_tgt_i;
+      elsif stall_i = '0' then
+        pc_r <= std_logic_vector(unsigned(pc_r) + 4);
       end if;
     end if;
   end process;

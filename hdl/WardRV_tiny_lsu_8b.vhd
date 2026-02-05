@@ -101,11 +101,17 @@ begin
             end case;
             
             if access_is_done then
-              state_r <= IDLE;
+              state_r  <= UPDATE_PIPE;
+              busy_reg <= '0';
             else
               byte_count_r <= byte_count_r + 1;
             end if;
           end if;
+
+        when UPDATE_PIPE =>
+          state_r  <= IDLE;
+          busy_reg <= '0';
+
       end case;
     end if;
   end process;

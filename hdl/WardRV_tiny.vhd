@@ -46,6 +46,8 @@ architecture rtl of WardRV_tiny is
   -- Control
   signal stall_fetch : std_logic;
   signal flush_pipe  : std_logic;
+  signal flush_pending : std_logic;
+  signal fetch_pc    : std_logic_vector(31 downto 0);
 
 begin
 
@@ -66,12 +68,24 @@ begin
   inst_ini_o.addr  <= s1_pc;
   s1_inst          <= inst_tgt_i.inst;
 
+  -- Fetch PC Pipeline Register (to align PC with Instruction in Decode)
+  process(clk_i, arst_b_i)
+  begin
+    if arst_b_i = '0' then
+      fetch_pc <= RESET_ADDR;
+    elsif rising_edge(clk_i) then
+      if stall_fetch = '0' then
+        fetch_pc <= s1_pc;
+      end if;
+    end if;
+  end process;
+
   -- 2. Decode Module
   u_decode : entity work.WardRV_tiny_decode
     port map (
       clk_i      => clk_i,
       arst_b_i   => arst_b_i,
-      pc_i       => s1_pc,
+      pc_i       => fetch_pc,
       inst_i     => s1_inst,
       wb_we_i    => s2_wb_we,
       wb_addr_i  => pipe_reg.rd,
@@ -93,6 +107,22 @@ begin
   stall_fetch <= s2_busy or (not inst_tgt_i.ready);
   flush_pipe  <= s2_branch_req;
 
+  -- Flush Pending Logic (Handle 2-cycle flush for branches)
+  process(clk_i, arst_b_i)
+  begin
+    if arst_b_i = '0' then
+      flush_pending <= '0';
+    elsif rising_edge(clk_i) then
+      if s2_busy = '0' then
+        if s2_branch_req = '1' then
+          flush_pending <= '1';
+        else
+          flush_pending <= '0';
+        end if;
+      end if;
+    end if;
+  end process;
+
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' then
@@ -101,11 +131,11 @@ begin
       pipe_reg.opcode <= (others => '0');
     elsif rising_edge(clk_i) then
       if s2_busy = '0' then
-        if flush_pipe = '1' then
+        if flush_pipe = '1' or flush_pending = '1' then
           pipe_reg.valid <= '0';
           pipe_reg.opcode <= (others => '0'); -- NOP
         elsif inst_tgt_i.ready = '1' then
-          pipe_reg.pc       <= s1_pc;
+          pipe_reg.pc       <= fetch_pc;
           pipe_reg.rs1_data <= s1_rs1;
           pipe_reg.rs2_data <= s1_rs2;
           pipe_reg.imm      <= s1_imm;
