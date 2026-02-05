@@ -31,7 +31,15 @@ filesets:
       - hdl/WardRV_pkg.vhd
       - hdl/WardRV_debug_pkg.vhd
       - hdl/WardRV_debug.vhd
-      - hdl/WardRV.vhd
+      #- hdl/WardRV.vhd
+      - hdl/WardRV_tiny_decode.vhd
+      - hdl/WardRV_tiny_execute.vhd
+      - hdl/WardRV_tiny_lsu_8b.vhd
+      - hdl/WardRV_tiny_lsu.vhd
+      - hdl/WardRV_tiny_pc.vhd
+      - hdl/WardRV_tiny_pkg.vhd
+      - hdl/WardRV_tiny.vhd
+
     file_type    : vhdlSource-2008
     logical_name : asylum
     depend       :

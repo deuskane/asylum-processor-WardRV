@@ -124,12 +124,12 @@ begin
   end process;
 
   -- DUT Instance
-  dut : entity asylum.WardRV
+  dut : entity asylum.WardRV_tiny
     generic map (
-      RESET_ADDR => x"00000000",
-      IT_ADDR    => x"00000000",
-      BIG_ENDIAN => false,
-      DEBUG      => true
+      RESET_ADDR => x"00000000"
+      --IT_ADDR    => x"00000000",
+      --BIG_ENDIAN => false,
+      --DEBUG      => true
     )
     port map (
       clk_i      => clk_i,
@@ -137,11 +137,11 @@ begin
       inst_ini_o => inst_ini,
       inst_tgt_i => inst_tgt,
       sbi_ini_o  => sbi_ini,
-      sbi_tgt_i  => sbi_tgt,
-      it_val_i   => it_val,
-      it_ack_o   => it_ack,
-      jtag_ini_i => jtag_ini,
-      jtag_tgt_o => jtag_tgt
+      sbi_tgt_i  => sbi_tgt
+      --it_val_i   => it_val,
+      --it_ack_o   => it_ack,
+      --jtag_ini_i => jtag_ini,
+      --jtag_tgt_o => jtag_tgt
     );
 
   -- Initial Load
@@ -180,7 +180,7 @@ begin
     --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
     --check_value(v_data(8), '1', ERROR, "Core should be running");
 --
-    wait until sim_end for 100 ms;
+    wait until sim_end for 10 us;
 
     if not sim_end then
       alert(TB_ERROR, "Simulation Timeout");
