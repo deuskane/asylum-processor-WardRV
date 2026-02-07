@@ -140,7 +140,7 @@ begin
   end process;
 
   -- DUT Instance
-  dut : entity asylum.WardRV_iss
+  dut : entity asylum.WardRV_fsm
     generic map (
       RESET_ADDR => x"00000000",
       VERBOSE    => VERBOSE

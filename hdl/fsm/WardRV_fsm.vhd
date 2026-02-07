@@ -2,7 +2,7 @@
 -- Title      : WardRV
 -- Project    : 
 -------------------------------------------------------------------------------
--- File       : WardRV_iss.vhd
+-- File       : WardRV_fsm.vhd
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: 
@@ -22,7 +22,7 @@ library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
 
-entity WardRV_iss is
+entity WardRV_fsm is
   generic (
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
     VERBOSE    : boolean                       := false
@@ -39,9 +39,9 @@ entity WardRV_iss is
     sbi_ini_o  : out sbi_ini_t;
     sbi_tgt_i  : in  sbi_tgt_t
   );
-end entity WardRV_iss;
+end entity WardRV_fsm;
 
-architecture behavioural of WardRV_iss is
+architecture behavioural of WardRV_fsm is
 
   -- State Machine
   type state_t is (S_FETCH_REQ, S_FETCH_WAIT, S_DECODE, S_MEM_REQ, S_MEM_WAIT, S_WRITEBACK);

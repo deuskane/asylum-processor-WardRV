@@ -31,7 +31,7 @@ filesets:
       - hdl/WardRV_pkg.vhd
       - hdl/debug/WardRV_debug_pkg.vhd
       - hdl/debug/WardRV_debug.vhd
-      - hdl/iss/WardRV_iss.vhd
+      - hdl/fsm/WardRV_fsm.vhd
       - hdl/tiny/WardRV_tiny_decode.vhd
       - hdl/tiny/WardRV_tiny_execute.vhd
       - hdl/tiny/WardRV_tiny_lsu_8b.vhd
