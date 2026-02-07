@@ -1,3 +1,19 @@
+-------------------------------------------------------------------------------
+-- Title      : WardRV
+-- Project    : 
+-------------------------------------------------------------------------------
+-- File       : WardRV_iss.vhd
+-- Author     : Mathieu Rosiere
+-------------------------------------------------------------------------------
+-- Description: 
+-------------------------------------------------------------------------------
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-02-01  1.0      mrosiere Created
+-------------------------------------------------------------------------------
+
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
@@ -68,6 +84,9 @@ begin
     variable v_op2   : signed(31 downto 0);
     variable v_res   : std_logic_vector(31 downto 0);
     variable v_npc   : std_logic_vector(31 downto 0);
+    variable v_addr  : std_logic_vector(31 downto 0);
+    variable v_shamt : integer;
+    variable v_rdata : std_logic_vector(31 downto 0);
   begin
     if arst_b_i = '0' then
       state <= S_FETCH_REQ;
@@ -155,12 +174,14 @@ begin
               state <= S_MEM_REQ;
 
             when OPC_STORE => -- STORE
-              mem_addr <= std_logic_vector(unsigned(v_op1) + unsigned(v_imm_s));
-              mem_wdata <= std_logic_vector(v_op2);
+              v_addr := std_logic_vector(unsigned(v_op1) + unsigned(v_imm_s));
+              mem_addr <= v_addr;
+              v_shamt  := to_integer(unsigned(v_addr(1 downto 0))) * 8;
+              mem_wdata <= std_logic_vector(shift_left(unsigned(v_op2), v_shamt));
               mem_we <= '1';
               case funct3 is
-                when F3_SB  => mem_be <= "0001"; -- Byte
-                when F3_SH  => mem_be <= "0011"; -- Half
+                when F3_SB  => mem_be <= std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
+                when F3_SH  => mem_be <= std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
                 when F3_SW  => mem_be <= "1111"; -- Word
                 when others => mem_be <= "0000";
               end case;
@@ -234,12 +255,14 @@ begin
           sbi_ini_o.be    <= mem_be;
           if sbi_tgt_i.ready = '1' then
              if mem_we = '0' then
+               v_shamt := to_integer(unsigned(mem_addr(1 downto 0))) * 8;
+               v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
                case funct3 is
-                 when F3_LB  => alu_res <= std_logic_vector(resize(signed(sbi_tgt_i.rdata(7 downto 0)), 32));
-                 when F3_LH  => alu_res <= std_logic_vector(resize(signed(sbi_tgt_i.rdata(15 downto 0)), 32));
+                 when F3_LB  => alu_res <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
+                 when F3_LH  => alu_res <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
                  when F3_LW  => alu_res <= sbi_tgt_i.rdata;
-                 when F3_LBU => alu_res <= std_logic_vector(resize(unsigned(sbi_tgt_i.rdata(7 downto 0)), 32));
-                 when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(sbi_tgt_i.rdata(15 downto 0)), 32));
+                 when F3_LBU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
+                 when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
                  when others => alu_res <= sbi_tgt_i.rdata;
                end case;
              end if;
@@ -256,12 +279,14 @@ begin
           sbi_ini_o.be    <= mem_be;
           if sbi_tgt_i.ready = '1' then
              if mem_we = '0' then
+               v_shamt := to_integer(unsigned(mem_addr(1 downto 0))) * 8;
+               v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
                case funct3 is
-                 when F3_LB  => alu_res <= std_logic_vector(resize(signed(sbi_tgt_i.rdata(7 downto 0)), 32));
-                 when F3_LH  => alu_res <= std_logic_vector(resize(signed(sbi_tgt_i.rdata(15 downto 0)), 32));
+                 when F3_LB  => alu_res <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
+                 when F3_LH  => alu_res <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
                  when F3_LW  => alu_res <= sbi_tgt_i.rdata;
-                 when F3_LBU => alu_res <= std_logic_vector(resize(unsigned(sbi_tgt_i.rdata(7 downto 0)), 32));
-                 when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(sbi_tgt_i.rdata(15 downto 0)), 32));
+                 when F3_LBU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
+                 when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
                  when others => alu_res <= sbi_tgt_i.rdata;
                end case;
              end if;
