@@ -54,6 +54,39 @@ package WardRV_pkg is
   end record jtag_tgt_t;
 
 -- [COMPONENT_INSERT][BEGIN]
+component WardRV_iss is
+  -- =====[ Parameters ]==========================
+  generic (
+    
+     RESET_ADDR        : std_logic_vector(32-1 downto 0) := (others => '0')
+     --IT_ADDR           : std_logic_vector(32-1 downto 0) := (others => '0');
+     --BIG_ENDIAN        : boolean          := false;
+     --DM_ENABLE         : boolean          := true;
+     --DEBUG             : boolean          := false
+     );
+  -- =====[ Interfaces ]==========================
+  port (
+    clk_i             : in  std_logic;
+    arst_b_i          : in  std_logic;
+
+    -- Instructions
+    inst_ini_o       : out   inst_ini_t;
+    inst_tgt_i       : in    inst_tgt_t;
+    
+    -- Bus
+    sbi_ini_o        : out   sbi_ini_t;
+    sbi_tgt_i        : in    sbi_tgt_t
+
+    ---- To/From IT Ctrl
+    --it_val_i         : in    std_logic;
+    --it_ack_o         : out   std_logic;
+--
+    ---- JTAG
+    --jtag_ini_i       : in    jtag_ini_t;
+    --jtag_tgt_o       : out   jtag_tgt_t
+    );
+end component WardRV_iss;
+
 component WardRV_tiny is
   -- =====[ Parameters ]==========================
   generic (

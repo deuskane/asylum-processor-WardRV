@@ -28,6 +28,8 @@ package RV_pkg is
   constant F3_SRL_SRA   : std_logic_vector(2 downto 0) := "101";
   constant F3_OR        : std_logic_vector(2 downto 0) := "110";
   constant F3_AND       : std_logic_vector(2 downto 0) := "111";
+  constant F3_ADD       : std_logic_vector(2 downto 0) := "000";
+  constant F3_SRL       : std_logic_vector(2 downto 0) := "101";
 
   -- RV32I Funct7
   constant F7_DEFAULT   : std_logic_vector(6 downto 0) := "0000000";
@@ -35,6 +37,11 @@ package RV_pkg is
 
   -- RV32I Funct3 (Branch)
   constant F3_BEQ       : std_logic_vector(2 downto 0) := "000";
+  constant F3_BNE       : std_logic_vector(2 downto 0) := "001";
+  constant F3_BLT       : std_logic_vector(2 downto 0) := "100";
+  constant F3_BGE       : std_logic_vector(2 downto 0) := "101";
+  constant F3_BLTU      : std_logic_vector(2 downto 0) := "110";
+  constant F3_BGEU      : std_logic_vector(2 downto 0) := "111";
   
   -- RV32I Funct3 (Load/Store)
   constant F3_LB        : std_logic_vector(2 downto 0) := "000";
@@ -45,6 +52,15 @@ package RV_pkg is
   constant F3_SB        : std_logic_vector(2 downto 0) := "000";
   constant F3_SH        : std_logic_vector(2 downto 0) := "001";
   constant F3_SW        : std_logic_vector(2 downto 0) := "010";
+
+  -- RV32I Funct3 (System)
+  constant F3_PRIV      : std_logic_vector(2 downto 0) := "000";
+  constant F3_CSRRW     : std_logic_vector(2 downto 0) := "001";
+  constant F3_CSRRS     : std_logic_vector(2 downto 0) := "010";
+  constant F3_CSRRC     : std_logic_vector(2 downto 0) := "011";
+  constant F3_CSRRWI    : std_logic_vector(2 downto 0) := "101";
+  constant F3_CSRRSI    : std_logic_vector(2 downto 0) := "110";
+  constant F3_CSRRCI    : std_logic_vector(2 downto 0) := "111";
 
   -- ===========================================================================
   -- RISC-V Compressed Opcodes (RV32C)

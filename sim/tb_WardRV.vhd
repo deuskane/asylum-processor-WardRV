@@ -124,7 +124,7 @@ begin
   end process;
 
   -- DUT Instance
-  dut : entity asylum.WardRV_tiny
+  dut : entity asylum.WardRV_iss
     generic map (
       RESET_ADDR => x"00000000"
       --IT_ADDR    => x"00000000",
@@ -180,7 +180,7 @@ begin
     --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
     --check_value(v_data(8), '1', ERROR, "Core should be running");
 --
-    wait until sim_end for 10 us;
+    wait until sim_end for 100 us;
 
     if not sim_end then
       alert(TB_ERROR, "Simulation Timeout");

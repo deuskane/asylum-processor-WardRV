@@ -1,27 +1,69 @@
 #include <stdint.h>  
-#define TOHOST_ADDR 0x80001000
+#define TOHOST_ADDR   0x80001000
+#define FROMHOST_ADDR 0x80001008
 
-// Function to write a 32-bit word to memory
-void write_word(uint32_t addr, uint8_t data) {
-    *(volatile uint32_t*)addr = data;
+static inline void  test_pass() {
+    *(volatile uint32_t*)TOHOST_ADDR = 1; // PASS
 }
 
-uint8_t add (uint8_t a, uint8_t b) {
+static inline void test_fail() {
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // FAIL
+}
+
+uint8_t add_8b (uint8_t a, uint8_t b) 
+{
     return a + b;
 }
 
+uint8_t sub_8b (uint8_t a, uint8_t b) 
+{
+    return a - b;
+}
+
+uint8_t or_8b (uint8_t a, uint8_t b) 
+{
+    return a | b;
+}
+
+uint8_t and_8b (uint8_t a, uint8_t b) 
+{
+    return a & b;
+}
+
+uint8_t xor_8b (uint8_t a, uint8_t b) 
+{
+    return a ^ b;
+}
+
+// uint8_t mul_8b (uint8_t a, uint8_t b) 
+// {
+//     return a * b;
+// }
+// 
+// uint8_t div_8b (uint8_t a, uint8_t b) 
+// {
+//     return (b != 0) ? (a / b) : 0;
+// }
+// 
+void check(uint8_t result, uint8_t expected) {
+    if (result != expected) {
+        
+        test_fail();
+    }
+    
+}
 
 uint8_t main() {
-    uint8_t a = 10;
-    uint8_t b = 32;
-    uint8_t c = add(a, b); // Simple addition test
+    uint8_t a = 0x10;
+    uint8_t b = 0x32;
+    
+    check(add_8b(a,b), 0x42);
+    //check(sub_8b(b,a), 0x22);
+    //check(or_8b( a,b), 0x32);
+    //check(and_8b(a,b), 0x10);
+    //check(xor_8b(a,b), 0x22);
 
-    // If the calculation is correct (42), write 1 to TOHOST to stop the simulation successfully
-    if (c == 42) {
-        write_word(TOHOST_ADDR, 1); // PASS
-    } else {
-        write_word(TOHOST_ADDR, 0); // FAIL
-    }
+    test_pass();
 
     return 0;
 }
