@@ -24,7 +24,8 @@ use     asylum.RV_pkg.all;
 
 entity WardRV_iss is
   generic (
-    RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0')
+    RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
+    VERBOSE    : boolean                       := false
   );
   port (
     clk_i      : in  std_logic;
@@ -71,6 +72,17 @@ architecture behavioural of WardRV_iss is
   signal mem_wdata: std_logic_vector(31 downto 0);
   signal mem_we   : std_logic;
   signal mem_be   : std_logic_vector(3 downto 0);
+
+  procedure log(
+    msg   : in string
+  ) is
+  begin
+    -- synthesis translate_off
+    if VERBOSE then
+      report "ISS: " & msg;
+    end if;
+    -- synthesis translate_on
+  end procedure;
 
 begin
 
@@ -122,6 +134,8 @@ begin
 
         -- 3. Decode & Execute (Behavioral)
         when S_DECODE =>
+          log("[DECODE] PC=" & to_hstring(pc) & " Inst=" & to_hstring(inst));
+
           -- Immediates
           v_imm_i := std_logic_vector(resize(signed(inst(31 downto 20)), 32));
           v_imm_s := std_logic_vector(resize(signed(std_logic_vector'(inst(31 downto 25) & inst(11 downto 7))), 32)); -- Store
@@ -140,19 +154,23 @@ begin
 
           case opcode is
             when OPC_LUI => -- LUI
+              log("LUI  x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_imm_u));
               v_res := v_imm_u;
               state <= S_WRITEBACK;
 
             when OPC_AUIPC => -- AUIPC
+              log("AUIPC x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(std_logic_vector(unsigned(pc) + unsigned(v_imm_u))));
               v_res := std_logic_vector(unsigned(pc) + unsigned(v_imm_u));
               state <= S_WRITEBACK;
 
             when OPC_JAL => -- JAL
+              log("JAL  x" & integer'image(to_integer(unsigned(rd))) & " target=" & to_hstring(std_logic_vector(unsigned(pc) + unsigned(v_imm_j))));
               v_res := std_logic_vector(unsigned(pc) + 4);
               v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_j));
               state <= S_WRITEBACK;
 
             when OPC_JALR => -- JALR
+              log("JALR x" & integer'image(to_integer(unsigned(rd))) & " target=" & to_hstring(std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE")));
               v_res := std_logic_vector(unsigned(pc) + 4);
               v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
               state <= S_WRITEBACK;
@@ -168,13 +186,16 @@ begin
                 when F3_BGEU => if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
                 when others => null;
               end case;
+              log("BRANCH target=" & to_hstring(v_npc));
 
             when OPC_LOAD => -- LOAD
+              log("LOAD x" & integer'image(to_integer(unsigned(rd))) & " from " & to_hstring(std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i))));
               mem_addr <= std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i));
               state <= S_MEM_REQ;
 
             when OPC_STORE => -- STORE
               v_addr := std_logic_vector(unsigned(v_op1) + unsigned(v_imm_s));
+              log("STORE from x" & integer'image(to_integer(unsigned(rs2))) & " to " & to_hstring(v_addr));
               mem_addr <= v_addr;
               v_shamt  := to_integer(unsigned(v_addr(1 downto 0))) * 8;
               mem_wdata <= std_logic_vector(shift_left(unsigned(v_op2), v_shamt));
@@ -204,6 +225,7 @@ begin
                   end if;
                 when others => null;
               end case;
+              log("OP-IMM x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_res));
               state <= S_WRITEBACK;
 
             when OPC_OP => -- OP
@@ -224,17 +246,21 @@ begin
                 when F3_AND  => v_res := std_logic_vector(v_op1 and v_op2);
                 when others  => null;
               end case;
+              log("OP x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_res));
               state <= S_WRITEBACK;
 
             when OPC_MISC_MEM => -- FENCE
+              log("FENCE");
               state <= S_FETCH_REQ;
 
             when OPC_SYSTEM => -- SYSTEM
               case funct3 is
                 when F3_PRIV => -- ECALL / EBREAK
+                  log("SYSTEM PRIV");
                   state <= S_FETCH_REQ;
                 when others => -- CSR Instructions (CSRRW, CSRRS, etc.)
                   -- Simplified: Read 0, Write Ignored
+                  log("SYSTEM CSR x" & integer'image(to_integer(unsigned(rd))));
                   v_res := (others => '0');
                   state <= S_WRITEBACK;
               end case;

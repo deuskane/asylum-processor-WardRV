@@ -142,7 +142,8 @@ begin
   -- DUT Instance
   dut : entity asylum.WardRV_iss
     generic map (
-      RESET_ADDR => x"00000000"
+      RESET_ADDR => x"00000000",
+      VERBOSE    => VERBOSE
       --IT_ADDR    => x"00000000",
       --BIG_ENDIAN => false,
       --DEBUG      => true
