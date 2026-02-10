@@ -22,6 +22,7 @@ use     std.textio.all;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
+use     asylum.WardRV_iss_pkg.all;
 
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
@@ -33,7 +34,8 @@ entity tb_WardRV is
     FIRMWARE_FILE  : string  := "firmware.hex";
     SIGNATURE_FILE : string  := "signature.output";
     MEM_SIZE       : integer := 65536; -- 64KB
-    VERBOSE        : boolean := false
+    VERBOSE        : boolean := false;
+    USE_ISS        : boolean := true
   );
 end tb_WardRV;
 
@@ -46,7 +48,8 @@ architecture rtl of tb_WardRV is
   -- Signals
   signal clk_i    : std_logic := '0';
   signal arst_b_i : std_logic := '0';
-  signal sim_end  : boolean   := false;
+  signal sim_end_iss : boolean := false;
+  signal sim_end_rtl : boolean := false;
 
   -- Interfaces
   signal inst_ini : inst_ini_t;
@@ -136,6 +139,7 @@ begin
   p_reset : process
   begin
     vip_reset_pulse(arst_b_i, 5 * CLK_PERIOD, "System Reset");
+    wait until arst_b_i = '1';
     wait;
   end process;
 
@@ -144,9 +148,6 @@ begin
     generic map (
       RESET_ADDR => x"00000000",
       VERBOSE    => VERBOSE
-      --IT_ADDR    => x"00000000",
-      --BIG_ENDIAN => false,
-      --DEBUG      => true
     )
     port map (
       clk_i      => clk_i,
@@ -161,45 +162,89 @@ begin
       --jtag_tgt_o => jtag_tgt
     );
 
-  -- Initial Load
+  -- ISS Execution Loop
+  p_iss : process
+    variable iss       : iss_t;
+    variable v_inst    : std_logic_vector(31 downto 0);
+    variable v_addr    : integer;
+    variable v_mem_req : boolean;
+    variable v_we      : std_logic;
+    variable v_maddr   : std_logic_vector(31 downto 0);
+    variable v_wdata   : std_logic_vector(31 downto 0);
+    variable v_be      : std_logic_vector(3 downto 0);
+    variable v_rdata   : std_logic_vector(31 downto 0);
+  begin
+    if not USE_ISS then
+      wait;
+    end if;
+
+    iss.reset(x"00000000");
+    wait until arst_b_i = '1';
+
+    while not sim_end_iss loop
+      wait until rising_edge(clk_i);
+      
+      -- Fetch
+      v_addr := to_integer(unsigned(iss.get_pc));
+      v_inst := mem(v_addr+3) & mem(v_addr+2) & mem(v_addr+1) & mem(v_addr);
+      
+      print_instruction(iss.get_pc, v_inst);
+
+      -- Execute
+      iss.execute_instruction(v_inst, v_mem_req, v_we, v_maddr, v_wdata, v_be);
+
+      -- Handle Memory
+      if v_mem_req then
+        if v_maddr = TOHOST_ADDR and v_we = '1' then
+          if to_integer(unsigned(v_wdata)) = 1 then
+            log(ID_LOG_HDR, "ISS: TEST PASSED");
+          else
+            alert(TB_ERROR, "ISS: TEST FAILED");
+          end if;
+          sim_end_iss <= true;
+        else
+          v_addr := to_integer(unsigned(v_maddr));
+          if v_we = '1' then
+            if v_be(0) = '1' then mem(v_addr)   <= v_wdata(7 downto 0); end if;
+            if v_be(1) = '1' then mem(v_addr+1) <= v_wdata(15 downto 8); end if;
+            if v_be(2) = '1' then mem(v_addr+2) <= v_wdata(23 downto 16); end if;
+            if v_be(3) = '1' then mem(v_addr+3) <= v_wdata(31 downto 24); end if;
+          else
+            v_rdata := mem(v_addr+3) & mem(v_addr+2) & mem(v_addr+1) & mem(v_addr);
+            iss.complete_load(v_rdata);
+          end if;
+        end if;
+      end if;
+      
+      -- Small delay to avoid delta cycles issues with sim_end
+      wait for 1 ns;
+    end loop;
+    wait;
+  end process;
+
+  -- Main Sequencer
   process
-    variable v_data : std_logic_vector(31 downto 0);
   begin
     -- UVVM Setup
     report_global_ctrl(VOID);
     enable_log_msg(ALL_MESSAGES);
-    log(ID_LOG_HDR, "Starting Simulation of WardRV");
+    
+    if USE_ISS then
+      log(ID_LOG_HDR, "Starting Simulation of WardRV (ISS MODE)");
+    else
+      log(ID_LOG_HDR, "Starting Simulation of WardRV (RTL MODE)");
+    end if;
 
     -- Wait for reset deassertion
     wait until arst_b_i = '1';
 
-    ---- VIP Initialization
-    --vip_jtag_init(jtag_ini);
-    --
-    ---- JTAG Debug Scenario
-    --log(ID_LOG_HDR, "Starting JTAG Debug Scenario");
---
-    ---- 1. Check IDCODE
-    --vip_jtag_read_idcode(jtag_ini, jtag_tgt, x"10000001", "Check IDCODE");
---
-    ---- 2. Select DMI IR
-    --vip_jtag_write_ir(jtag_ini, jtag_tgt, "10001", "Select DMI");
---
-    ---- 3. Halt Core (DMCONTROL=0x10, Write 0x80000001)
-    --vip_jtag_dmi_write(jtag_ini, jtag_tgt, "0010000", x"80000001", "Halt Core");
-    --wait for 1 us;
-    --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
-    --check_value(v_data(9), '1', ERROR, "Core should be halted");
---
-    ---- 4. Resume Core (DMCONTROL=0x10, Write 0x40000001)
-    --vip_jtag_dmi_write(jtag_ini, jtag_tgt, "0010000", x"40000001", "Resume Core");
-    --wait for 1 us;
-    --vip_jtag_dmi_read(jtag_ini, jtag_tgt, "0010001", v_data, "Read DMSTATUS");
-    --check_value(v_data(8), '1', ERROR, "Core should be running");
---
-    wait until sim_end for 100 us;
+    if USE_ISS then
+      wait until sim_end_iss for 1 ms;
+    else
+      wait until sim_end_rtl for 1 ms;
+    end if;
 
-    if not sim_end then
+    if not (sim_end_iss or sim_end_rtl) then
       alert(TB_ERROR, "Simulation Timeout");
     end if;
 
@@ -214,63 +259,65 @@ begin
     variable d_addr : integer;
     variable v_inst : std_logic_vector(31 downto 0);
   begin
-    if rising_edge(clk_i) then
-      -- Instruction Fetch
-      inst_tgt.ready <= '0';
-      inst_tgt.inst  <= (others => '0');
-      
-      if inst_ini.valid = '1' then
-        if unsigned(inst_ini.addr) < MEM_SIZE - 3 then
-          i_addr := to_integer(unsigned(inst_ini.addr));
-          v_inst := mem(i_addr+3) & mem(i_addr+2) & mem(i_addr+1) & mem(i_addr);
-          inst_tgt.inst <= v_inst;
-          print_instruction(inst_ini.addr, v_inst);
-          inst_tgt.ready <= '1';
-        else
-          -- Out of bounds fetch returns 0 (NOP/Illegal)
-          inst_tgt.ready <= '1';
-        end if;
-      end if;
-
-      -- Data Access
-      sbi_tgt.ready <= '0';
-      sbi_tgt.rdata <= (others => '0');
-      sbi_tgt.err   <= '0';
-
-      if sbi_ini.valid = '1' then
+    if not USE_ISS then
+      if rising_edge(clk_i) then
+        -- Instruction Fetch
+        inst_tgt.ready <= '0';
+        inst_tgt.inst  <= (others => '0');
         
-        -- Check for TOHOST (Simulation Exit)
-        -- Assuming writing to a specific high address signals end
-        if sbi_ini.addr = TOHOST_ADDR and sbi_ini.we = '1' then
-           if to_integer(unsigned(sbi_ini.wdata)) = 1 then
-             log(ID_LOG_HDR, "TEST PASSED (tohost = 1)");
-           else
-             alert(TB_ERROR, "TEST FAILED (tohost = " & integer'image(to_integer(unsigned(sbi_ini.wdata))) & ")");
-           end if;
-           sim_end <= true;
-           
-        elsif unsigned(sbi_ini.addr) < MEM_SIZE - 3 then
-          d_addr := to_integer(unsigned(sbi_ini.addr));
-          sbi_tgt.ready <= '1';
-          
-          -- Write
-          if sbi_ini.we = '1' then
-            if sbi_ini.be(0) = '1' then mem(d_addr)   <= sbi_ini.wdata(7 downto 0); end if;
-            if sbi_ini.be(1) = '1' then mem(d_addr+1) <= sbi_ini.wdata(15 downto 8); end if;
-            if sbi_ini.be(2) = '1' then mem(d_addr+2) <= sbi_ini.wdata(23 downto 16); end if;
-            if sbi_ini.be(3) = '1' then mem(d_addr+3) <= sbi_ini.wdata(31 downto 24); end if;
-          
-          -- Read
+        if inst_ini.valid = '1' then
+          if unsigned(inst_ini.addr) < MEM_SIZE - 3 then
+            i_addr := to_integer(unsigned(inst_ini.addr));
+            v_inst := mem(i_addr+3) & mem(i_addr+2) & mem(i_addr+1) & mem(i_addr);
+            inst_tgt.inst <= v_inst;
+            print_instruction(inst_ini.addr, v_inst);
+            inst_tgt.ready <= '1';
           else
-            sbi_tgt.rdata(7 downto 0)   <= mem(d_addr);
-            sbi_tgt.rdata(15 downto 8)  <= mem(d_addr+1);
-            sbi_tgt.rdata(23 downto 16) <= mem(d_addr+2);
-            sbi_tgt.rdata(31 downto 24) <= mem(d_addr+3);
+            -- Out of bounds fetch returns 0 (NOP/Illegal)
+            inst_tgt.ready <= '1';
           end if;
-        else
-          -- Out of bounds access
-          sbi_tgt.err   <= '1';
-          sbi_tgt.ready <= '1';
+        end if;
+
+        -- Data Access
+        sbi_tgt.ready <= '0';
+        sbi_tgt.rdata <= (others => '0');
+        sbi_tgt.err   <= '0';
+
+        if sbi_ini.valid = '1' then
+          
+          -- Check for TOHOST (Simulation Exit)
+          -- Assuming writing to a specific high address signals end
+          if sbi_ini.addr = TOHOST_ADDR and sbi_ini.we = '1' then
+             if to_integer(unsigned(sbi_ini.wdata)) = 1 then
+               log(ID_LOG_HDR, "TEST PASSED (tohost = 1)");
+             else
+               alert(TB_ERROR, "TEST FAILED (tohost = " & integer'image(to_integer(unsigned(sbi_ini.wdata))) & ")");
+             end if;
+             sim_end_rtl <= true;
+             
+          elsif unsigned(sbi_ini.addr) < MEM_SIZE - 3 then
+            d_addr := to_integer(unsigned(sbi_ini.addr));
+            sbi_tgt.ready <= '1';
+            
+            -- Write
+            if sbi_ini.we = '1' then
+              if sbi_ini.be(0) = '1' then mem(d_addr)   <= sbi_ini.wdata(7 downto 0); end if;
+              if sbi_ini.be(1) = '1' then mem(d_addr+1) <= sbi_ini.wdata(15 downto 8); end if;
+              if sbi_ini.be(2) = '1' then mem(d_addr+2) <= sbi_ini.wdata(23 downto 16); end if;
+              if sbi_ini.be(3) = '1' then mem(d_addr+3) <= sbi_ini.wdata(31 downto 24); end if;
+            
+            -- Read
+            else
+              sbi_tgt.rdata(7 downto 0)   <= mem(d_addr);
+              sbi_tgt.rdata(15 downto 8)  <= mem(d_addr+1);
+              sbi_tgt.rdata(23 downto 16) <= mem(d_addr+2);
+              sbi_tgt.rdata(31 downto 24) <= mem(d_addr+3);
+            end if;
+          else
+            -- Out of bounds access
+            sbi_tgt.err   <= '1';
+            sbi_tgt.ready <= '1';
+          end if;
         end if;
       end if;
     end if;
