@@ -79,7 +79,7 @@ architecture behavioural of WardRV_fsm is
   begin
     -- synthesis translate_off
     if VERBOSE then
-      report "ISS: " & msg;
+      report "[WardRV FSM] " & msg;
     end if;
     -- synthesis translate_on
   end procedure;
@@ -134,7 +134,7 @@ begin
 
         -- 3. Decode & Execute (Behavioral)
         when S_DECODE =>
-          log("[DECODE] PC=" & to_hstring(pc) & " Inst=" & to_hstring(inst));
+          log("PC=" & to_hstring(pc) & " Inst=" & to_hstring(inst));
 
           -- Immediates
           v_imm_i := std_logic_vector(resize(signed(inst(31 downto 20)), 32));
