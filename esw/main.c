@@ -74,10 +74,10 @@ uint8_t main() {
     uint8_t b = 0x32;
     
     check(add_8b(a,b), 0x42);
-    //check(sub_8b(b,a), 0x22);
-    //check(or_8b( a,b), 0x32);
-    //check(and_8b(a,b), 0x10);
-    //check(xor_8b(a,b), 0x22);
+    check(sub_8b(b,a), 0x22);
+    check(or_8b( a,b), 0x32);
+    check(and_8b(a,b), 0x10);
+    check(xor_8b(a,b), 0x22);
 
     test_pass();
 

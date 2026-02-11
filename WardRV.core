@@ -52,7 +52,9 @@ filesets:
   #---------------------------------------
     files        :
       - sim/WardRV_vips.vhd
+      - sim/tb_WardRV_pkg.vhd
       - sim/tb_WardRV.vhd
+      - sim/tb_WardRV_iss.vhd
       - esw/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
     file_type    : vhdlSource-2008
     depend :
@@ -78,7 +80,7 @@ targets:
     << : *default
     description     : default rule to sim (DON'T RUN)
     default_tool    : ghdl
-    toplevel        : tb_WardRV
+    toplevel        : tb_WardRV_iss
     filesets_append :
       - files_sim
     tools :

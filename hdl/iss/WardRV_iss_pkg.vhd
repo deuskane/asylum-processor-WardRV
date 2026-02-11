@@ -13,6 +13,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.textio.all;
 
 library asylum;
 use asylum.WardRV_pkg.all;
@@ -53,11 +54,38 @@ package WardRV_iss_pkg is
       mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
     );
 
+    -- Statistics
+    procedure print_stats;
+
   end protected;
 
 end package;
 
 package body WardRV_iss_pkg is
+
+  type inst_type_t is (
+    I_LUI, I_AUIPC, I_JAL, I_JALR,
+    I_BEQ, I_BNE, I_BLT, I_BGE, I_BLTU, I_BGEU,
+    I_LB, I_LH, I_LW, I_LBU, I_LHU,
+    I_SB, I_SH, I_SW,
+    I_ADDI, I_SLTI, I_SLTIU, I_XORI, I_ORI, I_ANDI, I_SLLI, I_SRLI, I_SRAI,
+    I_ADD, I_SUB, I_SLL, I_SLT, I_SLTU, I_XOR, I_SRL, I_SRA, I_OR, I_AND,
+    I_TOTAL
+  );
+
+  type stats_array_t is array (inst_type_t) of integer;
+
+  type inst_names_t is array (inst_type_t) of string(1 to 18);
+
+  constant INST_NAMES : inst_names_t := (
+    I_LUI => "LUI               ", I_AUIPC => "AUIPC             ", I_JAL => "JAL               ", I_JALR => "JALR              ",
+    I_BEQ => "BEQ               ", I_BNE => "BNE               ", I_BLT => "BLT               ", I_BGE => "BGE               ", I_BLTU => "BLTU              ", I_BGEU => "BGEU              ",
+    I_LB => "LB                ", I_LH => "LH                ", I_LW => "LW                ", I_LBU => "LBU               ", I_LHU => "LHU               ",
+    I_SB => "SB                ", I_SH => "SH                ", I_SW => "SW                ",
+    I_ADDI => "ADDI              ", I_SLTI => "SLTI              ", I_SLTIU => "SLTIU             ", I_XORI => "XORI              ", I_ORI => "ORI               ", I_ANDI => "ANDI              ", I_SLLI => "SLLI              ", I_SRLI => "SRLI              ", I_SRAI => "SRAI              ",
+    I_ADD => "ADD               ", I_SUB => "SUB               ", I_SLL => "SLL               ", I_SLT => "SLT               ", I_SLTU => "SLTU              ", I_XOR => "XOR               ", I_SRL => "SRL               ", I_SRA => "SRA               ", I_OR => "OR                ", I_AND => "AND               ",
+    I_TOTAL => "Total Instructions"
+  );
 
   type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
 
@@ -71,12 +99,16 @@ package body WardRV_iss_pkg is
     variable pending_load_funct3 : std_logic_vector(2 downto 0);
     variable pending_load_byte_off : integer;
 
+    -- Statistics counters
+    variable stats : stats_array_t;
+
     procedure reset(
       start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
     ) is
     begin
       pc_r   := start_pc;
       regs_r := (others => (others => '0'));
+      stats  := (others => 0);
       pending_load_rd := (others => '0');
     end procedure;
 
@@ -115,9 +147,11 @@ package body WardRV_iss_pkg is
       variable v_op1   : signed(31 downto 0);
       variable v_op2   : signed(31 downto 0);
       variable v_res   : std_logic_vector(31 downto 0);
+      variable v_pc    : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
       variable v_npc   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
       variable v_addr  : std_logic_vector(DMEM_ADDR_WIDTH-1 downto 0);
       variable v_shamt : integer;
+      variable v_msg   : line;
     begin
       -- Initialize outputs
       mem_req   := false;
@@ -138,8 +172,11 @@ package body WardRV_iss_pkg is
       if unsigned(rs2) = 0 then v_op2 := (others => '0'); else v_op2 := signed(regs_r(to_integer(unsigned(rs2)))); end if;
 
       -- Default Next PC
+      v_pc  := pc_r;
       v_npc := std_logic_vector(unsigned(pc_r) + 4);
       v_res := (others => '0');
+
+      stats(I_TOTAL) := stats(I_TOTAL) + 1;
 
       case opcode is
         -- =====================================================================
@@ -147,35 +184,43 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_LUI =>
           -- Load Upper Immediate
+          write(v_msg, string'("LUI R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u));
           v_res := v_imm_u;
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
+          stats(I_LUI) := stats(I_LUI) + 1;
 
         when OPC_AUIPC =>
           -- Add Upper Immediate to PC
+          write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u));
           v_res := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_u));
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
+          stats(I_AUIPC) := stats(I_AUIPC) + 1;
 
         -- =====================================================================
         -- J-Type Instructions
         -- =====================================================================
         when OPC_JAL =>
           -- Jump and Link
+          write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j));
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_j));
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
+          stats(I_JAL) := stats(I_JAL) + 1;
 
         -- =====================================================================
         -- I-Type Instructions (JALR, Loads, OP_IMM)
         -- =====================================================================
         when OPC_JALR =>
           -- Jump and Link Register
+          write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))));
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
+          stats(I_JALR) := stats(I_JALR) + 1;
 
         -- =====================================================================
         -- B-Type Instructions (Branch)
@@ -183,14 +228,15 @@ package body WardRV_iss_pkg is
         when OPC_BRANCH =>
           -- Conditional Branch Instructions
           case funct3 is
-            when F3_BEQ  => if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when F3_BNE  => if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when F3_BLT  => if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when F3_BGE  => if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when F3_BLTU => if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when F3_BGEU => if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if;
-            when others => null;
+            when F3_BEQ  => write(v_msg, string'("BEQ"));  if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BEQ) := stats(I_BEQ) + 1;
+            when F3_BNE  => write(v_msg, string'("BNE"));  if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BNE) := stats(I_BNE) + 1;
+            when F3_BLT  => write(v_msg, string'("BLT"));  if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BLT) := stats(I_BLT) + 1;
+            when F3_BGE  => write(v_msg, string'("BGE"));  if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BGE) := stats(I_BGE) + 1;
+            when F3_BLTU => write(v_msg, string'("BLTU")); if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BLTU) := stats(I_BLTU) + 1;
+            when F3_BGEU => write(v_msg, string'("BGEU")); if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BGEU) := stats(I_BGEU) + 1;
+            when others => write(v_msg, string'("BRANCH_UNK"));
           end case;
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b));
           pc_r := v_npc;
 
         -- =====================================================================
@@ -198,6 +244,15 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_LOAD =>
           -- Load Instructions: LB, LH, LW, LBU, LHU
+          case funct3 is
+            when F3_LB  => write(v_msg, string'("LB"));  stats(I_LB) := stats(I_LB) + 1;
+            when F3_LH  => write(v_msg, string'("LH"));  stats(I_LH) := stats(I_LH) + 1;
+            when F3_LW  => write(v_msg, string'("LW"));  stats(I_LW) := stats(I_LW) + 1;
+            when F3_LBU => write(v_msg, string'("LBU")); stats(I_LBU) := stats(I_LBU) + 1;
+            when F3_LHU => write(v_msg, string'("LHU")); stats(I_LHU) := stats(I_LHU) + 1;
+            when others => write(v_msg, string'("LOAD_UNK"));
+          end case;
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ")");
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
           mem_req  := true;
           mem_we   := '0';
@@ -215,6 +270,13 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_STORE =>
           -- Store Instructions: SB, SH, SW
+          case funct3 is
+            when F3_SB  => write(v_msg, string'("SB")); stats(I_SB) := stats(I_SB) + 1;
+            when F3_SH  => write(v_msg, string'("SH")); stats(I_SH) := stats(I_SH) + 1;
+            when F3_SW  => write(v_msg, string'("SW")); stats(I_SW) := stats(I_SW) + 1;
+            when others => write(v_msg, string'("STORE_UNK"));
+          end case;
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ")");
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
           mem_req   := true;
           mem_we    := '1';
@@ -238,38 +300,57 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_ADD_SUB =>
               -- ADDI
+              write(v_msg, string'("ADDI"));
               v_res := std_logic_vector(v_op1 + signed(v_imm_i));
+              stats(I_ADDI) := stats(I_ADDI) + 1;
             when F3_SLL =>
               -- SLLI
+              write(v_msg, string'("SLLI"));
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
               v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
+              stats(I_SLLI) := stats(I_SLLI) + 1;
             when F3_SLT =>
               -- SLTI
+              write(v_msg, string'("SLTI"));
               if v_op1 < signed(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
+              stats(I_SLTI) := stats(I_SLTI) + 1;
             when F3_SLTU =>
               -- SLTIU
+              write(v_msg, string'("SLTIU"));
               if unsigned(v_op1) < unsigned(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
+              stats(I_SLTIU) := stats(I_SLTIU) + 1;
             when F3_XOR =>
               -- XORI
+              write(v_msg, string'("XORI"));
               v_res := std_logic_vector(v_op1 xor signed(v_imm_i));
+              stats(I_XORI) := stats(I_XORI) + 1;
             when F3_SRL_SRA =>
               -- SRLI / SRAI
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
               if funct7(5) = '1' then
                 -- SRAI (Arithmetic Right Shift)
+                write(v_msg, string'("SRAI"));
                 v_res := std_logic_vector(shift_right(v_op1, v_shamt));
+                stats(I_SRAI) := stats(I_SRAI) + 1;
               else
                 -- SRLI (Logical Right Shift)
+                write(v_msg, string'("SRLI"));
                 v_res := std_logic_vector(shift_right(unsigned(v_op1), v_shamt));
+                stats(I_SRLI) := stats(I_SRLI) + 1;
               end if;
             when F3_OR =>
               -- ORI
+              write(v_msg, string'("ORI"));
               v_res := std_logic_vector(v_op1 or signed(v_imm_i));
+              stats(I_ORI) := stats(I_ORI) + 1;
             when F3_AND =>
               -- ANDI
+              write(v_msg, string'("ANDI"));
               v_res := std_logic_vector(v_op1 and signed(v_imm_i));
+              stats(I_ANDI) := stats(I_ANDI) + 1;
             when others => null;
           end case;
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))));
           
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
@@ -282,41 +363,52 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_ADD_SUB =>
               if funct7(5) = '1' then
-                -- SUB
+                write(v_msg, string'("SUB"));
                 v_res := std_logic_vector(v_op1 - v_op2);
+                stats(I_SUB) := stats(I_SUB) + 1;
               else
-                -- ADD
+                write(v_msg, string'("ADD"));
                 v_res := std_logic_vector(v_op1 + v_op2);
+                stats(I_ADD) := stats(I_ADD) + 1;
               end if;
             when F3_SLL =>
-              -- SLL
+              write(v_msg, string'("SLL"));
               v_shamt := to_integer(unsigned(v_op2(4 downto 0)));
               v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
+              stats(I_SLL) := stats(I_SLL) + 1;
             when F3_SLT =>
-              -- SLT
+              write(v_msg, string'("SLT"));
               if v_op1 < v_op2 then v_res := x"00000001"; else v_res := (others => '0'); end if;
+              stats(I_SLT) := stats(I_SLT) + 1;
             when F3_SLTU =>
-              -- SLTU
+              write(v_msg, string'("SLTU"));
               if unsigned(v_op1) < unsigned(v_op2) then v_res := x"00000001"; else v_res := (others => '0'); end if;
+              stats(I_SLTU) := stats(I_SLTU) + 1;
             when F3_XOR =>
-              -- XOR
+              write(v_msg, string'("XOR"));
               v_res := std_logic_vector(v_op1 xor v_op2);
+              stats(I_XOR) := stats(I_XOR) + 1;
             when F3_SRL_SRA =>
               if funct7(5) = '1' then
-                -- SRA (Arithmetic Right Shift)
+                write(v_msg, string'("SRA"));
                 v_res := std_logic_vector(shift_right(v_op1, to_integer(unsigned(v_op2(4 downto 0)))));
+                stats(I_SRA) := stats(I_SRA) + 1;
               else
-                -- SRL (Logical Right Shift)
+                write(v_msg, string'("SRL"));
                 v_res := std_logic_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
+                stats(I_SRL) := stats(I_SRL) + 1;
               end if;
             when F3_OR =>
-              -- OR
+              write(v_msg, string'("OR"));
               v_res := std_logic_vector(v_op1 or v_op2);
+              stats(I_OR) := stats(I_OR) + 1;
             when F3_AND =>
-              -- AND
+              write(v_msg, string'("AND"));
               v_res := std_logic_vector(v_op1 and v_op2);
+              stats(I_AND) := stats(I_AND) + 1;
             when others => null;
           end case;
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))));
           
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
@@ -327,6 +419,7 @@ package body WardRV_iss_pkg is
         when OPC_MISC_MEM =>
           -- FENCE, FENCE.I
           -- These instructions are typically NOPs in simulation
+          write(v_msg, string'("FENCE"));
           pc_r := v_npc;
 
         -- =====================================================================
@@ -339,22 +432,30 @@ package body WardRV_iss_pkg is
               -- ECALL, EBREAK
               if funct12 = x"000" then
                 -- ECALL - Environment Call
-                null;
+                write(v_msg, string'("ECALL"));
               elsif funct12 = x"001" then
                 -- EBREAK - Environment Breakpoint
-                null;
+                write(v_msg, string'("EBREAK"));
               end if;
             when F3_CSRRW | F3_CSRRS | F3_CSRRC | F3_CSRRWI | F3_CSRRSI | F3_CSRRCI =>
               -- CSR instructions (require CSR register file support)
-              null;
+              write(v_msg, string'("CSR_OP"));
             when others => null;
           end case;
           pc_r := v_npc;
 
         when others =>
           -- Unknown instruction - NOP
+          write(v_msg, string'("UNKNOWN"));
           pc_r := v_npc;
       end case;
+
+      -- synthesis translate_off
+      if v_msg /= null then
+        report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & v_msg.all;
+        deallocate(v_msg);
+      end if;
+      -- synthesis translate_on
     end procedure;
 
     procedure complete_load(
@@ -379,6 +480,21 @@ package body WardRV_iss_pkg is
       if unsigned(pending_load_rd) /= 0 then 
         regs_r(to_integer(unsigned(pending_load_rd))) := v_res; 
       end if;
+    end procedure;
+
+    procedure print_stats is
+      variable v_ratio : real;
+    begin
+      report "--- WardRV ISS Statistics ---";
+      for i in inst_type_t loop
+        if stats(I_TOTAL) > 0 then
+          v_ratio := (real(stats(i)) * 100.0) / real(stats(I_TOTAL));
+        else
+          v_ratio := 0.0;
+        end if;
+        report INST_NAMES(i) & " : " & integer'image(stats(i)) & " (" & to_string(v_ratio, 2) & " %)";
+      end loop;
+      report "-----------------------------";
     end procedure;
 
   end protected body;
