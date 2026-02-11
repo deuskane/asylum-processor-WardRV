@@ -20,11 +20,16 @@ use asylum.RV_pkg.all;
 
 package WardRV_iss_pkg is
 
+  -- Generic parameters for memory configuration
+  constant IMEM_ADDR_WIDTH : positive := 32;
+  constant DMEM_ADDR_WIDTH : positive := 32;
+  constant DMEM_DATA_WIDTH : positive := 32;
+
   type iss_t is protected
     
     -- Initialization
     procedure reset(
-      start_pc : in std_logic_vector(31 downto 0)
+      start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
     );
 
     -- Accessors
@@ -38,14 +43,14 @@ package WardRV_iss_pkg is
       -- Memory Request Info
       mem_req       : out boolean;
       mem_we        : out std_logic;
-      mem_addr      : out std_logic_vector(31 downto 0);
-      mem_wdata     : out std_logic_vector(31 downto 0);
-      mem_be        : out std_logic_vector(3 downto 0)
+      mem_addr      : out std_logic_vector(DMEM_ADDR_WIDTH-1 downto 0);
+      mem_wdata     : out std_logic_vector(DMEM_DATA_WIDTH-1 downto 0);
+      mem_be        : out std_logic_vector((DMEM_DATA_WIDTH/8)-1 downto 0)
     );
 
     -- Complete a Load operation
     procedure complete_load(
-      mem_rdata     : in std_logic_vector(31 downto 0)
+      mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
     );
 
   end protected;
@@ -58,7 +63,7 @@ package body WardRV_iss_pkg is
 
   type iss_t is protected body
     
-    variable pc_r   : std_logic_vector(31 downto 0);
+    variable pc_r   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
     variable regs_r : regfile_t;
     
     -- State for pending load
@@ -67,7 +72,7 @@ package body WardRV_iss_pkg is
     variable pending_load_byte_off : integer;
 
     procedure reset(
-      start_pc : in std_logic_vector(31 downto 0)
+      start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
     ) is
     begin
       pc_r   := start_pc;
@@ -90,9 +95,9 @@ package body WardRV_iss_pkg is
       inst          : in  std_logic_vector(31 downto 0);
       mem_req       : out boolean;
       mem_we        : out std_logic;
-      mem_addr      : out std_logic_vector(31 downto 0);
-      mem_wdata     : out std_logic_vector(31 downto 0);
-      mem_be        : out std_logic_vector(3 downto 0)
+      mem_addr      : out std_logic_vector(DMEM_ADDR_WIDTH-1 downto 0);
+      mem_wdata     : out std_logic_vector(DMEM_DATA_WIDTH-1 downto 0);
+      mem_be        : out std_logic_vector((DMEM_DATA_WIDTH/8)-1 downto 0)
     ) is
       alias opcode : std_logic_vector(6 downto 0) is inst(6 downto 0);
       alias rd     : std_logic_vector(4 downto 0) is inst(11 downto 7);
@@ -109,8 +114,8 @@ package body WardRV_iss_pkg is
       variable v_op1   : signed(31 downto 0);
       variable v_op2   : signed(31 downto 0);
       variable v_res   : std_logic_vector(31 downto 0);
-      variable v_npc   : std_logic_vector(31 downto 0);
-      variable v_addr  : std_logic_vector(31 downto 0);
+      variable v_npc   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
+      variable v_addr  : std_logic_vector(DMEM_ADDR_WIDTH-1 downto 0);
       variable v_shamt : integer;
     begin
       -- Initialize outputs
@@ -171,7 +176,7 @@ package body WardRV_iss_pkg is
           pc_r := v_npc;
 
         when OPC_LOAD =>
-          v_addr := std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i));
+          v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
           mem_req  := true;
           mem_we   := '0';
           mem_addr := v_addr;
@@ -184,7 +189,7 @@ package body WardRV_iss_pkg is
           pc_r := v_npc;
 
         when OPC_STORE =>
-          v_addr := std_logic_vector(unsigned(v_op1) + unsigned(v_imm_s));
+          v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
           mem_req   := true;
           mem_we    := '1';
           mem_addr  := v_addr;
@@ -194,8 +199,8 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_SB  => mem_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
             when F3_SH  => mem_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
-            when F3_SW  => mem_be := "1111";
-            when others => mem_be := "0000";
+            when F3_SW  => mem_be := (others => '1');
+            when others => mem_be := (others => '0');
           end case;
           pc_r := v_npc;
 
@@ -227,7 +232,7 @@ package body WardRV_iss_pkg is
     end procedure;
 
     procedure complete_load(
-      mem_rdata     : in std_logic_vector(31 downto 0)
+      mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
     ) is
       variable v_shamt : integer;
       variable v_rdata : std_logic_vector(31 downto 0);
@@ -239,10 +244,10 @@ package body WardRV_iss_pkg is
       case pending_load_funct3 is
         when F3_LB  => v_res := std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
         when F3_LH  => v_res := std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
-        when F3_LW  => v_res := mem_rdata;
+        when F3_LW  => v_res := std_logic_vector(resize(unsigned(mem_rdata), 32));
         when F3_LBU => v_res := std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
         when F3_LHU => v_res := std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-        when others => v_res := mem_rdata;
+        when others => v_res := std_logic_vector(resize(unsigned(mem_rdata), 32));
       end case;
 
       if unsigned(pending_load_rd) /= 0 then 
