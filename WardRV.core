@@ -95,7 +95,7 @@ targets:
     description     : default rule to sim (DON'T RUN)
     parameters      :
       - FIRMWARE_FILE=firmware.hex
-      - VERBOSE=true
+      - VERBOSE=false
     tools :
       ghdl :
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]

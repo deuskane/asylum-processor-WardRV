@@ -64,12 +64,43 @@ end package;
 package body WardRV_iss_pkg is
 
   type inst_type_t is (
-    I_LUI, I_AUIPC, I_JAL, I_JALR,
-    I_BEQ, I_BNE, I_BLT, I_BGE, I_BLTU, I_BGEU,
-    I_LB, I_LH, I_LW, I_LBU, I_LHU,
-    I_SB, I_SH, I_SW,
-    I_ADDI, I_SLTI, I_SLTIU, I_XORI, I_ORI, I_ANDI, I_SLLI, I_SRLI, I_SRAI,
-    I_ADD, I_SUB, I_SLL, I_SLT, I_SLTU, I_XOR, I_SRL, I_SRA, I_OR, I_AND,
+    I_ADD,
+    I_ADDI,
+    I_AND,
+    I_ANDI,
+    I_AUIPC,
+    I_BEQ,
+    I_BGE,
+    I_BGEU,
+    I_BLT,
+    I_BLTU,
+    I_BNE,
+    I_JAL,
+    I_JALR,
+    I_LB,
+    I_LBU,
+    I_LH,
+    I_LHU,
+    I_LUI,
+    I_LW,
+    I_OR,
+    I_ORI,
+    I_SB,
+    I_SH,
+    I_SLL,
+    I_SLLI,
+    I_SLT,
+    I_SLTI,
+    I_SLTIU,
+    I_SLTU,
+    I_SRA,
+    I_SRAI,
+    I_SRL,
+    I_SRLI,
+    I_SUB,
+    I_SW,
+    I_XOR,
+    I_XORI,
     I_TOTAL
   );
 
@@ -78,12 +109,43 @@ package body WardRV_iss_pkg is
   type inst_names_t is array (inst_type_t) of string(1 to 18);
 
   constant INST_NAMES : inst_names_t := (
-    I_LUI => "LUI               ", I_AUIPC => "AUIPC             ", I_JAL => "JAL               ", I_JALR => "JALR              ",
-    I_BEQ => "BEQ               ", I_BNE => "BNE               ", I_BLT => "BLT               ", I_BGE => "BGE               ", I_BLTU => "BLTU              ", I_BGEU => "BGEU              ",
-    I_LB => "LB                ", I_LH => "LH                ", I_LW => "LW                ", I_LBU => "LBU               ", I_LHU => "LHU               ",
-    I_SB => "SB                ", I_SH => "SH                ", I_SW => "SW                ",
-    I_ADDI => "ADDI              ", I_SLTI => "SLTI              ", I_SLTIU => "SLTIU             ", I_XORI => "XORI              ", I_ORI => "ORI               ", I_ANDI => "ANDI              ", I_SLLI => "SLLI              ", I_SRLI => "SRLI              ", I_SRAI => "SRAI              ",
-    I_ADD => "ADD               ", I_SUB => "SUB               ", I_SLL => "SLL               ", I_SLT => "SLT               ", I_SLTU => "SLTU              ", I_XOR => "XOR               ", I_SRL => "SRL               ", I_SRA => "SRA               ", I_OR => "OR                ", I_AND => "AND               ",
+    I_ADD   => "ADD               ",
+    I_ADDI  => "ADDI              ",
+    I_AND   => "AND               ",
+    I_ANDI  => "ANDI              ",
+    I_AUIPC => "AUIPC             ",
+    I_BEQ   => "BEQ               ",
+    I_BGE   => "BGE               ",
+    I_BGEU  => "BGEU              ",
+    I_BLT   => "BLT               ",
+    I_BLTU  => "BLTU              ",
+    I_BNE   => "BNE               ",
+    I_JAL   => "JAL               ",
+    I_JALR  => "JALR              ",
+    I_LB    => "LB                ",
+    I_LBU   => "LBU               ",
+    I_LH    => "LH                ",
+    I_LHU   => "LHU               ",
+    I_LUI   => "LUI               ",
+    I_LW    => "LW                ",
+    I_OR    => "OR                ",
+    I_ORI   => "ORI               ",
+    I_SB    => "SB                ",
+    I_SH    => "SH                ",
+    I_SLL   => "SLL               ",
+    I_SLLI  => "SLLI              ",
+    I_SLT   => "SLT               ",
+    I_SLTI  => "SLTI              ",
+    I_SLTIU => "SLTIU             ",
+    I_SLTU  => "SLTU              ",
+    I_SRA   => "SRA               ",
+    I_SRAI  => "SRAI              ",
+    I_SRL   => "SRL               ",
+    I_SRLI  => "SRLI              ",
+    I_SUB   => "SUB               ",
+    I_SW    => "SW                ",
+    I_XOR   => "XOR               ",
+    I_XORI  => "XORI              ",
     I_TOTAL => "Total Instructions"
   );
 
@@ -464,7 +526,12 @@ package body WardRV_iss_pkg is
       variable v_shamt : integer;
       variable v_rdata : std_logic_vector(31 downto 0);
       variable v_res   : std_logic_vector(31 downto 0);
+      variable v_msg   : line;
     begin
+      -- synthesis translate_off
+      write(v_msg, string'("Complete Load: R") & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off));
+      -- synthesis translate_on
+
       v_shamt := pending_load_byte_off * 8;
       v_rdata := std_logic_vector(shift_right(unsigned(mem_rdata), v_shamt));
       
@@ -476,6 +543,12 @@ package body WardRV_iss_pkg is
         when F3_LHU => v_res := std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
         when others => v_res := std_logic_vector(resize(unsigned(mem_rdata), 32));
       end case;
+
+      -- synthesis translate_off
+      write(v_msg, string'(" -> final_res=0x") & to_hstring(v_res));
+      report "[ISS] " & v_msg.all;
+      deallocate(v_msg);
+      -- synthesis translate_on
 
       if unsigned(pending_load_rd) /= 0 then 
         regs_r(to_integer(unsigned(pending_load_rd))) := v_res; 

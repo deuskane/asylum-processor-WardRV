@@ -4,7 +4,7 @@ OBJCOPY   = riscv64-unknown-elf-objcopy
 OBJDUMP   = riscv64-unknown-elf-objdump
 
 # Compilation options for RV32I (Base architecture without hardware multiplication/division)
-CFLAGS    = -march=rv32i -mabi=ilp32 -O0 -ffreestanding -nostartfiles -nostdlib -g -fverbose-asm -Wall -Wextra -Werror
+CFLAGS    = -march=rv32i -mabi=ilp32 -O2 -ffreestanding -nostartfiles -nostdlib -g -fverbose-asm -Wall -Wextra -Werror
 
 # Files
 SRC       = start.S main.c

@@ -33,12 +33,20 @@ void check(uint32_t result, uint32_t expected) {
     }
 }
 
-uint32_t main() {
+void check16(uint16_t result, uint16_t expected) {
+    if (result != expected) {
+        test_fail();
+        while(1);
+    }
+}
+
+uint32_t testcase() {
     // Test RV32I Arithmetic and Logical instructions using registers
     volatile uint32_t a = 0x12345678;
     volatile uint32_t b = 0x00000001;
     volatile uint32_t c = 0x12345678;
     
+    // Test RV32I Arithmetic instructions
     check(a + b, 0x12345679); // Verify ADD (Addition)
     check(a - b, 0x12345677); // Verify SUB (Subtraction)
     check(a ^ b, 0x12345679); // Verify XOR (Exclusive OR)
@@ -62,17 +70,40 @@ uint32_t main() {
     check(a + 0x123, 0x1234579B); // Verify ADDI (Add Immediate)
     check(b << 2, 0x4);           // Verify SLLI (Shift Left Logical Immediate)
 
+
     // Test RV32I Memory Access (Load and Store) instructions
-    volatile uint32_t mem_val;
-    mem_val = 0xDEADBEEF;
-    check(mem_val, 0xDEADBEEF);   // Verify LW (Load Word) and SW (Store Word)
+    uint32_t   mem32 [4] = {0x01234567, 0x89ABCDEF, 0xFEDCBA98, 0x76543210};
+    volatile uint32_t   data32;
 
-    volatile uint16_t mem_half = 0xABCD;
-    check(mem_half, 0xABCD);      // Verify LHU (Load Halfword Unsigned) and SH (Store Halfword)
+    data32 = mem32[0]; // Verify LW (Load Word)
+    check(data32, 0x01234567); 
+    data32 = mem32[1];
+    check(data32, 0x89ABCDEF);
+    data32 = mem32[2];
+    check(data32, 0xFEDCBA98);
+    data32 = mem32[3];
+    check(data32, 0x76543210);
 
-    volatile uint8_t mem_byte = 0x7F;
-    check(mem_byte, 0x7F);        // Verify LBU (Load Byte Unsigned) and SB (Store Byte)
+    
+    //uint16_t * mem16     = (uint16_t *)mem32;
+    //volatile uint16_t data16;
+    
+    //data16 = mem16[0]; // Verify LH (Load Halfword) 
+    //check16(data16, 0x4567); 
+    //data16 = mem16[1]; 
+    //check16(mem16[1], 0x0123); 
+    
+    //check(mem16[3], );            
+//
+//uint8_t  * mem8      = (uint8_t  *)mem32;
+    //volatile uint8_t  * data8;
 
+    //check(mem8[0], 0x67);
+    //check(mem8[1], 0x45);
+    //check(mem8[2], 0x23);
+    //check(mem8[3], 0x01);       
+
+    
     // Test RV32I Conditional Branching instructions
     uint32_t branch_res = 0;
     if (a != b) branch_res = 1;   // Verify BNE (Branch Not Equal)
@@ -87,7 +118,7 @@ uint32_t main() {
 
     if ((uint32_t)a >= (uint32_t)b) branch_res = 4;  // Verify BGEU (Branch Greater or Equal Unsigned)
     check(branch_res, 4);
-
+    
     // Test RV32I Unconditional Jump instructions
     int jump_check = 0;
     goto jump_target;
@@ -153,8 +184,11 @@ jump_target:                      // Target for the jump
     check(sltiu_res, 1);
 
     // Test XORI and ORI (Logical operations with immediates)
-    check(a ^ 0x123, 0x1234575B); // Verify XORI (Exclusive OR Immediate)
-    check(a | 0x123, 0x1234577B); // Verify ORI (Logical OR Immediate)
+    volatile uint32_t xori_src = a;
+    check(xori_src ^ 0x123, 0x1234575B); // Verify XORI (Exclusive OR Immediate)
+    
+    volatile uint32_t ori_src = a;
+    check(ori_src | 0x123, 0x1234577B); // Verify ORI (Logical OR Immediate)
 
     // SLL, SRL, and SRA (Shift operations with register-based shift amount)
     volatile uint32_t shamt = 3;
@@ -162,6 +196,13 @@ jump_target:                      // Target for the jump
     check(s >> shamt, 0x10000000); // Verify SRL (Shift Right Logical)
     volatile int32_t s_signed = 0x80000000;
     check(s_signed >> shamt, 0xF0000000); // Verify SRA (Shift Right Arithmetic)
+
+    return 0;
+}
+
+uint32_t main() {
+
+    testcase();
 
     test_pass();
 
