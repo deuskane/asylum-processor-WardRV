@@ -246,7 +246,7 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_LUI =>
           -- Load Upper Immediate
-          write(v_msg, string'("LUI R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u));
+          write(v_msg, string'("LUI R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_imm_u));
           v_res := v_imm_u;
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
@@ -254,8 +254,8 @@ package body WardRV_iss_pkg is
 
         when OPC_AUIPC =>
           -- Add Upper Immediate to PC
-          write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u));
           v_res := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_u));
+          write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res));
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
           stats(I_AUIPC) := stats(I_AUIPC) + 1;
@@ -265,9 +265,9 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_JAL =>
           -- Jump and Link
-          write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j));
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_j));
+          write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
           stats(I_JAL) := stats(I_JAL) + 1;
@@ -277,9 +277,9 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_JALR =>
           -- Jump and Link Register
-          write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))));
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
+          write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(v_op1) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
           stats(I_JALR) := stats(I_JALR) + 1;
@@ -298,7 +298,7 @@ package body WardRV_iss_pkg is
             when F3_BGEU => write(v_msg, string'("BGEU")); if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BGEU) := stats(I_BGEU) + 1;
             when others => write(v_msg, string'("BRANCH_UNK"));
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b));
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") NPC=0x" & to_hstring(v_npc));
           pc_r := v_npc;
 
         -- =====================================================================
@@ -314,8 +314,8 @@ package body WardRV_iss_pkg is
             when F3_LHU => write(v_msg, string'("LHU")); stats(I_LHU) := stats(I_LHU) + 1;
             when others => write(v_msg, string'("LOAD_UNK"));
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ")");
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ")");
           mem_req  := true;
           mem_we   := '0';
           mem_addr := v_addr;
@@ -338,8 +338,8 @@ package body WardRV_iss_pkg is
             when F3_SW  => write(v_msg, string'("SW")); stats(I_SW) := stats(I_SW) + 1;
             when others => write(v_msg, string'("STORE_UNK"));
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ")");
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ", Data=0x" & to_hstring(v_op2) & ")");
           mem_req   := true;
           mem_we    := '1';
           mem_addr  := v_addr;
@@ -412,7 +412,7 @@ package body WardRV_iss_pkg is
               stats(I_ANDI) := stats(I_ANDI) + 1;
             when others => null;
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))));
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res));
           
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
@@ -470,7 +470,7 @@ package body WardRV_iss_pkg is
               stats(I_AND) := stats(I_AND) + 1;
             when others => null;
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))));
+          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") = 0x" & to_hstring(v_res));
           
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
