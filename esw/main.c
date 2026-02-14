@@ -59,9 +59,9 @@ uint32_t testcase(uint32_t * operands) {
     uint32_t   d     = operands[3];
     int32_t    neg   = operands[4];
     int32_t    pos   = operands[5];
-    uint32_t * mem32 = &(operands[6]);
-    uint16_t * mem16 = (uint16_t *)mem32;
-    uint8_t  * mem8  = (uint8_t  *)mem32;
+    uint32_t * mem32u = &(operands[6]);
+    uint16_t * mem16u = (uint16_t *)mem32u;
+    uint8_t  * mem8u  = (uint8_t  *)mem32u;
     uint32_t   res;
 
     // Test RV32I Arithmetic and Logical instructions using registers
@@ -112,53 +112,104 @@ uint32_t testcase(uint32_t * operands) {
     check(res, 0x4);           // Verify SLLI (Shift Left Logical Immediate)
 
     // Test RV32I Memory Access (Load and Store) instructions
-    
-    check(mem32[0], 0x01234567); 
-    check(mem32[1], 0x89ABCDEF);
-    check(mem32[2], 0xFEDCBA98);
-    check(mem32[3], 0x76543210);
+    check(mem32u[0], 0x01234567); 
+    check(mem32u[1], 0x89ABCDEF);
+    check(mem32u[2], 0xFEDCBA98);
+    check(mem32u[3], 0x76543210);
 
-    check(mem16[0], 0x4567); 
-  //check(mem16[1], 0x0123); 
-    check(mem16[2], 0xCDEF); 
-  //check(mem16[3], 0x89AB); 
-    check(mem16[4], 0xBA98); 
-  //check(mem16[5], 0xFEDC); 
-    check(mem16[6], 0x3210); 
-  //check(mem16[7], 0x7654); 
+    check(mem16u[0], 0x4567); 
+  //check(mem16u[1], 0x0123); 
+    check(mem16u[2], 0xCDEF); 
+  //check(mem16u[3], 0x89AB); 
+    check(mem16u[4], 0xBA98); 
+  //check(mem16u[5], 0xFEDC); 
+    check(mem16u[6], 0x3210); 
+  //check(mem16u[7], 0x7654); 
 
-    check(mem8[0], 0x67);
-    //check(mem8[1], 0x45);
-    //check(mem8[2], 0x23);
-    //check(mem8[3], 0x01);
-    check(mem8[4], 0xEF);
-    //check(mem8[5], 0xCD);
-    //check(mem8[6], 0xAB);
-    //check(mem8[7], 0x89);
-    check(mem8[8], 0x98);
-    //check(mem8[9], 0xBA);
-    //check(mem8[10], 0xDC);
-    //check(mem8[11], 0xFE);
-    check(mem8[12], 0x10);
-    //check(mem8[13], 0x32);
-    //check(mem8[14], 0x54);
-    //check(mem8[15], 0x76);
+    check(mem8u[0], 0x67);
+    //check(mem8u[1], 0x45);
+    //check(mem8u[2], 0x23);
+    //check(mem8u[3], 0x01);
+    check(mem8u[4], 0xEF);
+    //check(mem8u[5], 0xCD);
+    //check(mem8u[6], 0xAB);
+    //check(mem8u[7], 0x89);
+    check(mem8u[8], 0x98);
+    //check(mem8u[9], 0xBA);
+    //check(mem8u[10], 0xDC);
+    //check(mem8u[11], 0xFE);
+    check(mem8u[12], 0x10);
+    //check(mem8u[13], 0x32);
+    //check(mem8u[14], 0x54);
+    //check(mem8u[15], 0x76);
 
 
     // Test RV32I Conditional Branching instructions
-    uint32_t branch_res = 0;
-    if (a != b) branch_res = 1;   // Verify BNE (Branch Not Equal)
-    else        branch_res = 0;
-    check(branch_res, 1);
+    res = 42;
+    asm volatile (
+        "bne %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"(a), "r"(b)
+    );
+    // Verify BNE (Branch Not Equal)
+    check(res, 42);
 
-    if (a == c) branch_res = 2;   // Verify BEQ (Branch Equal)
-    check(branch_res, 2);
+    res = 42;
+    asm volatile (
+        "bne %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"(a), "r"(c)
+    );
+    // Verify BNE (Branch Not Equal)
+    check(res, 24);
 
-    if ((int32_t)neg < (int32_t)pos) branch_res = 3; // Verify BLT (Branch Less Than - signed)
-    check(branch_res, 3);
+    res = 42;
+    asm volatile (
+        "beq %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"(a), "r"(c)
+    );
+    // Verify BEQ (Branch Equal)
+    check(res, 42);
 
-    if ((uint32_t)a >= (uint32_t)b) branch_res = 4;  // Verify BGEU (Branch Greater or Equal Unsigned)
-    check(branch_res, 4);
+    res = 42;
+    asm volatile (
+        "beq %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"(a), "r"(b)
+    );
+    // Verify BEQ (Branch Equal)
+    check(res, 24);
+
+    res = 42;
+    asm volatile (
+        "blt %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"((int32_t)neg), "r"((int32_t)pos)
+    );
+    // Verify BLT (Branch Less Than)
+    check(res, 42);
+
+    res = 42;
+    asm volatile (
+        "bgeu %1, %2, 1f\n"
+        "li  %0, 24\n"
+        "1:\n"
+        : "+r"(res)
+        : "r"(a), "r"(b)
+    );
+    // Verify BGEU (Branch Greater or Equal Unsigned)
+    check(res, 42);
 
     
     // Test RV32I Unconditional Jump instructions
