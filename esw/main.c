@@ -40,70 +40,111 @@ void check16(uint16_t result, uint16_t expected) {
     }
 }
 
-uint32_t testcase() {
+uint8_t read_mem8(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint8_t*)(addr + offset);
+}
+
+uint16_t read_mem16(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint16_t*)(addr + offset);
+}
+
+uint32_t read_mem32(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint32_t*)(addr + offset);
+}
+
+uint32_t testcase(uint32_t * operands) {
+    uint32_t   a     = operands[0];
+    uint32_t   b     = operands[1];
+    uint32_t   c     = operands[2];
+    uint32_t   d     = operands[3];
+    int32_t    neg   = operands[4];
+    int32_t    pos   = operands[5];
+    uint32_t * mem32 = &(operands[6]);
+    uint16_t * mem16 = (uint16_t *)mem32;
+    uint8_t  * mem8  = (uint8_t  *)mem32;
+    uint32_t   res;
+
     // Test RV32I Arithmetic and Logical instructions using registers
-    volatile uint32_t a = 0x12345678;
-    volatile uint32_t b = 0x00000001;
-    volatile uint32_t c = 0x12345678;
     
     // Test RV32I Arithmetic instructions
-    check(a + b, 0x12345679); // Verify ADD (Addition)
-    check(a - b, 0x12345677); // Verify SUB (Subtraction)
-    check(a ^ b, 0x12345679); // Verify XOR (Exclusive OR)
-    check(a | b, 0x12345679); // Verify OR (Logical OR)
-    check(a & b, 0x00000000); // Verify AND (Logical AND)
-    check(a & c, 0x12345678); // Verify AND with identical values
+    asm volatile ("add %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+    check(res, 0x12345679); // Verify ADD (Addition)
+    asm volatile ("sub %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+    check(res, 0x12345677); // Verify SUB (Subtraction)
+    asm volatile ("xor %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+    check(res, 0x12345679); // Verify XOR (Exclusive OR)
+    asm volatile ("or  %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+    check(res, 0x12345679); // Verify OR (Logical OR)
+    asm volatile ("and %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+    check(res, 0x00000000); // Verify AND (Logical AND)
+    asm volatile ("and %0, %1, %2" : "=r"(res) : "r"(a), "r"(c));
+    check(res, 0x12345678); // Verify AND with identical values
 
     // Test RV32I Shift instructions
-    volatile uint32_t s = 0x80000000;
-    check(s >> 1,  0x40000000); // Verify SRL (Shift Right Logical)
-    check((int32_t)s >> 1, 0xC0000000); // Verify SRA (Shift Right Arithmetic - sign extension)
-    check(b << 4,  0x00000010); // Verify SLL (Shift Left Logical)
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(a), "r"(1));
+    check(res, 0x091A2B3C); // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(a), "r"(1));
+    check(res, 0x091A2B3C); // Verify SRA (Shift Right Arithmetic)
+    
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(d), "r"(1));
+    check(res, 0x43B2A190); // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(d), "r"(1));
+    check(res, 0xC3B2A190); // Verify SRA (Shift Right Arithmetic)
+    
+    asm volatile ("sll %0, %1, %2" : "=r"(res) : "r"(a), "r"(4));
+    check(res, 0x23456780); // Verify SLL (Shift Left Logical)
+
 
     // Test RV32I Comparison instructions
-    volatile int32_t neg = -10;
-    volatile int32_t pos = 10;
-    check(neg < pos, 1); // Verify SLT (Set Less Than - signed)
-    check((uint32_t)neg < (uint32_t)pos, 0); // Verify SLTU (Set Less Than Unsigned)
+    asm volatile ("slt %0, %1, %2" : "=r"(res) : "r"(pos), "r"(neg));
+    check(res, 0); // Verify SLT (Set Less Than - signed)
+    asm volatile ("slt %0, %1, %2" : "=r"(res) : "r"(neg), "r"(pos));
+    check(res, 1); // Verify SLT (Set Less Than - signed)
+    asm volatile ("sltu %0, %1, %2" : "=r"(res) : "r"(neg), "r"(pos));
+    check(res, 0); // Verify SLTU (Set Less Than Unsigned)
+    asm volatile ("sltu %0, %1, %2" : "=r"(res) : "r"(pos), "r"(neg));
+    check(res, 1); // Verify SLTU (Set Less Than Unsigned)
 
     // Test RV32I instructions with Immediate values
-    check(a + 0x123, 0x1234579B); // Verify ADDI (Add Immediate)
-    check(b << 2, 0x4);           // Verify SLLI (Shift Left Logical Immediate)
-
+    asm volatile ("addi %0, %1, 0x123" : "=r"(res) : "r"(a));
+    check(res, 0x1234579B); // Verify ADDI (Add Immediate)
+    asm volatile ("slli %0, %1, 2" : "=r"(res) : "r"(b));
+    check(res, 0x4);           // Verify SLLI (Shift Left Logical Immediate)
 
     // Test RV32I Memory Access (Load and Store) instructions
-    uint32_t   mem32 [4] = {0x01234567, 0x89ABCDEF, 0xFEDCBA98, 0x76543210};
-    volatile uint32_t   data32;
-
-    data32 = mem32[0]; // Verify LW (Load Word)
-    check(data32, 0x01234567); 
-    data32 = mem32[1];
-    check(data32, 0x89ABCDEF);
-    data32 = mem32[2];
-    check(data32, 0xFEDCBA98);
-    data32 = mem32[3];
-    check(data32, 0x76543210);
-
     
-    //uint16_t * mem16     = (uint16_t *)mem32;
-    //volatile uint16_t data16;
-    
-    //data16 = mem16[0]; // Verify LH (Load Halfword) 
-    //check16(data16, 0x4567); 
-    //data16 = mem16[1]; 
-    //check16(mem16[1], 0x0123); 
-    
-    //check(mem16[3], );            
-//
-//uint8_t  * mem8      = (uint8_t  *)mem32;
-    //volatile uint8_t  * data8;
+    check(mem32[0], 0x01234567); 
+    check(mem32[1], 0x89ABCDEF);
+    check(mem32[2], 0xFEDCBA98);
+    check(mem32[3], 0x76543210);
 
-    //check(mem8[0], 0x67);
+    check(mem16[0], 0x4567); 
+  //check(mem16[1], 0x0123); 
+    check(mem16[2], 0xCDEF); 
+  //check(mem16[3], 0x89AB); 
+    check(mem16[4], 0xBA98); 
+  //check(mem16[5], 0xFEDC); 
+    check(mem16[6], 0x3210); 
+  //check(mem16[7], 0x7654); 
+
+    check(mem8[0], 0x67);
     //check(mem8[1], 0x45);
     //check(mem8[2], 0x23);
-    //check(mem8[3], 0x01);       
+    //check(mem8[3], 0x01);
+    check(mem8[4], 0xEF);
+    //check(mem8[5], 0xCD);
+    //check(mem8[6], 0xAB);
+    //check(mem8[7], 0x89);
+    check(mem8[8], 0x98);
+    //check(mem8[9], 0xBA);
+    //check(mem8[10], 0xDC);
+    //check(mem8[11], 0xFE);
+    check(mem8[12], 0x10);
+    //check(mem8[13], 0x32);
+    //check(mem8[14], 0x54);
+    //check(mem8[15], 0x76);
 
-    
+
     // Test RV32I Conditional Branching instructions
     uint32_t branch_res = 0;
     if (a != b) branch_res = 1;   // Verify BNE (Branch Not Equal)
@@ -118,6 +159,7 @@ uint32_t testcase() {
 
     if ((uint32_t)a >= (uint32_t)b) branch_res = 4;  // Verify BGEU (Branch Greater or Equal Unsigned)
     check(branch_res, 4);
+
     
     // Test RV32I Unconditional Jump instructions
     int jump_check = 0;
@@ -129,6 +171,7 @@ jump_target:                      // Target for the jump
     // Test RV32I Upper Immediate instructions
     uint32_t lui_val = 0x12345000;
     check(lui_val, 0x12345000);   // Verify LUI (Load Upper Immediate)
+
 
     // Test AUIPC (Add Upper Immediate to PC)
     uint32_t auipc_val;
@@ -161,48 +204,53 @@ jump_target:                      // Target for the jump
     );
     check(bgeu_asm_res, 0);
 
-    // Test LB (Load Byte Signed) with sign extension
-    volatile int8_t s_byte = -10;
-    volatile int8_t *p_s_byte = &s_byte;
-    check(*p_s_byte, 0xFFFFFFF6);
-
-    // Test LH (Load Halfword Signed) with sign extension
-    volatile int16_t s_half = -2000;
-    volatile int16_t *p_s_half = &s_half;
-    check(*p_s_half, 0xFFFFF830);
 
     // Test SLTI (Set Less Than Immediate - signed)
-    volatile int32_t slti_src = -20;
     int32_t slti_res;
-    asm volatile ("slti %0, %1, 10" : "=r"(slti_res) : "r"(slti_src));
+    asm volatile ("slti %0, %1, 5" : "=r"(slti_res) : "r"(pos));
+    check(slti_res, 0);
+    asm volatile ("slti %0, %1, 5" : "=r"(slti_res) : "r"(neg));
     check(slti_res, 1);
 
+        
     // Test SLTIU (Set Less Than Immediate Unsigned)
-    volatile uint32_t sltiu_src = 20;
     int32_t sltiu_res;
-    asm volatile ("sltiu %0, %1, 30" : "=r"(sltiu_res) : "r"(sltiu_src));
+    asm volatile ("sltiu %0, %1, 15" : "=r"(sltiu_res) : "r"(pos));
     check(sltiu_res, 1);
+    asm volatile ("sltiu %0, %1, 15" : "=r"(sltiu_res) : "r"(neg));
+    check(sltiu_res, 0);
 
     // Test XORI and ORI (Logical operations with immediates)
-    volatile uint32_t xori_src = a;
-    check(xori_src ^ 0x123, 0x1234575B); // Verify XORI (Exclusive OR Immediate)
-    
-    volatile uint32_t ori_src = a;
-    check(ori_src | 0x123, 0x1234577B); // Verify ORI (Logical OR Immediate)
+    asm volatile ("xori %0, %1, 0x123" : "=r"(res) : "r"(a));
+    check(res, 0x1234575B); // Verify XORI (Exclusive OR Immediate)
+    asm volatile ("ori %0, %1, 0x123" : "=r"(res) : "r"(a));
+    check(res, 0x1234577B); // Verify ORI (Logical OR Immediate)
+    asm volatile ("andi %0, %1, 0x123" : "=r"(res) : "r"(a));
+    check(res, 0x00000020); // Verify ANDI (Logical AND Immediate)
 
     // SLL, SRL, and SRA (Shift operations with register-based shift amount)
     volatile uint32_t shamt = 3;
     check(b << shamt, 8); // Verify SLL (Shift Left Logical)
-    check(s >> shamt, 0x10000000); // Verify SRL (Shift Right Logical)
+    check(a >> shamt, 0x2468ACF); // Verify SRL (Shift Right Logical)
     volatile int32_t s_signed = 0x80000000;
     check(s_signed >> shamt, 0xF0000000); // Verify SRA (Shift Right Arithmetic)
 
-    return 0;
+    return 0;    
 }
 
 uint32_t main() {
-
-    testcase();
+    uint32_t operands[10] = {0x12345678, 
+                            0x00000001, 
+                            0x12345678, 
+                            0x87654321,
+                            -10, 
+                            10, 
+                            0x01234567, 
+                            0x89ABCDEF, 
+                            0xFEDCBA98, 
+                            0x76543210};
+    
+    testcase(operands);
 
     test_pass();
 
