@@ -280,11 +280,22 @@ jump_target:                      // Target for the jump
     check(res, 0x00000020); // Verify ANDI (Logical AND Immediate)
 
     // SLL, SRL, and SRA (Shift operations with register-based shift amount)
-    volatile uint32_t shamt = 3;
-    check(b << shamt, 8); // Verify SLL (Shift Left Logical)
-    check(a >> shamt, 0x2468ACF); // Verify SRL (Shift Right Logical)
-    volatile int32_t s_signed = 0x80000000;
-    check(s_signed >> shamt, 0xF0000000); // Verify SRA (Shift Right Arithmetic)
+    uint32_t shamt = 3;
+    int32_t  s_signed = 0x80000000;
+    asm volatile ("sll %0, %1, %2" : "=r"(res) : "r"(b), "r"(shamt));
+    check(res, 8);           // Verify SLL (Shift Left Logical)
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(a), "r"(shamt));
+    check(res, 0x02468ACF);  // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(s_signed), "r"(shamt));
+    check(res, 0xF0000000);  // Verify SRA (Shift Right Arithmetic)
+
+    // SLLI, SRLI, and SRAI (Shift operations with immediate-based shift amount)
+    asm volatile ("slli %0, %1, 3" : "=r"(res) : "r"(b));
+    check(res, 8);           // Verify SLLI (Shift Left Logical Immediate)
+    asm volatile ("srli %0, %1, 3" : "=r"(res) : "r"(a));
+    check(res, 0x02468ACF);  // Verify SRLI (Shift Right Logical Immediate)
+    asm volatile ("srai %0, %1, 3" : "=r"(res) : "r"(s_signed));
+    check(res, 0xF0000000);  // Verify SRAI (Shift Right Arithmetic Immediate)
 
     return 0;    
 }
