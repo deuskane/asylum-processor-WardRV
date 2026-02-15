@@ -63,6 +63,7 @@ begin
     variable v_mem_req : boolean;
     variable v_we      : std_logic;
     variable v_maddr   : std_logic_vector(31 downto 0);
+    variable v_maddr_tmp   : std_logic_vector(31 downto 0);
     variable v_wdata   : std_logic_vector(31 downto 0);
     variable v_be      : std_logic_vector(3 downto 0);
     variable v_rdata   : std_logic_vector(31 downto 0);
@@ -98,7 +99,8 @@ begin
           iss.print_stats;
           sim_end <= true;
         else
-          v_addr := to_integer(unsigned(v_maddr));
+          v_maddr_tmp := v_maddr(31 downto 2) & std_logic_vector'("00");
+          v_addr      := to_integer(unsigned(v_maddr_tmp));
           if v_addr < C_MEM_SIZE - 3 then
             if v_we = '1' then
               if VERBOSE then log(ID_BFM, "ISS Store @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_wdata) & " (be:" & to_string(v_be) & ")"); end if;
