@@ -55,7 +55,7 @@ filesets:
       - sim/tb_WardRV_pkg.vhd
       - sim/tb_WardRV.vhd
       - sim/tb_WardRV_iss.vhd
-      - esw/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
+      - esw/testcase/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm

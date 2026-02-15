@@ -27,10 +27,10 @@ LSTS = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.lst, $(SRCS))
 # Include paths: Current dir (for model_test.h) and Suite includes
 INCLUDES = -I. -I$(TEST_DIR)/../../../../include
 
-CFLAGS   = -march=rv32i -mabi=ilp32 -static -mcmodel=medany \
+CFLAGS   = -march=rv32i -mabi=ilp32 -static -mcmodel=medany -g \
            -fvisibility=hidden -nostdlib -nostartfiles $(INCLUDES)
 
-LDFLAGS  = -T link.ld
+LDFLAGS  = -T link.ld -Wl,--no-warn-rwx-segments
 
 # -----------------------------------------------------------------------------
 # Rules
@@ -44,13 +44,13 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.elf: $(BUILD_DIR)/%.o
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -O verilog $< $@
 
 $(BUILD_DIR)/%.lst: $(BUILD_DIR)/%.elf
-	$(OBJDUMP) -D $< > $@
+	$(OBJDUMP) -D -S $< > $@
 
 clean:
 	rm -rf $(BUILD_DIR)

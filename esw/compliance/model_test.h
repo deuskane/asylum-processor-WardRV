@@ -20,7 +20,7 @@
     wfi;
 
 #define RV_COMPLIANCE_RV32M
-#define RV_COMPLIANCE_CODE_BEGIN .section .text.init; .globl _start; _start:
+#define RV_COMPLIANCE_CODE_BEGIN .section .text.init, "ax", @progbits; .globl _start; _start:
 #define RV_COMPLIANCE_CODE_END
 #define RV_COMPLIANCE_DATA_BEGIN .section .data; .align 4; .globl begin_signature; begin_signature:
 #define RV_COMPLIANCE_DATA_END .align 4; .globl end_signature; end_signature:
