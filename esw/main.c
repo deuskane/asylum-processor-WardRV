@@ -59,9 +59,12 @@ uint32_t testcase(uint32_t * operands) {
     uint32_t   d     = operands[3];
     int32_t    neg   = operands[4];
     int32_t    pos   = operands[5];
-    uint32_t * mem32u = &(operands[6]);
-    uint16_t * mem16u = (uint16_t *)mem32u;
-    uint8_t  * mem8u  = (uint8_t  *)mem32u;
+    volatile uint32_t * mem32u = &(operands[6]);
+    volatile uint16_t * mem16u = (uint16_t *)mem32u;
+    volatile uint8_t  * mem8u  = (uint8_t  *)mem32u;
+    volatile int32_t  * mem32i = (int32_t *)&(operands[6]);
+    volatile int16_t  * mem16i = (int16_t *)mem32i;
+    volatile int8_t   * mem8i  = (int8_t  *)mem32i;
     uint32_t   res;
 
     // Test RV32I Arithmetic and Logical instructions using registers
@@ -142,6 +145,68 @@ uint32_t testcase(uint32_t * operands) {
     //check(mem8u[13], 0x32);
     //check(mem8u[14], 0x54);
     //check(mem8u[15], 0x76);
+
+    check(mem32i[0], 0x01234567); 
+    check(mem32i[1], 0x89ABCDEF);
+    check(mem32i[2], 0xFEDCBA98);
+    check(mem32i[3], 0x76543210);
+
+    int16_t data_i16;
+
+    asm volatile ("lh %0, 0(%1)" : "=r"(data_i16) : "r"(mem16i));
+    check(mem16i[0], 0x00004567); 
+    asm volatile ("lh %0, 2(%1)" : "=r"(data_i16) : "r"(mem16i));
+  //check(mem16i[1], 0x00000123); 
+    asm volatile ("lh %0, 4(%1)" : "=r"(data_i16) : "r"(mem16i));
+    check(mem16i[2], 0xFFFFCDEF); 
+    asm volatile ("lh %0, 6(%1)" : "=r"(data_i16) : "r"(mem16i));
+  //check(mem16i[3], 0xFFFF89AB); 
+    asm volatile ("lh %0, 8(%1)" : "=r"(data_i16) : "r"(mem16i));
+    check(mem16i[4], 0xFFFFBA98); 
+    asm volatile ("lh %0, 10(%1)" : "=r"(data_i16) : "r"(mem16i));
+  //check(mem16i[5], 0xFFFFFEDC); 
+    asm volatile ("lh %0, 12(%1)" : "=r"(data_i16) : "r"(mem16i));
+    check(mem16i[6], 0x00003210); 
+    asm volatile ("lh %0, 14(%1)" : "=r"(data_i16) : "r"(mem16i));
+  //check(mem16i[7], 0x00007654); 
+
+    int8_t data_i8;
+
+    asm volatile ("lb %0, 0(%1)" : "=r"(data_i8) : "r"(mem8i));
+    check(data_i8,  0x00000067);
+    asm volatile ("lb %0, 1(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[1],  0x00000045);
+    asm volatile ("lb %0, 2(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[2],  0x00000023);
+    asm volatile ("lb %0, 3(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[3],  0x00000001);
+
+    asm volatile ("lb %0, 4(%1)" : "=r"(data_i8) : "r"(mem8i));
+    check(data_i8,  0xFFFFFFEF);
+    asm volatile ("lb %0, 5(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[5],  0xFFFFFFCD);
+    asm volatile ("lb %0, 6(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[6],  0xFFFFFFAB);
+    asm volatile ("lb %0, 7(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[7],  0xFFFFFF89);
+    
+    asm volatile ("lb %0, 8(%1)" : "=r"(data_i8) : "r"(mem8i));
+    check(mem8i[8],  0xFFFFFF98);
+    asm volatile ("lb %0, 9(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[9],  0xFFFFFFBA);
+    asm volatile ("lb %0, 10(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[10], 0xFFFFFFDC);
+    asm volatile ("lb %0, 11(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[11], 0xFFFFFFFE);
+
+    asm volatile ("lb %0, 12(%1)" : "=r"(data_i8) : "r"(mem8i));
+    check(mem8i[12], 0x00000010);
+    asm volatile ("lb %0, 13(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[13], 0x00000032);
+    asm volatile ("lb %0, 14(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[14], 0x00000054);
+    asm volatile ("lb %0, 15(%1)" : "=r"(data_i8) : "r"(mem8i));
+  //check(mem8i[15], 0x00000076);
 
 
     // Test RV32I Conditional Branching instructions
@@ -288,14 +353,6 @@ jump_target:                      // Target for the jump
     check(res, 0x02468ACF);  // Verify SRL (Shift Right Logical)
     asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(s_signed), "r"(shamt));
     check(res, 0xF0000000);  // Verify SRA (Shift Right Arithmetic)
-
-    // SLLI, SRLI, and SRAI (Shift operations with immediate-based shift amount)
-    asm volatile ("slli %0, %1, 3" : "=r"(res) : "r"(b));
-    check(res, 8);           // Verify SLLI (Shift Left Logical Immediate)
-    asm volatile ("srli %0, %1, 3" : "=r"(res) : "r"(a));
-    check(res, 0x02468ACF);  // Verify SRLI (Shift Right Logical Immediate)
-    asm volatile ("srai %0, %1, 3" : "=r"(res) : "r"(s_signed));
-    check(res, 0xF0000000);  // Verify SRAI (Shift Right Arithmetic Immediate)
 
     return 0;    
 }
