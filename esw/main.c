@@ -278,7 +278,8 @@ jump_target:                      // Target for the jump
     check(jump_check, 0);         // Verify JAL (Jump and Link) via C goto
 
     // Test RV32I Upper Immediate instructions
-    uint32_t lui_val = 0x12345000;
+    uint32_t lui_val;
+    asm volatile ("lui %0, 0x12345" : "=r"(lui_val));
     check(lui_val, 0x12345000);   // Verify LUI (Load Upper Immediate)
 
 
