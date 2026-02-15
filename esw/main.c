@@ -65,6 +65,38 @@ uint32_t read_mem32(uintptr_t addr, uint32_t offset) {
     );                                         \
     check(res, expected);
 
+#define SW(offset, value) \
+    data_u32 = value; \
+    asm volatile ("sw %0, " #offset "(%1)" :: "r"(data_u32), "r"(mem32u) : "memory");
+
+#define SH(offset, value) \
+    data_u16 = value; \
+    asm volatile ("sh %0, " #offset "(%1)" :: "r"(data_u16), "r"(mem16u) : "memory");
+
+#define SB(offset, value) \
+    data_u8 = value; \
+    asm volatile ("sb %0, " #offset "(%1)" :: "r"(data_u8), "r"(mem8u) : "memory");
+
+#define CHECK_LW(offset, expected) \
+    asm volatile ("lw %0, " #offset "(%1)" : "=r"(data_u32) : "r"(mem32u)); \
+    check(data_u32, expected);
+
+#define CHECK_LHU(offset, expected) \
+    asm volatile ("lhu %0, " #offset "(%1)" : "=r"(data_u16) : "r"(mem16u)); \
+    check(data_u16, expected);
+
+#define CHECK_LH(offset, expected) \
+    asm volatile ("lh %0, " #offset "(%1)" : "=r"(data_i16) : "r"(mem16i)); \
+    check(data_i16, expected);
+
+#define CHECK_LB(offset, expected) \
+    asm volatile ("lb %0, " #offset "(%1)" : "=r"(data_i8) : "r"(mem8i)); \
+    check(data_i8, expected);
+
+#define CHECK_LBU(offset, expected) \
+    asm volatile ("lbu %0, " #offset "(%1)" : "=r"(data_u8) : "r"(mem8u)); \
+    check(data_u8, expected);
+
 uint32_t testcase(uint32_t * operands) {
     uint32_t   a     = operands[0];
     uint32_t   b     = operands[1];
@@ -79,6 +111,11 @@ uint32_t testcase(uint32_t * operands) {
     volatile int16_t  * mem16i = (int16_t *)mem32i;
     volatile int8_t   * mem8i  = (int8_t  *)mem32i;
     uint32_t   res;
+    uint32_t data_u32;
+    uint16_t data_u16;
+    uint8_t  data_u8;
+    int16_t  data_i16;
+    int8_t   data_i8;
 
     // Test RV32I Arithmetic and Logical instructions using registers
     
@@ -130,99 +167,82 @@ uint32_t testcase(uint32_t * operands) {
     check(res, 0x01234567);
     
     // Test RV32I Memory Access (Load and Store) instructions
-    check(mem32u[0], 0x01234567); 
-    check(mem32u[1], 0x89ABCDEF);
-    check(mem32u[2], 0xFEDCBA98);
-    check(mem32u[3], 0x76543210);
+    CHECK_LW(0,  0x01234567);
+    CHECK_LW(4,  0x89ABCDEF);
+    CHECK_LW(8,  0xFEDCBA98);
+    CHECK_LW(12, 0x76543210);
 
-    check(mem16u[0], 0x4567); 
-    check(mem16u[1], 0x0123); 
-    check(mem16u[2], 0xCDEF); 
-    check(mem16u[3], 0x89AB); 
-    check(mem16u[4], 0xBA98); 
-    check(mem16u[5], 0xFEDC); 
-    check(mem16u[6], 0x3210); 
-    check(mem16u[7], 0x7654); 
+    CHECK_LHU(0,  0x4567);
+    CHECK_LHU(2,  0x0123);
+    CHECK_LHU(4,  0xCDEF);
+    CHECK_LHU(6,  0x89AB);
+    CHECK_LHU(8,  0xBA98);
+    CHECK_LHU(10, 0xFEDC);
+    CHECK_LHU(12, 0x3210);
+    CHECK_LHU(14, 0x7654);
 
-    check(mem8u[0], 0x67);
-    check(mem8u[1], 0x45);
-    check(mem8u[2], 0x23);
-    check(mem8u[3], 0x01);
-    check(mem8u[4], 0xEF);
-    check(mem8u[5], 0xCD);
-    check(mem8u[6], 0xAB);
-    check(mem8u[7], 0x89);
-    check(mem8u[8], 0x98);
-    check(mem8u[9], 0xBA);
-    check(mem8u[10], 0xDC);
-    check(mem8u[11], 0xFE);
-    check(mem8u[12], 0x10);
-    check(mem8u[13], 0x32);
-    check(mem8u[14], 0x54);
-    check(mem8u[15], 0x76);
+    CHECK_LBU(0,  0x67);
+    CHECK_LBU(1,  0x45);
+    CHECK_LBU(2,  0x23);
+    CHECK_LBU(3,  0x01);
+    CHECK_LBU(4,  0xEF);
+    CHECK_LBU(5,  0xCD);
+    CHECK_LBU(6,  0xAB);
+    CHECK_LBU(7,  0x89);
+    CHECK_LBU(8,  0x98);
+    CHECK_LBU(9,  0xBA);
+    CHECK_LBU(10, 0xDC);
+    CHECK_LBU(11, 0xFE);
+    CHECK_LBU(12, 0x10);
+    CHECK_LBU(13, 0x32);
+    CHECK_LBU(14, 0x54);
+    CHECK_LBU(15, 0x76);
 
-    check(mem32i[0], 0x01234567); 
-    check(mem32i[1], 0x89ABCDEF);
-    check(mem32i[2], 0xFEDCBA98);
-    check(mem32i[3], 0x76543210);
+    CHECK_LH(0,  0x00004567);
+    CHECK_LH(2,  0x00000123);
+    CHECK_LH(4,  0xFFFFCDEF);
+    CHECK_LH(6,  0xFFFF89AB);
+    CHECK_LH(8,  0xFFFFBA98);
+    CHECK_LH(10, 0xFFFFFEDC);
+    CHECK_LH(12, 0x00003210);
+    CHECK_LH(14, 0x00007654);
 
-    int16_t data_i16;
+    CHECK_LB(0,  0x00000067);
+    CHECK_LB(1,  0x00000045);
+    CHECK_LB(2,  0x00000023);
+    CHECK_LB(3,  0x00000001);
+    CHECK_LB(4,  0xFFFFFFEF);
+    CHECK_LB(5,  0xFFFFFFCD);
+    CHECK_LB(6,  0xFFFFFFAB);
+    CHECK_LB(7,  0xFFFFFF89);
+    CHECK_LB(8,  0xFFFFFF98);
+    CHECK_LB(9,  0xFFFFFFBA);
+    CHECK_LB(10, 0xFFFFFFDC);
+    CHECK_LB(11, 0xFFFFFFFE);
+    CHECK_LB(12, 0x00000010);
+    CHECK_LB(13, 0x00000032);
+    CHECK_LB(14, 0x00000054);
+    CHECK_LB(15, 0x00000076);
 
-    asm volatile ("lh %0, 0(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0x00004567); 
-    asm volatile ("lh %0, 2(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0x00000123); 
-    asm volatile ("lh %0, 4(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0xFFFFCDEF); 
-    asm volatile ("lh %0, 6(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0xFFFF89AB); 
-    asm volatile ("lh %0, 8(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0xFFFFBA98); 
-    asm volatile ("lh %0, 10(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0xFFFFFEDC); 
-    asm volatile ("lh %0, 12(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0x00003210); 
-    asm volatile ("lh %0, 14(%1)" : "=r"(data_i16) : "r"(mem16i));
-    check(data_i16, 0x00007654); 
-
-    int8_t data_i8;
-
-    asm volatile ("lb %0, 0(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8,  0x00000067);
-    asm volatile ("lb %0, 1(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000045);
-    asm volatile ("lb %0, 2(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000023);
-    asm volatile ("lb %0, 3(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000001);
-
-    asm volatile ("lb %0, 4(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8,  0xFFFFFFEF);
-    asm volatile ("lb %0, 5(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFFCD);
-    asm volatile ("lb %0, 6(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFFAB);
-    asm volatile ("lb %0, 7(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFF89);
-        
-    asm volatile ("lb %0, 8(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFF98);
-    asm volatile ("lb %0, 9(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFFBA);
-    asm volatile ("lb %0, 10(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFFDC);
-    asm volatile ("lb %0, 11(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0xFFFFFFFE);
-
-    asm volatile ("lb %0, 12(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000010);
-    asm volatile ("lb %0, 13(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000032);
-    asm volatile ("lb %0, 14(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000054);
-    asm volatile ("lb %0, 15(%1)" : "=r"(data_i8) : "r"(mem8i));
-    check(data_i8, 0x00000076);
+    SW(      0,  0x0badbeef);
+    CHECK_LH(0,  0xffffbeef);
+    CHECK_LH(2,  0x00000bad);
+    CHECK_LW(0,  0x0badbeef);
     
+    SH(      0,  0xcafe);
+    CHECK_LW(0,  0x0badcafe);
+    SH(      2,  0x900d);
+    CHECK_LW(0,  0x900dcafe);
+ 
+    SB(      0,  0x1e);
+    CHECK_LW(0,  0x900dca1e);
+    SB(      1,  0x2d);
+    CHECK_LW(0,  0x900d2d1e);
+    SB(      2,  0x3c);
+    CHECK_LW(0,  0x903c2d1e);
+    SB(      3,  0x4b);
+    CHECK_LW(0,  0x4b3c2d1e);
+ 
     // Test RV32I Conditional Branching instructions
     CHECK_BRANCH("bne",  a, b, BRANCH_TAKE);
     CHECK_BRANCH("bne",  a, c, BRANCH_NOT_TAKE);
