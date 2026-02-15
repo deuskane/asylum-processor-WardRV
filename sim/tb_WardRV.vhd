@@ -131,6 +131,9 @@ begin
     variable i_addr : integer;
     variable d_addr : integer;
     variable v_inst : std_logic_vector(31 downto 0);
+    file f_sig      : text;
+    variable l      : line;
+    variable f_open : boolean := false;
   begin
     if rising_edge(clk_i) then
       -- Instruction Fetch
@@ -167,6 +170,16 @@ begin
            end if;
            sim_end_rtl <= true;
            
+        elsif sbi_ini.addr = C_SIGNATURE_ADDR and sbi_ini.we = '1' then
+           -- Write to Signature File
+           if not f_open then
+             file_open(f_sig, SIGNATURE_FILE, write_mode);
+             f_open := true;
+           end if;
+           write(l, to_hstring(sbi_ini.wdata));
+           writeline(f_sig, l);
+           sbi_tgt.ready <= '1';
+
         elsif unsigned(sbi_ini.addr) < C_MEM_SIZE - 3 then
           d_addr := to_integer(unsigned(sbi_ini.addr));
           sbi_tgt.ready <= '1';

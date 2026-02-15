@@ -23,6 +23,7 @@ package tb_WardRV_pkg is
   -- Constants
   constant C_CLK_PERIOD  : time := 10 ns;
   constant C_TOHOST_ADDR : std_logic_vector(31 downto 0) := x"80001000";
+  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"80001004";
   constant C_MEM_SIZE    : integer := 65536; -- 64KB
 
   -- Memory Type

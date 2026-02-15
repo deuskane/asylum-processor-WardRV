@@ -29,6 +29,7 @@ use work.tb_WardRV_pkg.all;
 entity tb_WardRV_iss is
   generic (
     FIRMWARE_FILE  : string  := "firmware.hex";
+    SIGNATURE_FILE : string  := "signature.output";
     VERBOSE        : boolean := false
   );
 end tb_WardRV_iss;
@@ -67,6 +68,9 @@ begin
     variable v_wdata   : std_logic_vector(31 downto 0);
     variable v_be      : std_logic_vector(3 downto 0);
     variable v_rdata   : std_logic_vector(31 downto 0);
+    file f_sig         : text;
+    variable l         : line;
+    variable f_open    : boolean := false;
   begin
     iss.reset(x"00000000");
     wait until arst_b_i = '1';
@@ -98,6 +102,15 @@ begin
 
           iss.print_stats;
           sim_end <= true;
+
+        elsif v_maddr = C_SIGNATURE_ADDR and v_we = '1' then
+          if not f_open then
+             file_open(f_sig, SIGNATURE_FILE, write_mode);
+             f_open := true;
+          end if;
+          write(l, to_hstring(v_wdata));
+          writeline(f_sig, l);
+
         else
           v_maddr_tmp := v_maddr(31 downto 2) & std_logic_vector'("00");
           v_addr      := to_integer(unsigned(v_maddr_tmp));
