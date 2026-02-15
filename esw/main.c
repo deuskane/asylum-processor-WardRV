@@ -52,6 +52,19 @@ uint32_t read_mem32(uintptr_t addr, uint32_t offset) {
     return *(volatile uint32_t*)(addr + offset);
 }
 
+#define BRANCH_TAKE 42
+#define BRANCH_NOT_TAKE 24
+#define CHECK_BRANCH(inst, op1, op2, expected) \
+    res = BRANCH_TAKE ;                         \
+    asm volatile (                             \
+        inst " %1, %2, 1f\n"                   \
+        "li  %0, %3\n"                         \
+        "1:\n"                                 \
+        : "+r"(res)                            \
+        : "r"(op1), "r"(op2), "i"(BRANCH_NOT_TAKE) \
+    );                                         \
+    check(res, expected);
+
 uint32_t testcase(uint32_t * operands) {
     uint32_t   a     = operands[0];
     uint32_t   b     = operands[1];
@@ -111,9 +124,11 @@ uint32_t testcase(uint32_t * operands) {
     // Test RV32I instructions with Immediate values
     asm volatile ("addi %0, %1, 0x123" : "=r"(res) : "r"(a));
     check(res, 0x1234579B); // Verify ADDI (Add Immediate)
-    asm volatile ("slli %0, %1, 2" : "=r"(res) : "r"(b));
-    check(res, 0x4);           // Verify SLLI (Shift Left Logical Immediate)
-
+    asm volatile ("slli %0, %1, 4" : "=r"(res) : "r"(a));
+    check(res, 0x23456780); // Verify SLLI (Shift Left Logical Immediate)
+    asm volatile ("srli %0, %1, 4" : "=r"(res) : "r"(a));
+    check(res, 0x01234567);
+    
     // Test RV32I Memory Access (Load and Store) instructions
     check(mem32u[0], 0x01234567); 
     check(mem32u[1], 0x89ABCDEF);
@@ -208,75 +223,33 @@ uint32_t testcase(uint32_t * operands) {
     asm volatile ("lb %0, 15(%1)" : "=r"(data_i8) : "r"(mem8i));
     check(data_i8, 0x00000076);
     
-
     // Test RV32I Conditional Branching instructions
-    res = 42;
-    asm volatile (
-        "bne %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"(a), "r"(b)
-    );
-    // Verify BNE (Branch Not Equal)
-    check(res, 42);
+    CHECK_BRANCH("bne",  a, b, BRANCH_TAKE);
+    CHECK_BRANCH("bne",  a, c, BRANCH_NOT_TAKE);
 
-    res = 42;
-    asm volatile (
-        "bne %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"(a), "r"(c)
-    );
-    // Verify BNE (Branch Not Equal)
-    check(res, 24);
+    CHECK_BRANCH("beq",  a, c, BRANCH_TAKE);
+    CHECK_BRANCH("beq",  a, b, BRANCH_NOT_TAKE);
 
-    res = 42;
-    asm volatile (
-        "beq %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"(a), "r"(c)
-    );
-    // Verify BEQ (Branch Equal)
-    check(res, 42);
+    CHECK_BRANCH("blt",   (int32_t)neg,  (int32_t)pos, BRANCH_TAKE);
+    CHECK_BRANCH("blt",   (int32_t)pos,  (int32_t)neg, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("blt",   (int32_t)pos,  (int32_t)pos, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("blt",   (int32_t)neg,  (int32_t)neg, BRANCH_NOT_TAKE);
 
-    res = 42;
-    asm volatile (
-        "beq %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"(a), "r"(b)
-    );
-    // Verify BEQ (Branch Equal)
-    check(res, 24);
+    CHECK_BRANCH("bltu", (uint32_t)neg, (uint32_t)pos, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("bltu", (uint32_t)pos, (uint32_t)neg, BRANCH_TAKE);
+    CHECK_BRANCH("bltu", (uint32_t)pos, (uint32_t)pos, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("bltu", (uint32_t)neg, (uint32_t)neg, BRANCH_NOT_TAKE);
 
-    res = 42;
-    asm volatile (
-        "blt %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"((int32_t)neg), "r"((int32_t)pos)
-    );
-    // Verify BLT (Branch Less Than)
-    check(res, 42);
+    CHECK_BRANCH("bgeu", (uint32_t)neg, (uint32_t)pos, BRANCH_TAKE);
+    CHECK_BRANCH("bgeu", (uint32_t)pos, (uint32_t)neg, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("bgeu", (uint32_t)pos, (uint32_t)pos, BRANCH_TAKE);
+    CHECK_BRANCH("bgeu", (uint32_t)neg, (uint32_t)neg, BRANCH_TAKE);
 
-    res = 42;
-    asm volatile (
-        "bgeu %1, %2, 1f\n"
-        "li  %0, 24\n"
-        "1:\n"
-        : "+r"(res)
-        : "r"(a), "r"(b)
-    );
-    // Verify BGEU (Branch Greater or Equal Unsigned)
-    check(res, 42);
+    CHECK_BRANCH("bge",   (int32_t)neg,  (int32_t)pos, BRANCH_NOT_TAKE);
+    CHECK_BRANCH("bge",   (int32_t)pos,  (int32_t)neg, BRANCH_TAKE);
+    CHECK_BRANCH("bge",   (int32_t)pos,  (int32_t)pos, BRANCH_TAKE);
+    CHECK_BRANCH("bge",   (int32_t)neg,  (int32_t)neg, BRANCH_TAKE);
 
-    
     // Test RV32I Unconditional Jump instructions
     int jump_check = 0;
     goto jump_target;
