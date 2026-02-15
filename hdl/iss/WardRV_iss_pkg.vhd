@@ -323,7 +323,8 @@ package body WardRV_iss_pkg is
           -- Save state for completion
           pending_load_rd       := rd;
           pending_load_funct3   := funct3;
-          pending_load_byte_off := to_integer(unsigned(v_addr(1 downto 0)));
+          --pending_load_byte_off := to_integer(unsigned(v_addr(1 downto 0)));
+          pending_load_byte_off := 0;
           
           pc_r := v_npc;
 
