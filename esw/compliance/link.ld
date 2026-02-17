@@ -1,26 +1,36 @@
 OUTPUT_ARCH( "riscv" )
-ENTRY(_start)
+ENTRY( _start )
+
+MEMORY
+{
+  /* 128KB RAM at address 0 */
+  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 128K
+}
 
 SECTIONS
 {
-  /* Adresse de départ (Reset Vector). Modifiez si nécessaire (ex: 0x80000000) */
   . = 0x00000000;
+  
+  .text : {
+    *(.text.init) /* Startup code first */
+    *(.text)      /* Rest of the code */
+  } > ram
 
-  .text.init : { *(.text.init) }
-  .text : { *(.text) }
-  
   . = 0x10000;
-  .data : { *(.data) }
-  
+
+  .data : {
+    *(.data)
+  } > ram
   . = ALIGN(16);
-  .data.begin : { *(.data.begin) }
-  .data.end : { *(.data.end) }
-  
+  .data.begin : { *(.data.begin) } > ram
+  .data.end : { *(.data.end) } > ram
+
+  .bss : {
+    *(.bss)
+  } > ram
+
   . = 0x80001000;
   .tohost : { *(.tohost) }
- 
-  
-  .bss : { *(.bss) }
-  
-  _end = .;
+
 }
+

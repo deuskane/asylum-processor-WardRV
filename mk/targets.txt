@@ -1,4 +1,5 @@
-default   : Default Target
-sim       : default rule to sim (DON'T RUN)
-sim_basic : default rule to sim (DON'T RUN)
+default    : Default Target
+sim        : default rule to sim (DON'T RUN)
+sim_add_01 : Add-01 testcase
+sim_basic  : Basic testcase
 

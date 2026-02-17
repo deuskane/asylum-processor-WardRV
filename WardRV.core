@@ -56,6 +56,8 @@ filesets:
       - sim/tb_WardRV.vhd
       - sim/tb_WardRV_iss.vhd
       - esw/testcase/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
+      - esw/compliance/build/add-01.hex  : {file_type : user, copyto : add-01.hex}
+
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
@@ -92,7 +94,7 @@ targets:
   sim_basic:
   #---------------------------------------
     << : *sim
-    description     : default rule to sim (DON'T RUN)
+    description     : Basic testcase
     parameters      :
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
@@ -101,6 +103,18 @@ targets:
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
 
+  #---------------------------------------
+  sim_add_01:
+  #---------------------------------------
+    << : *sim
+    description     : Add-01 testcase
+    parameters      :
+      - FIRMWARE_FILE=add-01.hex
+      - VERBOSE=false
+    tools :
+      ghdl :
+        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
 
 #=========================================
 parameters :

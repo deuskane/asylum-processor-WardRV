@@ -19,6 +19,7 @@ BUILD_DIR    = build
 SRCS         = $(TEST_DIR)/add-01.S
 OBJS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.o, $(SRCS))
 ELFS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.elf, $(SRCS))
+BINS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.bin, $(SRCS))
 HEXS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.hex, $(SRCS))
 LSTS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.lst, $(SRCS))
 
@@ -63,8 +64,11 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.S
 $(BUILD_DIR)/%.elf: $(BUILD_DIR)/%.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf
-	$(OBJCOPY) -O verilog $< $@
+$(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
+	$(OBJCOPY) -O binary $< $@
+
+$(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.bin
+	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
 $(BUILD_DIR)/%.lst: $(BUILD_DIR)/%.elf
 	$(OBJDUMP) -D -S $< > $@
