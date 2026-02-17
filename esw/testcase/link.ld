@@ -3,8 +3,8 @@ ENTRY( _start )
 
 MEMORY
 {
-  /* 64KB RAM at address 0 */
-  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 64K
+  /* 128KB RAM at address 0 */
+  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 128K
 }
 
 SECTIONS
@@ -23,4 +23,8 @@ SECTIONS
   .bss : {
     *(.bss)
   } > ram
+
+  . = 0x80001000;
+  .tohost : { *(.tohost) }
+
 }

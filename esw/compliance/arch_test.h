@@ -9,40 +9,43 @@
 #define XLEN 32
 
 // -----------------------------------------------------------------------------
-// Map RISC-V Arch Test Framework macros to our implementation
+// Architecture Macros (Must be defined before including test_macros.h)
 // -----------------------------------------------------------------------------
-#define RVMODEL_BOOT          RV_COMPLIANCE_CODE_BEGIN
-#define RVMODEL_HALT          RV_COMPLIANCE_HALT
-#define RVMODEL_DATA_BEGIN    RV_COMPLIANCE_DATA_BEGIN
-#define RVMODEL_DATA_END      RV_COMPLIANCE_DATA_END
+#define LI(_reg, _val)    li _reg, _val
+#define SREG              sw
+#define LREG              lw
+
+#include "test_macros.h"
+
+// -----------------------------------------------------------------------------
+// Fallback Macros (Fix for missing definitions in test_macros.h)
+// -----------------------------------------------------------------------------
+#ifndef MASK_XLEN
+#define MASK_XLEN(x) x
+#endif
+#ifndef SEXT_IMM
+#define SEXT_IMM(x) x
+#endif
 
 // -----------------------------------------------------------------------------
 // RVTEST Macros (Required by Test Source)
 // -----------------------------------------------------------------------------
-#define RVTEST_ISA(_STR)
-#define RVTEST_CODE_BEGIN
-#define RVTEST_CODE_END
+#define RVTEST_ISA(_STR)      .section .text
+#define RVTEST_CODE_BEGIN     .section .text
+#define RVTEST_CODE_END       nop
 #define RVTEST_DATA_BEGIN     .section .data
-#define RVTEST_DATA_END
-#define RVTEST_CASE(_P, _C, _N)
+#define RVTEST_DATA_END       .section .text
+#define RVTEST_CASE(_P, _C, _N) .global test_case_##_P; test_case_##_P:
+
+// Undefine to override the default from test_macros.h and initialize offset
+#undef RVTEST_SIGBASE
 #define RVTEST_SIGBASE(_R, _L) la _R, _L
+
+// Override SIGUPD to use the explicit offset passed by the test, avoiding assembler loops
+#undef RVTEST_SIGUPD
+#define RVTEST_SIGUPD(_R, _V, _O) SREG _V, _O(_R)
 
 // Canary for signature boundaries
 #define CANARY .word 0xCAFECAFE
-
-// -----------------------------------------------------------------------------
-// IO macros (Unused for signature-based compliance)
-// -----------------------------------------------------------------------------
-#define RVMODEL_IO_INIT
-#define RVMODEL_IO_WRITE_STR(_SP, _STR)
-#define RVMODEL_IO_CHECK()
-#define RVMODEL_IO_ASSERT_GPR_EQ(_SP, _R, _I)
-#define RVMODEL_IO_ASSERT_SFPR_EQ(_F, _R, _I)
-#define RVMODEL_IO_ASSERT_DFPR_EQ(_D, _R, _I)
-
-#define RVMODEL_SET_MSW_INT
-#define RVMODEL_CLEAR_MSW_INT
-#define RVMODEL_CLEAR_MTIMER_INT
-#define RVMODEL_CLEAR_MEXT_INT
 
 #endif

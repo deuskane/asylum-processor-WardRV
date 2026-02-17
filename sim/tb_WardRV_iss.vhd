@@ -71,6 +71,7 @@ begin
     file f_sig         : text;
     variable l         : line;
     variable f_open    : boolean := false;
+    variable v_sig_addr : integer;
   begin
     iss.reset(x"00000000");
     wait until arst_b_i = '1';
@@ -103,14 +104,6 @@ begin
           iss.print_stats;
           sim_end <= true;
 
-        elsif v_maddr = C_SIGNATURE_ADDR and v_we = '1' then
-          if not f_open then
-             file_open(f_sig, SIGNATURE_FILE, write_mode);
-             f_open := true;
-          end if;
-          write(l, to_hstring(v_wdata));
-          writeline(f_sig, l);
-
         else
           v_maddr_tmp := v_maddr(31 downto 2) & std_logic_vector'("00");
           v_addr      := to_integer(unsigned(v_maddr_tmp));
@@ -138,6 +131,18 @@ begin
       -- Small delay to avoid delta cycles issues with sim_end
       wait until falling_edge(clk_i);
     end loop;
+
+    -- Dump signature at the end of simulation
+    file_open(f_sig, SIGNATURE_FILE, write_mode);
+    v_sig_addr := to_integer(unsigned(C_SIGNATURE_ADDR));
+    while v_sig_addr < C_MEM_SIZE loop
+      v_wdata := mem(v_sig_addr+3) & mem(v_sig_addr+2) & mem(v_sig_addr+1) & mem(v_sig_addr);
+      write(l, to_hstring(v_wdata));
+      writeline(f_sig, l);
+      v_sig_addr := v_sig_addr + 4;
+    end loop;
+    file_close(f_sig);
+
     wait;
   end process;
 

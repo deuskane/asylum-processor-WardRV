@@ -1,28 +1,55 @@
-#ifndef _MODEL_TEST_H
-#define _MODEL_TEST_H
+#ifndef _COMPLIANCE_MODEL_H
+#define _COMPLIANCE_MODEL_H
 
-#define RV_COMPLIANCE_HALT \
-    /* Dump Signature */ \
-    li t0, 0x80001004;          /* C_SIGNATURE_ADDR */ \
-    la t1, begin_signature; \
-    la t2, end_signature; \
-1: \
-    bge t1, t2, 2f;             /* End of signature? */ \
-    lw t3, 0(t1);               /* Load signature value */ \
-    sw t3, 0(t0);               /* Write to MMIO (triggers TB write) */ \
-    addi t1, t1, 4; \
-    j 1b; \
-2: \
-    /* Halt Simulation */ \
-    li t0, 0x80001000;          /* C_TOHOST_ADDR */ \
-    li t1, 1; \
-    sw t1, 0(t0);               /* Write 1 to TOHOST */ \
-    wfi;
+/* Définition de la section tohost pour la communication avec le simulateur (optionnel mais recommandé) */
+#define RVMODEL_DATA_SECTION \
+        .pushsection .tohost,"aw",@progbits;                            \
+        .align 8; .global tohost; tohost: .dword 0;                     \
+        .align 8; .global fromhost; fromhost: .dword 0;                 \
+        .popsection;                                                    \
+        .align 8; .global begin_regstate; begin_regstate:               \
+        .word 128;                                                      \
+        .align 8; .global end_regstate; end_regstate:                   \
+        .word 4;
 
-#define RV_COMPLIANCE_RV32M
-#define RV_COMPLIANCE_CODE_BEGIN .section .text.init, "ax", @progbits; .globl _start; _start:
-#define RV_COMPLIANCE_CODE_END
-#define RV_COMPLIANCE_DATA_BEGIN .section .data; .align 4; .globl begin_signature; begin_signature:
-#define RV_COMPLIANCE_DATA_END .align 4; .globl end_signature; end_signature:
+/* Code de démarrage : section .text.init et label _start */
+#define RVMODEL_BOOT \
+        .section .text.init; \
+        .globl _start; \
+        _start:
 
-#endif
+/* Code d'arrêt : écrit 1 dans tohost et boucle infinie */
+#define RVMODEL_HALT                                \
+        li x1, 1;                                   \
+        la x5, tohost;                              \
+        sw x1, 0(x5);                               \
+    halt_loop:                                      \
+        j halt_loop;
+
+/* Début de la section de signature (résultats du test) */
+#define RVMODEL_DATA_BEGIN \
+        .section .data.begin; \
+        .globl rvtest_data_begin; \
+        rvtest_data_begin:
+
+/* Fin de la section de signature */
+#define RVMODEL_DATA_END \
+        .section .data.end; \
+        .globl rvtest_data_end; \
+        rvtest_data_end: \
+        RVMODEL_DATA_SECTION
+
+/* Macros IO (laissées vides pour une simulation baremetal simple) */
+#define RVMODEL_IO_INIT
+#define RVMODEL_IO_WRITE_STR(_R, _STR)
+#define RVMODEL_IO_CHECK()
+#define RVMODEL_IO_ASSERT_GPR_EQ(_S, _R, _I)
+#define RVMODEL_IO_ASSERT_SFPR_EQ(_F, _R, _I)
+#define RVMODEL_IO_ASSERT_DFPR_EQ(_D, _R, _I)
+
+#define RVMODEL_SET_MSW_INT
+#define RVMODEL_CLEAR_MSW_INT
+#define RVMODEL_CLEAR_MTIMER_INT
+#define RVMODEL_CLEAR_MEXT_INT
+
+#endif // _COMPLIANCE_MODEL_H
