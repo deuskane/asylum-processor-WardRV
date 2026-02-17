@@ -68,10 +68,7 @@ begin
     variable v_wdata   : std_logic_vector(31 downto 0);
     variable v_be      : std_logic_vector(3 downto 0);
     variable v_rdata   : std_logic_vector(31 downto 0);
-    file f_sig         : text;
-    variable l         : line;
-    variable f_open    : boolean := false;
-    variable v_sig_addr : integer;
+
   begin
     iss.reset(x"00000000");
     wait until arst_b_i = '1';
@@ -102,6 +99,8 @@ begin
           end if;
 
           iss.print_stats;
+
+          dump_signature(SIGNATURE_FILE, C_SIGNATURE_ADDR, C_MEM_SIZE, mem);
           sim_end <= true;
 
         else
@@ -132,16 +131,7 @@ begin
       wait until falling_edge(clk_i);
     end loop;
 
-    -- Dump signature at the end of simulation
-    file_open(f_sig, SIGNATURE_FILE, write_mode);
-    v_sig_addr := to_integer(unsigned(C_SIGNATURE_ADDR));
-    while v_sig_addr < C_MEM_SIZE loop
-      v_wdata := mem(v_sig_addr+3) & mem(v_sig_addr+2) & mem(v_sig_addr+1) & mem(v_sig_addr);
-      write(l, to_hstring(v_wdata));
-      writeline(f_sig, l);
-      v_sig_addr := v_sig_addr + 4;
-    end loop;
-    file_close(f_sig);
+
 
     wait;
   end process;
@@ -168,5 +158,6 @@ begin
     std.env.stop;
 
   end process;
+
 
 end rtl;

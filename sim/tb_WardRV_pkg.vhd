@@ -33,6 +33,14 @@ package tb_WardRV_pkg is
   -- Helper to read Hex
   impure function init_ram(file_name : string) return ram_t;
 
+  -- Helper to dump memory signature
+  procedure dump_signature (
+    constant file_name : in string;
+    constant start_addr : in std_logic_vector(31 downto 0);
+    constant size       : in integer;
+    signal   mem        : in ram_t
+  );
+
   -- Helper to print instruction
   procedure print_instruction(
     constant addr    : in std_logic_vector;
@@ -77,6 +85,32 @@ package body tb_WardRV_pkg is
     if verbose then
       log(ID_BFM, "Fetch @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(inst));
     end if;
+  end procedure;
+
+  -- Dump signature at the end of simulation
+  procedure dump_signature (
+    constant file_name : in string;
+    constant start_addr : in std_logic_vector(31 downto 0);
+    constant size       : in integer;
+    signal   mem        : in ram_t
+  ) is
+    file f_sig          : text;
+    variable l          : line;
+    variable v_sig_addr : integer;
+    variable v_wdata    : std_logic_vector(31 downto 0);
+  begin
+    log(ID_LOG_HDR, "ISS: Dump Signature to " & file_name);
+
+    file_open(f_sig, file_name, write_mode);
+    v_sig_addr := to_integer(unsigned(start_addr));
+    for i in 0 to (size/4)-1 loop
+      exit when v_sig_addr > C_MEM_SIZE - 4;
+      v_wdata := mem(v_sig_addr+3) & mem(v_sig_addr+2) & mem(v_sig_addr+1) & mem(v_sig_addr);
+      write(l, to_hstring(v_wdata));
+      writeline(f_sig, l);
+      v_sig_addr := v_sig_addr + 4;
+    end loop;
+    file_close(f_sig);
   end procedure;
 
 end package body tb_WardRV_pkg;
