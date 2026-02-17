@@ -33,4 +33,3 @@ SECTIONS
   .tohost : { *(.tohost) }
 
 }
-

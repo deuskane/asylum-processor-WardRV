@@ -3,7 +3,7 @@
 
 /* Définition de la section tohost pour la communication avec le simulateur (optionnel mais recommandé) */
 #define RVMODEL_DATA_SECTION \
-        .section .tohost,"aw",@progbits;                                \
+        .section .tohost ;                                \
         .align 12; .global tohost; tohost: .dword 0;                    \
         .align 8;  .global fromhost; fromhost: .dword 0;                \
         .align 8; .global begin_regstate; begin_regstate:               \
@@ -20,7 +20,7 @@
 /* Code d'arrêt : écrit 1 dans tohost et boucle infinie */
 #define RVMODEL_HALT                                \
         li x1, 1;                                   \
-        li x5, 0x80001000;                          \
+        la x5, tohost;                              \
         sw x1, 0(x5);                               \
     halt_loop:                                      \
         j halt_loop;
