@@ -1,7 +1,7 @@
 #ifndef _COMPLIANCE_MODEL_H
 #define _COMPLIANCE_MODEL_H
 
-/* Définition de la section tohost pour la communication avec le simulateur (optionnel mais recommandé) */
+/* Definition of the tohost section for communication with the simulator (optional but recommended) */
 #define RVMODEL_DATA_SECTION \
         .section .tohost ;                                \
         .align 12; .global tohost; tohost: .dword 0;                    \
@@ -11,13 +11,13 @@
         .align 8; .global end_regstate; end_regstate:                   \
         .word 4;
 
-/* Code de démarrage : section .text.init et label _start */
+/* Boot code: .text.init section and _start label */
 #define RVMODEL_BOOT \
         .section .text.init; \
         .globl _start; \
         _start:
 
-/* Code d'arrêt : écrit 1 dans tohost et boucle infinie */
+/* Halt code: writes 1 to tohost and enters an infinite loop */
 #define RVMODEL_HALT                                \
         li x1, 1;                                   \
         la x5, tohost;                              \
@@ -25,20 +25,20 @@
     halt_loop:                                      \
         j halt_loop;
 
-/* Début de la section de signature (résultats du test) */
+/* Start of the signature section (test results) */
 #define RVMODEL_DATA_BEGIN \
         .section .data.begin; \
         .globl rvtest_data_begin; \
         rvtest_data_begin:
 
-/* Fin de la section de signature */
+/* End of the signature section */
 #define RVMODEL_DATA_END \
         .section .data.end; \
         .globl rvtest_data_end; \
         rvtest_data_end: \
         RVMODEL_DATA_SECTION
 
-/* Macros IO (laissées vides pour une simulation baremetal simple) */
+/* IO Macros (left empty for simple baremetal simulation) */
 #define RVMODEL_IO_INIT
 #define RVMODEL_IO_WRITE_STR(_R, _STR)
 #define RVMODEL_IO_CHECK()
