@@ -16,14 +16,11 @@ SECTIONS
     *(.text)      /* Rest of the code */
   } > ram
 
-  . = 0x10000;
-
-  .data : {
+  .data 0x10000 : {
     *(.data)
   } > ram
-  . = ALIGN(16);
   .data.begin : { *(.data.begin) } > ram
-  .data.end : { *(.data.end) } > ram
+  .data.end   : { *(.data.end) } > ram
 
   .bss : {
     *(.bss)

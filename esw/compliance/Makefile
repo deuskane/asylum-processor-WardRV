@@ -9,7 +9,7 @@ OBJCOPY      = $(RISCV_PREFIX)objcopy
 OBJDUMP      = $(RISCV_PREFIX)objdump
 
 # Path to the tests source code
-TEST_DIR     = riscv-non-isa/riscv-test-suite/rv32i_m/I/src
+TEST_DIR     = riscv-compliance-ws/src/riscv-arch-test/riscv-test-suite/rv32i_m/I/src
 BUILD_DIR    = build
 
 # -----------------------------------------------------------------------------

@@ -24,7 +24,7 @@ package tb_WardRV_pkg is
   constant C_CLK_PERIOD     : time := 10 ns;
   constant C_TOHOST_ADDR    : std_logic_vector(31 downto 0) := x"80001000";
   constant C_FROMHOST_ADDR  : std_logic_vector(31 downto 0) := x"80001100";
-  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"00001000";
+  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"00010010";
   constant C_MEM_SIZE       : integer := 131072; -- 128KB
 
   -- Memory Type
@@ -46,6 +46,12 @@ package tb_WardRV_pkg is
     constant addr    : in std_logic_vector;
     constant inst    : in std_logic_vector;
     constant verbose : in boolean
+  );
+
+  -- Helper to compare signature with golden file
+  procedure compare_signature (
+    constant sig_file    : in string;
+    constant golden_file : in string
   );
 
 end package tb_WardRV_pkg;
@@ -111,6 +117,48 @@ package body tb_WardRV_pkg is
       v_sig_addr := v_sig_addr + 4;
     end loop;
     file_close(f_sig);
+  end procedure;
+
+  -- Compare signature against golden reference
+  procedure compare_signature (
+    constant sig_file    : in string;
+    constant golden_file : in string
+  ) is
+    file f_sig          : text;
+    file f_gold         : text;
+    variable l_sig      : line;
+    variable l_gold     : line;
+    variable v_sig      : std_logic_vector(31 downto 0);
+    variable v_gold     : std_logic_vector(31 downto 0);
+    variable v_good_sig : boolean;
+    variable v_good_gold: boolean;
+    variable v_line_cnt : integer := 0;
+    variable v_errors   : integer := 0;
+  begin
+    log(ID_LOG_HDR, "Comparing " & sig_file & " with " & golden_file);
+    file_open(f_sig,  sig_file,    read_mode);
+    file_open(f_gold, golden_file, read_mode);
+
+    while not endfile(f_gold) loop
+      v_line_cnt := v_line_cnt + 1;
+      readline(f_sig,  l_sig);
+      readline(f_gold, l_gold);
+      hread(l_sig,  v_sig,  v_good_sig);
+      hread(l_gold, v_gold, v_good_gold);
+
+      if v_sig /= v_gold then
+        v_errors := v_errors + 1;
+        alert(TB_ERROR, "Signature mismatch at line " & integer'image(v_line_cnt) & 
+              ": Expected 0x" & to_hstring(v_gold) & ", Got 0x" & to_hstring(v_sig));
+      end if;
+    end loop;
+
+    if v_errors = 0 then
+      log(ID_LOG_HDR, "Signature comparison SUCCESSFUL (" & integer'image(v_line_cnt) & " lines checked)");
+    end if;
+
+    file_close(f_sig);
+    file_close(f_gold);
   end procedure;
 
 end package body tb_WardRV_pkg;

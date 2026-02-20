@@ -46,6 +46,6 @@
 #define RVTEST_SIGUPD(_R, _V, _O) SREG _V, _O(_R)
 
 // Canary for signature boundaries
-#define CANARY .word 0xCAFECAFE
+#define CANARY .word 0x6f5ca309
 
 #endif

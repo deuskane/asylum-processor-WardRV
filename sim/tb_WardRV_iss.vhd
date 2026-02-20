@@ -30,6 +30,7 @@ entity tb_WardRV_iss is
   generic (
     FIRMWARE_FILE  : string  := "firmware.hex";
     SIGNATURE_FILE : string  := "signature.output";
+    GOLDEN_FILE    : string  := "signature.golden";
     VERBOSE        : boolean := false
   );
 end tb_WardRV_iss;
@@ -101,6 +102,9 @@ begin
           iss.print_stats;
 
           dump_signature(SIGNATURE_FILE, C_SIGNATURE_ADDR, C_MEM_SIZE, mem);
+          if GOLDEN_FILE /= "" then
+            compare_signature(SIGNATURE_FILE, GOLDEN_FILE);
+          end if;
           sim_end <= true;
 
         else

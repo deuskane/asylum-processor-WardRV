@@ -57,6 +57,8 @@ filesets:
       - sim/tb_WardRV_iss.vhd
       - esw/testcase/build/firmware.hex  : {file_type : user, copyto : firmware.hex}
       - esw/compliance/build/add-01.hex  : {file_type : user, copyto : add-01.hex}
+      - esw/compliance/riscv-compliance-ws/out/signatures/rv32i/I/src/add-01.S/ref/Reference-spike.signature : {file_type : user, copyto : add-01-golden.hex}
+
 
     file_type    : vhdlSource-2008
     depend :
@@ -110,6 +112,7 @@ targets:
     description     : Add-01 testcase
     parameters      :
       - FIRMWARE_FILE=add-01.hex
+      - GOLDEN_FILE=add-01-golden.hex
       - VERBOSE=false
     tools :
       ghdl :
@@ -124,6 +127,12 @@ parameters :
     description : Firmware
     datatype    : str
     default     : firmware.hex
+    paramtype   : generic
+
+  GOLDEN_FILE :
+    description : Golden signature file
+    datatype    : str
+    default     : golden.hex
     paramtype   : generic
 
   VERBOSE :
