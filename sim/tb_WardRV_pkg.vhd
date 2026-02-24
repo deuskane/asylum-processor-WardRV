@@ -22,10 +22,11 @@ package tb_WardRV_pkg is
 
   -- Constants
   constant C_CLK_PERIOD     : time := 10 ns;
-  constant C_TOHOST_ADDR    : std_logic_vector(31 downto 0) := x"80001000";
-  constant C_FROMHOST_ADDR  : std_logic_vector(31 downto 0) := x"80001100";
-  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"00010010";
-  constant C_MEM_SIZE       : integer := 131072; -- 128KB
+  constant C_FIRMWARE_ADDR  : std_logic_vector(31 downto 0) := x"80000000";
+  constant C_TOHOST_ADDR    : std_logic_vector(31 downto 0) := x"80004000";
+  constant C_FROMHOST_ADDR  : std_logic_vector(31 downto 0) := x"80004100";
+  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"80006104";
+  constant C_MEM_SIZE       : integer := 65536*8; -- 128KB
 
   -- Memory Type
   type ram_t is array (0 to C_MEM_SIZE-1) of std_logic_vector(7 downto 0);

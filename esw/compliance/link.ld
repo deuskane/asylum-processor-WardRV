@@ -1,32 +1,17 @@
 OUTPUT_ARCH( "riscv" )
-ENTRY( _start )
-
-MEMORY
-{
-  /* 128KB RAM at address 0 */
-  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 128K
-}
+ENTRY(rvtest_entry_point)
 
 SECTIONS
 {
-  . = 0x00000000;
-  
-  .text : {
-    *(.text.init) /* Startup code first */
-    *(.text)      /* Rest of the code */
-  } > ram
-
-  .data 0x10000 : {
-    *(.data)
-  } > ram
-  .data.begin : { *(.data.begin) } > ram
-  .data.end   : { *(.data.end) } > ram
-
-  .bss : {
-    *(.bss)
-  } > ram
-
-  . = 0x80001000;
+  . = 0x80000000;
+  .text.init : { *(.text.init) }
+  . = ALIGN(0x1000);
   .tohost : { *(.tohost) }
-
+  . = ALIGN(0x1000);
+  .text : { *(.text) }
+  . = ALIGN(0x1000);
+  .data : { *(.data) }
+  .data.string : { *(.data.string)}
+  .bss : { *(.bss) }
+  _end = .;
 }

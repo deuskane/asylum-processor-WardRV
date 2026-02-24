@@ -71,20 +71,21 @@ begin
     variable v_rdata   : std_logic_vector(31 downto 0);
 
   begin
-    iss.reset(x"00000000");
+    iss.reset(C_FIRMWARE_ADDR);
     wait until arst_b_i = '1';
 
     while not sim_end loop
       wait until rising_edge(clk_i);
       
       -- Fetch
-      v_addr := to_integer(unsigned(iss.get_pc));
+      v_addr := to_integer(unsigned(iss.get_pc) - unsigned(C_FIRMWARE_ADDR));
+      
       if v_addr < C_MEM_SIZE - 3 then
         v_inst := mem(v_addr+3) & mem(v_addr+2) & mem(v_addr+1) & mem(v_addr);
       else
         v_inst := (others => '0');
       end if;
-      
+
       print_instruction(iss.get_pc, v_inst, VERBOSE);
 
       -- Execute
@@ -93,7 +94,7 @@ begin
       -- Handle Memory
       if v_mem_req then
         if v_maddr = C_TOHOST_ADDR and v_we = '1' then
-          if to_integer(unsigned(v_wdata)) = 1 then
+          if v_wdata = x"00000001" then
             log(ID_LOG_HDR, "ISS: TEST PASSED");
           else
             alert(TB_ERROR, "ISS: TEST FAILED");
@@ -101,7 +102,7 @@ begin
 
           iss.print_stats;
 
-          dump_signature(SIGNATURE_FILE, C_SIGNATURE_ADDR, C_MEM_SIZE, mem);
+          dump_signature(SIGNATURE_FILE, std_logic_vector(unsigned(C_SIGNATURE_ADDR) - unsigned(C_FIRMWARE_ADDR)), C_MEM_SIZE, mem);
           if GOLDEN_FILE /= "" then
             compare_signature(SIGNATURE_FILE, GOLDEN_FILE);
           end if;
@@ -109,7 +110,7 @@ begin
 
         else
           v_maddr_tmp := v_maddr(31 downto 2) & std_logic_vector'("00");
-          v_addr      := to_integer(unsigned(v_maddr_tmp));
+          v_addr      := to_integer(unsigned(v_maddr_tmp)-unsigned(C_FIRMWARE_ADDR));
           if v_addr < C_MEM_SIZE - 3 then
             if v_we = '1' then
               if VERBOSE then log(ID_BFM, "ISS Store @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_wdata) & " (be:" & to_string(v_be) & ")"); end if;

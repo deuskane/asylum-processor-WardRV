@@ -15,8 +15,7 @@ BUILD_DIR    = build
 # -----------------------------------------------------------------------------
 # Files
 # -----------------------------------------------------------------------------
-#SRCS         = $(wildcard $(TEST_DIR)/*.S)
-SRCS         = $(TEST_DIR)/add-01.S
+SRCS         = $(wildcard $(TEST_DIR)/*.S)
 OBJS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.o, $(SRCS))
 ELFS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.elf, $(SRCS))
 BINS         = $(patsubst $(TEST_DIR)/%.S, $(BUILD_DIR)/%.bin, $(SRCS))
@@ -67,7 +66,7 @@ $(BUILD_DIR)/%.elf: $(BUILD_DIR)/%.o
 $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf
 	$(OBJCOPY) -O binary $< $@
 
-$(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.bin
+$(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.bin $(BUILD_DIR)/%.lst
 	hexdump -v -e '1/4 "%08x\n"' $< > $@
 
 $(BUILD_DIR)/%.lst: $(BUILD_DIR)/%.elf
