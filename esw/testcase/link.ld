@@ -24,6 +24,9 @@ SECTIONS
     *(.bss)
   } > ram
 
+  /* Definition of the stack top at the end of RAM */
+  _stack_top = ORIGIN(ram) + LENGTH(ram);
+
   . = 0x80200000;
   .tohost : { *(.tohost) }
 
