@@ -21,18 +21,24 @@ context uvvm_util.uvvm_util_context;
 package tb_WardRV_pkg is
 
   -- Constants
-  constant C_CLK_PERIOD     : time := 10 ns;
-  constant C_FIRMWARE_ADDR  : std_logic_vector(31 downto 0) := x"80000000";
-  constant C_TOHOST_ADDR    : std_logic_vector(31 downto 0) := x"80004000";
-  constant C_FROMHOST_ADDR  : std_logic_vector(31 downto 0) := x"80004100";
-  constant C_SIGNATURE_ADDR : std_logic_vector(31 downto 0) := x"80006104";
-  constant C_MEM_SIZE       : integer := 65536*8; -- 128KB
+  constant C_CLK_PERIOD         : time := 10 ns;
+  constant C_SIM_TIMEOUT        : time := 100 us;
+  constant C_FIRMWARE_ADDR      : std_logic_vector(31 downto 0) := x"80000000";
+  constant C_TOHOST_ADDR        : std_logic_vector(31 downto 0) := x"80200000";
+  constant C_FROMHOST_ADDR      : std_logic_vector(31 downto 0) := x"80200100";
+  constant C_SIGNATURE_ADDR     : std_logic_vector(31 downto 0) := x"80202104";
+  constant C_SIGNATURE_END_ADDR : std_logic_vector(31 downto 0) := x"80203000";
+  constant C_MEM_SIZE           : integer := to_integer(unsigned(C_SIGNATURE_END_ADDR) - unsigned(C_FIRMWARE_ADDR));
+  constant C_TOHOST_DATA_OK     : std_logic_vector(31 downto 0) := x"00000001";
 
   -- Memory Type
   type ram_t is array (0 to C_MEM_SIZE-1) of std_logic_vector(7 downto 0);
 
   -- Helper to read Hex
-  impure function init_ram(file_name : string) return ram_t;
+  procedure init_ram(
+    constant file_name : in string;
+    signal   ram       : out ram_t
+  );
 
   -- Helper to dump memory signature
   procedure dump_signature (
@@ -59,29 +65,36 @@ end package tb_WardRV_pkg;
 
 package body tb_WardRV_pkg is
 
-  impure function init_ram(file_name : string) return ram_t is
+  procedure init_ram(
+    constant file_name : in string;
+    signal   ram       : out ram_t
+  ) is
     file f_in       : text open read_mode is file_name;
     variable l      : line;
     variable word   : std_logic_vector(31 downto 0);
     variable addr   : integer := 0;
     variable good   : boolean;
-    variable ram    : ram_t := (others => x"00");
   begin
+    report "Load data from " & file_name;
+
     while not endfile(f_in) and addr < C_MEM_SIZE loop
       readline(f_in, l);
       hread(l, word, good);
       if good then
         -- Little Endian loading
-        ram(addr)   := word(7  downto  0);
-        ram(addr+1) := word(15 downto  8);
-        ram(addr+2) := word(23 downto 16);
-        ram(addr+3) := word(31 downto 24);
+        ram(addr)   <= word(7  downto  0);
+        ram(addr+1) <= word(15 downto  8);
+        ram(addr+2) <= word(23 downto 16);
+        ram(addr+3) <= word(31 downto 24);
         addr := addr + 4;
       end if;
     end loop;
+    if addr < C_MEM_SIZE then
+      ram(addr to C_MEM_SIZE - 1) <= (others => x"00");
+    end if;
     report "Loaded " & integer'image(addr) & " bytes from " & file_name;
-    return ram;
-  end function;
+
+  end procedure;
 
   procedure print_instruction(
     constant addr    : in std_logic_vector;

@@ -42,7 +42,7 @@ architecture rtl of tb_WardRV_iss is
   signal arst_b_i    : std_logic := '0';
   signal sim_end     : boolean   := false;
 
-  signal mem : ram_t := init_ram(FIRMWARE_FILE);
+  signal mem : ram_t ;
 
 begin
 
@@ -71,6 +71,7 @@ begin
     variable v_rdata   : std_logic_vector(31 downto 0);
 
   begin
+    init_ram(FIRMWARE_FILE, mem);
     iss.reset(C_FIRMWARE_ADDR);
     wait until arst_b_i = '1';
 
@@ -94,7 +95,8 @@ begin
       -- Handle Memory
       if v_mem_req then
         if v_maddr = C_TOHOST_ADDR and v_we = '1' then
-          if v_wdata = x"00000001" then
+          if v_wdata = C_TOHOST_DATA_OK
+          then
             log(ID_LOG_HDR, "ISS: TEST PASSED");
           else
             alert(TB_ERROR, "ISS: TEST FAILED");
@@ -153,7 +155,7 @@ begin
     -- Wait for reset deassertion
     wait until arst_b_i = '1';
 
-    wait until sim_end for 1 ms;
+    wait until sim_end for C_SIM_TIMEOUT;
 
     if not sim_end then
       alert(TB_ERROR, "Simulation Timeout");

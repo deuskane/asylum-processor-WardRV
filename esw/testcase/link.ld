@@ -24,7 +24,7 @@ SECTIONS
     *(.bss)
   } > ram
 
-  . = 0x80001000;
+  . = 0x80200000;
   .tohost : { *(.tohost) }
 
 }
