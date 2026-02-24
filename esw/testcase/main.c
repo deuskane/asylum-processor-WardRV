@@ -15,8 +15,7 @@
 //-----------------------------------------------------------------------------
 
 #include <stdint.h>  
-#define TOHOST_ADDR   0x80001000
-#define FROMHOST_ADDR 0x80001008
+#define TOHOST_ADDR   0x80200000
 
 static inline void  test_pass() {
     *(volatile uint32_t*)TOHOST_ADDR = 1; // Signal success to the simulation host

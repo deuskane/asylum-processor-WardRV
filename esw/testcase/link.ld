@@ -3,13 +3,13 @@ ENTRY( _start )
 
 MEMORY
 {
-  /* 128KB RAM at address 0 */
-  ram (rwx) : ORIGIN = 0x00000000, LENGTH = 128K
+  /* 128KB RAM at address 0x80000000  */
+  ram (rwx) : ORIGIN = 0x80000000, LENGTH = 128K
 }
 
 SECTIONS
 {
-  . = 0x00000000;
+  . = 0x80000000;
   
   .text : {
     *(.text.init) /* Startup code first */

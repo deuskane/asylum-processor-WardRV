@@ -90,19 +90,15 @@ targets:
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
 
-  ##---------------------------------------
-  #sim_basic:
-  ##---------------------------------------
-  #  << : *sim
-  #  description     : Basic testcase
-  #  parameters      :
-  #    - FIRMWARE_FILE=firmware.hex
-  #    - VERBOSE=false
-  #  tools :
-  #    ghdl :
-  #      analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
-  #      run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
-
+  #---------------------------------------
+  sim_basic:
+  #---------------------------------------
+    << : *sim
+    description     : Basic testcase
+    parameters      :
+      - FIRMWARE_FILE=firmware.hex
+      - VERBOSE=false
+  
   #---------------------------------------
   # Compliance Testcases
   #---------------------------------------

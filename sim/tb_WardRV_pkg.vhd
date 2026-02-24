@@ -79,19 +79,24 @@ package body tb_WardRV_pkg is
 
     while not endfile(f_in) and addr < C_MEM_SIZE loop
       readline(f_in, l);
-      hread(l, word, good);
-      if good then
-        -- Little Endian loading
-        ram(addr)   <= word(7  downto  0);
-        ram(addr+1) <= word(15 downto  8);
-        ram(addr+2) <= word(23 downto 16);
-        ram(addr+3) <= word(31 downto 24);
-        addr := addr + 4;
+      if l'length > 0 then
+        hread(l, word, good);
+        --report "Read 0x" & to_hstring(word) & " from " & file_name & " at line " & integer'image(addr/4 + 1);
+        if good then
+          -- Little Endian loading
+          ram(addr)   <= word(7  downto  0);
+          ram(addr+1) <= word(15 downto  8);
+          ram(addr+2) <= word(23 downto 16);
+          ram(addr+3) <= word(31 downto 24);
+          addr := addr + 4;
+        end if;
       end if;
     end loop;
-    if addr < C_MEM_SIZE then
-      ram(addr to C_MEM_SIZE - 1) <= (others => x"00");
-    end if;
+        
+    --if addr < C_MEM_SIZE then
+    --  ram(addr to C_MEM_SIZE - 1) <= (others => x"00");
+    --end if;
+    
     report "Loaded " & integer'image(addr) & " bytes from " & file_name;
 
   end procedure;

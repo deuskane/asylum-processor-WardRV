@@ -3,8 +3,8 @@
 
 _start:
     # Initialisation du pointeur de pile (Stack Pointer)
-    # On le place à la fin de la RAM (64KB = 0x10000)
-    li sp, 0x10000
+    # On le place à la fin de la RAM
+    li sp, 0x80010000
 
     # Appel de la fonction main
     call main
