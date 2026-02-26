@@ -37,6 +37,9 @@ package WardRV_iss_pkg is
     impure function get_pc return std_logic_vector;
     impure function get_reg(r : integer) return std_logic_vector;
     
+    -- Verbose control
+    procedure set_verbose(v : in boolean);
+
     -- Execution Step
     -- Returns info about memory request if any
     procedure execute_instruction(
@@ -55,7 +58,7 @@ package WardRV_iss_pkg is
     );
 
     -- Statistics
-    procedure print_stats;
+    procedure stats(filename : in string := "");
 
   end protected;
 
@@ -155,6 +158,7 @@ package body WardRV_iss_pkg is
     
     variable pc_r   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
     variable regs_r : regfile_t;
+    variable verbose_r : boolean := true;
     
     -- State for pending load
     variable pending_load_rd     : std_logic_vector(4 downto 0);
@@ -162,7 +166,7 @@ package body WardRV_iss_pkg is
     variable pending_load_byte_off : integer;
 
     -- Statistics counters
-    variable stats : stats_array_t;
+    variable stats_v : stats_array_t;
 
     procedure reset(
       start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
@@ -170,7 +174,7 @@ package body WardRV_iss_pkg is
     begin
       pc_r   := start_pc;
       regs_r := (others => (others => '0'));
-      stats  := (others => 0);
+      stats_v := (others => 0);
       pending_load_rd := (others => '0');
     end procedure;
 
@@ -184,6 +188,11 @@ package body WardRV_iss_pkg is
       if r = 0 then return x"00000000"; end if;
       return regs_r(r);
     end function;
+
+    procedure set_verbose(v : in boolean) is
+    begin
+      verbose_r := v;
+    end procedure;
 
     procedure execute_instruction(
       inst          : in  std_logic_vector(31 downto 0);
@@ -238,7 +247,7 @@ package body WardRV_iss_pkg is
       v_npc := std_logic_vector(unsigned(pc_r) + 4);
       v_res := (others => '0');
 
-      stats(I_TOTAL) := stats(I_TOTAL) + 1;
+      stats_v(I_TOTAL) := stats_v(I_TOTAL) + 1;
 
       case opcode is
         -- =====================================================================
@@ -250,7 +259,7 @@ package body WardRV_iss_pkg is
           v_res := v_imm_u;
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
-          stats(I_LUI) := stats(I_LUI) + 1;
+          stats_v(I_LUI) := stats_v(I_LUI) + 1;
 
         when OPC_AUIPC =>
           -- Add Upper Immediate to PC
@@ -258,7 +267,7 @@ package body WardRV_iss_pkg is
           write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res));
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
-          stats(I_AUIPC) := stats(I_AUIPC) + 1;
+          stats_v(I_AUIPC) := stats_v(I_AUIPC) + 1;
 
         -- =====================================================================
         -- J-Type Instructions
@@ -270,7 +279,7 @@ package body WardRV_iss_pkg is
           write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
-          stats(I_JAL) := stats(I_JAL) + 1;
+          stats_v(I_JAL) := stats_v(I_JAL) + 1;
 
         -- =====================================================================
         -- I-Type Instructions (JALR, Loads, OP_IMM)
@@ -282,7 +291,7 @@ package body WardRV_iss_pkg is
           write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(v_op1) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
           if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
           pc_r := v_npc;
-          stats(I_JALR) := stats(I_JALR) + 1;
+          stats_v(I_JALR) := stats_v(I_JALR) + 1;
 
         -- =====================================================================
         -- B-Type Instructions (Branch)
@@ -290,12 +299,12 @@ package body WardRV_iss_pkg is
         when OPC_BRANCH =>
           -- Conditional Branch Instructions
           case funct3 is
-            when F3_BEQ  => write(v_msg, string'("BEQ"));  if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BEQ) := stats(I_BEQ) + 1;
-            when F3_BNE  => write(v_msg, string'("BNE"));  if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BNE) := stats(I_BNE) + 1;
-            when F3_BLT  => write(v_msg, string'("BLT"));  if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BLT) := stats(I_BLT) + 1;
-            when F3_BGE  => write(v_msg, string'("BGE"));  if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BGE) := stats(I_BGE) + 1;
-            when F3_BLTU => write(v_msg, string'("BLTU")); if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BLTU) := stats(I_BLTU) + 1;
-            when F3_BGEU => write(v_msg, string'("BGEU")); if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats(I_BGEU) := stats(I_BGEU) + 1;
+            when F3_BEQ  => write(v_msg, string'("BEQ"));  if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BEQ) := stats_v(I_BEQ) + 1;
+            when F3_BNE  => write(v_msg, string'("BNE"));  if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BNE) := stats_v(I_BNE) + 1;
+            when F3_BLT  => write(v_msg, string'("BLT"));  if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLT) := stats_v(I_BLT) + 1;
+            when F3_BGE  => write(v_msg, string'("BGE"));  if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGE) := stats_v(I_BGE) + 1;
+            when F3_BLTU => write(v_msg, string'("BLTU")); if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLTU) := stats_v(I_BLTU) + 1;
+            when F3_BGEU => write(v_msg, string'("BGEU")); if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGEU) := stats_v(I_BGEU) + 1;
             when others => write(v_msg, string'("BRANCH_UNK"));
           end case;
           write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") NPC=0x" & to_hstring(v_npc));
@@ -307,11 +316,11 @@ package body WardRV_iss_pkg is
         when OPC_LOAD =>
           -- Load Instructions: LB, LH, LW, LBU, LHU
           case funct3 is
-            when F3_LB  => write(v_msg, string'("LB"));  stats(I_LB) := stats(I_LB) + 1;
-            when F3_LH  => write(v_msg, string'("LH"));  stats(I_LH) := stats(I_LH) + 1;
-            when F3_LW  => write(v_msg, string'("LW"));  stats(I_LW) := stats(I_LW) + 1;
-            when F3_LBU => write(v_msg, string'("LBU")); stats(I_LBU) := stats(I_LBU) + 1;
-            when F3_LHU => write(v_msg, string'("LHU")); stats(I_LHU) := stats(I_LHU) + 1;
+            when F3_LB  => write(v_msg, string'("LB"));  stats_v(I_LB) := stats_v(I_LB) + 1;
+            when F3_LH  => write(v_msg, string'("LH"));  stats_v(I_LH) := stats_v(I_LH) + 1;
+            when F3_LW  => write(v_msg, string'("LW"));  stats_v(I_LW) := stats_v(I_LW) + 1;
+            when F3_LBU => write(v_msg, string'("LBU")); stats_v(I_LBU) := stats_v(I_LBU) + 1;
+            when F3_LHU => write(v_msg, string'("LHU")); stats_v(I_LHU) := stats_v(I_LHU) + 1;
             when others => write(v_msg, string'("LOAD_UNK"));
           end case;
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
@@ -334,9 +343,9 @@ package body WardRV_iss_pkg is
         when OPC_STORE =>
           -- Store Instructions: SB, SH, SW
           case funct3 is
-            when F3_SB  => write(v_msg, string'("SB")); stats(I_SB) := stats(I_SB) + 1;
-            when F3_SH  => write(v_msg, string'("SH")); stats(I_SH) := stats(I_SH) + 1;
-            when F3_SW  => write(v_msg, string'("SW")); stats(I_SW) := stats(I_SW) + 1;
+            when F3_SB  => write(v_msg, string'("SB")); stats_v(I_SB) := stats_v(I_SB) + 1;
+            when F3_SH  => write(v_msg, string'("SH")); stats_v(I_SH) := stats_v(I_SH) + 1;
+            when F3_SW  => write(v_msg, string'("SW")); stats_v(I_SW) := stats_v(I_SW) + 1;
             when others => write(v_msg, string'("STORE_UNK"));
           end case;
           v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
@@ -365,28 +374,28 @@ package body WardRV_iss_pkg is
               -- ADDI
               write(v_msg, string'("ADDI"));
               v_res := std_logic_vector(v_op1 + signed(v_imm_i));
-              stats(I_ADDI) := stats(I_ADDI) + 1;
+              stats_v(I_ADDI) := stats_v(I_ADDI) + 1;
             when F3_SLL =>
               -- SLLI
               write(v_msg, string'("SLLI"));
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
               v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
-              stats(I_SLLI) := stats(I_SLLI) + 1;
+              stats_v(I_SLLI) := stats_v(I_SLLI) + 1;
             when F3_SLT =>
               -- SLTI
               write(v_msg, string'("SLTI"));
               if v_op1 < signed(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats(I_SLTI) := stats(I_SLTI) + 1;
+              stats_v(I_SLTI) := stats_v(I_SLTI) + 1;
             when F3_SLTU =>
               -- SLTIU
               write(v_msg, string'("SLTIU"));
               if unsigned(v_op1) < unsigned(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats(I_SLTIU) := stats(I_SLTIU) + 1;
+              stats_v(I_SLTIU) := stats_v(I_SLTIU) + 1;
             when F3_XOR =>
               -- XORI
               write(v_msg, string'("XORI"));
               v_res := std_logic_vector(v_op1 xor signed(v_imm_i));
-              stats(I_XORI) := stats(I_XORI) + 1;
+              stats_v(I_XORI) := stats_v(I_XORI) + 1;
             when F3_SRL_SRA =>
               -- SRLI / SRAI
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
@@ -394,23 +403,23 @@ package body WardRV_iss_pkg is
                 -- SRAI (Arithmetic Right Shift)
                 write(v_msg, string'("SRAI"));
                 v_res := std_logic_vector(shift_right(v_op1, v_shamt));
-                stats(I_SRAI) := stats(I_SRAI) + 1;
+                stats_v(I_SRAI) := stats_v(I_SRAI) + 1;
               else
                 -- SRLI (Logical Right Shift)
                 write(v_msg, string'("SRLI"));
                 v_res := std_logic_vector(shift_right(unsigned(v_op1), v_shamt));
-                stats(I_SRLI) := stats(I_SRLI) + 1;
+                stats_v(I_SRLI) := stats_v(I_SRLI) + 1;
               end if;
             when F3_OR =>
               -- ORI
               write(v_msg, string'("ORI"));
               v_res := std_logic_vector(v_op1 or signed(v_imm_i));
-              stats(I_ORI) := stats(I_ORI) + 1;
+              stats_v(I_ORI) := stats_v(I_ORI) + 1;
             when F3_AND =>
               -- ANDI
               write(v_msg, string'("ANDI"));
               v_res := std_logic_vector(v_op1 and signed(v_imm_i));
-              stats(I_ANDI) := stats(I_ANDI) + 1;
+              stats_v(I_ANDI) := stats_v(I_ANDI) + 1;
             when others => null;
           end case;
           write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res));
@@ -428,47 +437,47 @@ package body WardRV_iss_pkg is
               if funct7(5) = '1' then
                 write(v_msg, string'("SUB"));
                 v_res := std_logic_vector(v_op1 - v_op2);
-                stats(I_SUB) := stats(I_SUB) + 1;
+                stats_v(I_SUB) := stats_v(I_SUB) + 1;
               else
                 write(v_msg, string'("ADD"));
                 v_res := std_logic_vector(v_op1 + v_op2);
-                stats(I_ADD) := stats(I_ADD) + 1;
+                stats_v(I_ADD) := stats_v(I_ADD) + 1;
               end if;
             when F3_SLL =>
               write(v_msg, string'("SLL"));
               v_shamt := to_integer(unsigned(v_op2(4 downto 0)));
               v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
-              stats(I_SLL) := stats(I_SLL) + 1;
+              stats_v(I_SLL) := stats_v(I_SLL) + 1;
             when F3_SLT =>
               write(v_msg, string'("SLT"));
               if v_op1 < v_op2 then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats(I_SLT) := stats(I_SLT) + 1;
+              stats_v(I_SLT) := stats_v(I_SLT) + 1;
             when F3_SLTU =>
               write(v_msg, string'("SLTU"));
               if unsigned(v_op1) < unsigned(v_op2) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats(I_SLTU) := stats(I_SLTU) + 1;
+              stats_v(I_SLTU) := stats_v(I_SLTU) + 1;
             when F3_XOR =>
               write(v_msg, string'("XOR"));
               v_res := std_logic_vector(v_op1 xor v_op2);
-              stats(I_XOR) := stats(I_XOR) + 1;
+              stats_v(I_XOR) := stats_v(I_XOR) + 1;
             when F3_SRL_SRA =>
               if funct7(5) = '1' then
                 write(v_msg, string'("SRA"));
                 v_res := std_logic_vector(shift_right(v_op1, to_integer(unsigned(v_op2(4 downto 0)))));
-                stats(I_SRA) := stats(I_SRA) + 1;
+                stats_v(I_SRA) := stats_v(I_SRA) + 1;
               else
                 write(v_msg, string'("SRL"));
                 v_res := std_logic_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
-                stats(I_SRL) := stats(I_SRL) + 1;
+                stats_v(I_SRL) := stats_v(I_SRL) + 1;
               end if;
             when F3_OR =>
               write(v_msg, string'("OR"));
               v_res := std_logic_vector(v_op1 or v_op2);
-              stats(I_OR) := stats(I_OR) + 1;
+              stats_v(I_OR) := stats_v(I_OR) + 1;
             when F3_AND =>
               write(v_msg, string'("AND"));
               v_res := std_logic_vector(v_op1 and v_op2);
-              stats(I_AND) := stats(I_AND) + 1;
+              stats_v(I_AND) := stats_v(I_AND) + 1;
             when others => null;
           end case;
           write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") = 0x" & to_hstring(v_res));
@@ -514,7 +523,7 @@ package body WardRV_iss_pkg is
       end case;
 
       -- synthesis translate_off
-      if v_msg /= null then
+      if v_msg /= null and verbose_r then
         report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & v_msg.all;
         deallocate(v_msg);
       end if;
@@ -530,7 +539,9 @@ package body WardRV_iss_pkg is
       variable v_msg   : line;
     begin
       -- synthesis translate_off
-      write(v_msg, string'("Complete Load: R") & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off));
+      if verbose_r then
+        write(v_msg, string'("Complete Load: R") & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off));
+      end if;
       -- synthesis translate_on
 
       v_shamt := pending_load_byte_off * 8;
@@ -546,9 +557,11 @@ package body WardRV_iss_pkg is
       end case;
 
       -- synthesis translate_off
-      write(v_msg, string'(" -> final_res=0x") & to_hstring(v_res));
-      report "[ISS] " & v_msg.all;
-      deallocate(v_msg);
+      if verbose_r then
+        write(v_msg, string'(" -> final_res=0x") & to_hstring(v_res));
+        report "[ISS] " & v_msg.all;
+        deallocate(v_msg);
+      end if;
       -- synthesis translate_on
 
       if unsigned(pending_load_rd) /= 0 then 
@@ -556,19 +569,35 @@ package body WardRV_iss_pkg is
       end if;
     end procedure;
 
-    procedure print_stats is
+    procedure stats(filename : in string := "") is
       variable v_ratio : real;
+      file f_out       : text;
+      variable l       : line;
+      variable v_open  : boolean := false;
     begin
+      if filename /= "" then
+        file_open(f_out, filename, write_mode);
+        v_open := true;
+      end if;
+
       report "--- WardRV ISS Statistics ---";
       for i in inst_type_t loop
-        if stats(I_TOTAL) > 0 then
-          v_ratio := (real(stats(i)) * 100.0) / real(stats(I_TOTAL));
+        if stats_v(I_TOTAL) > 0 then
+          v_ratio := (real(stats_v(i)) * 100.0) / real(stats_v(I_TOTAL));
         else
           v_ratio := 0.0;
         end if;
-        report INST_NAMES(i) & " : " & integer'image(stats(i)) & " (" & to_string(v_ratio, 2) & " %)";
+        report INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)";
+        if v_open then
+          write(l, INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)");
+          writeline(f_out, l);
+        end if;
       end loop;
       report "-----------------------------";
+
+      if v_open then
+        file_close(f_out);
+      end if;
     end procedure;
 
   end protected body;
