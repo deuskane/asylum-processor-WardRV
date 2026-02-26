@@ -52,6 +52,9 @@ package WardRV_iss_pkg is
       mem_be        : out std_logic_vector((DMEM_DATA_WIDTH/8)-1 downto 0)
     );
 
+    -- Complete the instruction execution (Update PC and Registers)
+    procedure complete;
+
     -- Complete a Load operation
     procedure complete_load(
       mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
@@ -156,13 +159,17 @@ package body WardRV_iss_pkg is
 
   type iss_t is protected body
     
-    variable pc_r   : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
-    variable regs_r : regfile_t;
-    variable verbose_r : boolean := true;
+    variable pc_r                  : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
+    variable regs_r                : regfile_t;
+    variable verbose_r             : boolean := false;
+
+    -- Intermediate results for completion
+    variable pending_npc           : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
+    variable pending_rd            : bit_vector(4 downto 0);
+    variable pending_res           : bit_vector(31 downto 0);
     
     -- State for pending load
-    variable pending_load_rd     : bit_vector(4 downto 0);
-    variable pending_load_funct3 : bit_vector(2 downto 0);
+    variable pending_load_funct3   : bit_vector(2 downto 0);
     variable pending_load_byte_off : integer;
 
     -- Statistics counters
@@ -175,7 +182,9 @@ package body WardRV_iss_pkg is
       pc_r   := to_bitvector(start_pc);
       regs_r := (others => (others => '0'));
       stats_v := (others => 0);
-      pending_load_rd := (others => '0');
+      pending_npc     := (others => '0');
+      pending_rd      := (others => '0');
+      pending_res     := (others => '0');
     end procedure;
 
     impure function get_pc return std_logic_vector is
@@ -233,6 +242,10 @@ package body WardRV_iss_pkg is
       mem_wdata  := (others => '0');
       mem_be     := (others => '0');
 
+      -- Reset pending write state
+      pending_rd  := (others => '0');
+      pending_res := (others => '0');
+
       -- Immediates
       v_imm_sign := (others => v_inst(31));
       v_imm_i    := v_imm_sign(31 downto 12) & v_inst(31 downto 20);
@@ -265,11 +278,8 @@ package body WardRV_iss_pkg is
                    "LUI R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_imm_u);
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
           stats_v(I_LUI) := stats_v(I_LUI) + 1;
 
         when OPC_AUIPC =>
@@ -281,11 +291,8 @@ package body WardRV_iss_pkg is
                    "AUIPC R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res);
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
           stats_v(I_AUIPC) := stats_v(I_AUIPC) + 1;
 
         -- =====================================================================
@@ -301,11 +308,8 @@ package body WardRV_iss_pkg is
                    "JAL R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
           stats_v(I_JAL) := stats_v(I_JAL) + 1;
 
         -- =====================================================================
@@ -321,11 +325,8 @@ package body WardRV_iss_pkg is
                    "JALR R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(bit_vector(v_op1)) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
           stats_v(I_JALR) := stats_v(I_JALR) + 1;
 
         -- =====================================================================
@@ -348,7 +349,6 @@ package body WardRV_iss_pkg is
                    v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") NPC=0x" & to_hstring(v_npc);
           end if;
           -- synthesis translate_on
-          pc_r := v_npc;
 
         -- =====================================================================
         -- S-Type Instructions (Load)
@@ -375,12 +375,10 @@ package body WardRV_iss_pkg is
           mem_addr := to_stdlogicvector(v_addr);
           
           -- Save state for completion
-          pending_load_rd       := rd;
+          pending_rd            := rd;
           pending_load_funct3   := funct3;
           pending_load_byte_off := to_integer(unsigned(v_addr(1 downto 0)));
           --pending_load_byte_off := 0;
-          
-          pc_r := v_npc;
 
         -- =====================================================================
         -- S-Type Instructions (Store)
@@ -412,7 +410,6 @@ package body WardRV_iss_pkg is
             when F3_SW  => mem_be := (others => '1');
             when others => mem_be := (others => '0');
           end case;
-          pc_r := v_npc;
 
         -- =====================================================================
         -- I-Type Instructions (Arithmetic & Logical with Immediate)
@@ -478,11 +475,8 @@ package body WardRV_iss_pkg is
                    v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res);
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
 
         -- =====================================================================
         -- R-Type Instructions (Arithmetic & Logical with Registers)
@@ -543,11 +537,8 @@ package body WardRV_iss_pkg is
                    v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") = 0x" & to_hstring(v_res);
           end if;
           -- synthesis translate_on
-          if unsigned(rd) /= 0
-          then
-            regs_r(to_integer(unsigned(rd))) := v_res;
-          end if;
-          pc_r := v_npc;
+          pending_rd  := rd;
+          pending_res := v_res;
 
         -- =====================================================================
         -- MISC-MEM Instructions (FENCE, FENCE.I)
@@ -561,7 +552,6 @@ package body WardRV_iss_pkg is
                    "FENCE";
           end if;
           -- synthesis translate_on
-          pc_r := v_npc;
 
         -- =====================================================================
         -- SYSTEM Instructions (ECALL, EBREAK, CSR)
@@ -593,16 +583,24 @@ package body WardRV_iss_pkg is
               -- synthesis translate_on
             when others => null;
           end case;
-          pc_r := v_npc;
 
         when others =>
           -- Unknown instruction - NOP
           if verbose_r then
             report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & "UNKNOWN";
           end if;
-          pc_r := v_npc;
       end case;
+      pending_npc := v_npc;
     end procedure;
+
+    procedure complete is
+    begin
+      if unsigned(pending_rd) /= 0 then
+        regs_r(to_integer(unsigned(pending_rd))) := pending_res;
+      end if;
+      pc_r := pending_npc;
+    end procedure;
+
 
     procedure complete_load(
       mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
@@ -626,14 +624,12 @@ package body WardRV_iss_pkg is
       -- synthesis translate_off
       if verbose_r
       then
-        report "[ISS] Complete Load: R" & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off) & " -> final_res=0x" & to_hstring(v_res);
+        report "[ISS] Complete Load: R" & integer'image(to_integer(unsigned(pending_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off) & " -> final_res=0x" & to_hstring(v_res);
       end if;
       -- synthesis translate_on
 
-      if unsigned(pending_load_rd) /= 0 then
-        regs_r(to_integer(unsigned(pending_load_rd))) := v_res;
-      end if;
-    end procedure;
+      pending_res := v_res;
+      end procedure;
 
     procedure stats(filename : in string := "") is
       variable v_ratio : real;

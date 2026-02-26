@@ -60,43 +60,53 @@ begin
   -- ISS Execution Loop
   p_iss : process
     variable iss       : iss_t;
-    variable v_inst    : std_logic_vector(31 downto 0);
-    variable v_addr    : integer;
-    variable v_mem_req : boolean;
-    variable v_we      : std_logic;
-    variable v_maddr   : std_logic_vector(31 downto 0);
-    variable v_wdata   : std_logic_vector(31 downto 0);
-    variable v_be      : std_logic_vector(3 downto 0);
-    variable v_rdata   : std_logic_vector(31 downto 0);
+    variable v_iaccess : boolean;
+    variable v_irdata  : std_logic_vector(31 downto 0);
+    variable v_iaddr   : std_logic_vector(31 downto 0);
+    variable v_daccess : boolean;
+    variable v_dwe     : std_logic;
+    variable v_daddr   : std_logic_vector(31 downto 0);
+    variable v_dwdata  : std_logic_vector(31 downto 0);
+    variable v_dbe     : std_logic_vector(3 downto 0);
+    variable v_drdata  : std_logic_vector(31 downto 0);
 
   begin
-    init_ram(FIRMWARE_FILE, mem);
-    iss.reset(C_FIRMWARE_ADDR);
+    init_ram       (FIRMWARE_FILE, mem);
+    iss.reset      (C_FIRMWARE_ADDR);
     iss.set_verbose(true);
 
     wait until arst_b_i = '1';
 
-    while not sim_end loop
+    while not sim_end 
+    loop
       wait until rising_edge(clk_i);
       
       -- Fetch
-      v_addr := to_integer(unsigned(iss.get_pc) - unsigned(C_FIRMWARE_ADDR));
+      v_iaccess := true;
+      v_iaddr   := iss.get_pc;
       
-      if v_addr < C_MEM_SIZE - 3 then
-        v_inst := std_logic_vector(to_unsigned(character'pos(mem(v_addr+3)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr+2)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr+1)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));
-      else
-        v_inst := (others => '0');
+      if v_iaccess 
+      then
+        if unsigned(v_iaddr) >= unsigned(C_FIRMWARE_ADDR) and unsigned(v_iaddr) < unsigned(C_FIRMWARE_ADDR) + C_MEM_SIZE - 3 
+        then
+          read_mem(mem, v_iaddr, v_irdata, VERBOSE);
+
+        else
+          v_irdata := (others => '0');
+        end if;
+
+        print_instruction(iss.get_pc, v_irdata, VERBOSE);
       end if;
-
-      print_instruction(iss.get_pc, v_inst, VERBOSE);
-
+      
       -- Execute
-      iss.execute_instruction(v_inst, v_mem_req, v_we, v_maddr, v_wdata, v_be);
+      iss.execute_instruction(v_irdata, v_daccess, v_dwe, v_daddr, v_dwdata, v_dbe);
 
       -- Handle Memory
-      if v_mem_req then
-        if v_maddr = C_TOHOST_ADDR and v_we = '1' then
-          if v_wdata = C_TOHOST_DATA_OK
+      if v_daccess 
+      then
+        if v_daddr = C_TOHOST_ADDR and v_dwe = '1' 
+        then
+          if v_dwdata = C_TOHOST_DATA_OK
           then
             log(ID_LOG_HDR, "ISS: TEST PASSED");
           else
@@ -116,20 +126,19 @@ begin
           sim_end <= true;
 
         else
-          if v_we = '1' then
-            write_mem(mem, v_maddr, v_wdata, v_be, VERBOSE);
+          if v_dwe = '1' 
+          then
+            write_mem(mem, v_daddr, v_dwdata, v_dbe, VERBOSE);
           else
-            read_mem(mem, v_maddr, v_rdata, VERBOSE);
-            iss.complete_load(v_rdata);
+            read_mem(mem, v_daddr, v_drdata, VERBOSE);
+            iss.complete_load(v_drdata);
           end if;
         end if;
       end if;
-      
+      iss.complete;
       -- Small delay to avoid delta cycles issues with sim_end
       wait until falling_edge(clk_i);
     end loop;
-
-
 
     wait;
   end process;
@@ -148,7 +157,8 @@ begin
 
     wait until sim_end for C_SIM_TIMEOUT;
 
-    if not sim_end then
+    if not sim_end 
+    then
       alert(TB_ERROR, "Simulation Timeout");
     end if;
 
