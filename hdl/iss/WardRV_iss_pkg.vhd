@@ -257,7 +257,10 @@ package body WardRV_iss_pkg is
           -- Load Upper Immediate
           write(v_msg, string'("LUI R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_imm_u));
           v_res := v_imm_u;
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
           stats_v(I_LUI) := stats_v(I_LUI) + 1;
 
@@ -265,7 +268,10 @@ package body WardRV_iss_pkg is
           -- Add Upper Immediate to PC
           v_res := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_u));
           write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res));
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
           stats_v(I_AUIPC) := stats_v(I_AUIPC) + 1;
 
@@ -277,7 +283,10 @@ package body WardRV_iss_pkg is
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_j));
           write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
           stats_v(I_JAL) := stats_v(I_JAL) + 1;
 
@@ -289,7 +298,10 @@ package body WardRV_iss_pkg is
           v_res := std_logic_vector(unsigned(pc_r) + 4);
           v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
           write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(v_op1) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
           stats_v(I_JALR) := stats_v(I_JALR) + 1;
 
@@ -424,7 +436,10 @@ package body WardRV_iss_pkg is
           end case;
           write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res));
           
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
 
         -- =====================================================================
@@ -482,7 +497,10 @@ package body WardRV_iss_pkg is
           end case;
           write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") = 0x" & to_hstring(v_res));
           
-          if unsigned(rd) /= 0 then regs_r(to_integer(unsigned(rd))) := v_res; end if;
+          if unsigned(rd) /= 0
+          then
+            regs_r(to_integer(unsigned(rd))) := v_res;
+          end if;
           pc_r := v_npc;
 
         -- =====================================================================
@@ -523,7 +541,8 @@ package body WardRV_iss_pkg is
       end case;
 
       -- synthesis translate_off
-      if v_msg /= null and verbose_r then
+      if v_msg /= null and verbose_r
+      then
         report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & v_msg.all;
         deallocate(v_msg);
       end if;
@@ -539,7 +558,8 @@ package body WardRV_iss_pkg is
       variable v_msg   : line;
     begin
       -- synthesis translate_off
-      if verbose_r then
+      if verbose_r
+      then
         write(v_msg, string'("Complete Load: R") & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off));
       end if;
       -- synthesis translate_on
@@ -557,7 +577,8 @@ package body WardRV_iss_pkg is
       end case;
 
       -- synthesis translate_off
-      if verbose_r then
+      if verbose_r
+      then
         write(v_msg, string'(" -> final_res=0x") & to_hstring(v_res));
         report "[ISS] " & v_msg.all;
         deallocate(v_msg);
@@ -575,27 +596,32 @@ package body WardRV_iss_pkg is
       variable l       : line;
       variable v_open  : boolean := false;
     begin
-      if filename /= "" then
+      if filename /= ""
+      then
         file_open(f_out, filename, write_mode);
         v_open := true;
       end if;
 
       report "--- WardRV ISS Statistics ---";
-      for i in inst_type_t loop
-        if stats_v(I_TOTAL) > 0 then
+      for i in inst_type_t
+      loop
+        if stats_v(I_TOTAL) > 0
+        then
           v_ratio := (real(stats_v(i)) * 100.0) / real(stats_v(I_TOTAL));
         else
           v_ratio := 0.0;
         end if;
         report INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)";
-        if v_open then
+        if v_open
+        then
           write(l, INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)");
           writeline(f_out, l);
         end if;
       end loop;
       report "-----------------------------";
 
-      if v_open then
+      if v_open
+      then
         file_close(f_out);
       end if;
     end procedure;
