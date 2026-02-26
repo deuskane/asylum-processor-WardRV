@@ -32,7 +32,7 @@ package tb_WardRV_pkg is
   constant C_TOHOST_DATA_OK     : std_logic_vector(31 downto 0) := x"00000001";
 
   -- Memory Type
-  type ram_t is array (0 to C_MEM_SIZE-1) of std_logic_vector(7 downto 0);
+  type ram_t is array (0 to C_MEM_SIZE-1) of character;
 
   -- Helper to read Hex
   procedure init_ram(
@@ -83,11 +83,11 @@ package body tb_WardRV_pkg is
         hread(l, word, good);
         --report "Read 0x" & to_hstring(word) & " from " & file_name & " at line " & integer'image(addr/4 + 1);
         if good then
-          -- Little Endian loading
-          ram(addr)   <= word(7  downto  0);
-          ram(addr+1) <= word(15 downto  8);
-          ram(addr+2) <= word(23 downto 16);
-          ram(addr+3) <= word(31 downto 24);
+          -- Little Endian loading using character conversion
+          ram(addr)   <= character'val(to_integer(unsigned(word(7  downto  0))));
+          ram(addr+1) <= character'val(to_integer(unsigned(word(15 downto  8))));
+          ram(addr+2) <= character'val(to_integer(unsigned(word(23 downto 16))));
+          ram(addr+3) <= character'val(to_integer(unsigned(word(31 downto 24))));
           addr := addr + 4;
         end if;
       end if;
@@ -130,7 +130,10 @@ package body tb_WardRV_pkg is
     v_sig_addr := to_integer(unsigned(start_addr));
     for i in 0 to (size/4)-1 loop
       exit when v_sig_addr > C_MEM_SIZE - 4;
-      v_wdata := mem(v_sig_addr+3) & mem(v_sig_addr+2) & mem(v_sig_addr+1) & mem(v_sig_addr);
+      v_wdata(31 downto 24) := std_logic_vector(to_unsigned(character'pos(mem(v_sig_addr+3)), 8));
+      v_wdata(23 downto 16) := std_logic_vector(to_unsigned(character'pos(mem(v_sig_addr+2)), 8));
+      v_wdata(15 downto  8) := std_logic_vector(to_unsigned(character'pos(mem(v_sig_addr+1)), 8));
+      v_wdata(7  downto  0) := std_logic_vector(to_unsigned(character'pos(mem(v_sig_addr)),   8));
       write(l, to_hstring(v_wdata));
       writeline(f_sig, l);
       v_sig_addr := v_sig_addr + 4;

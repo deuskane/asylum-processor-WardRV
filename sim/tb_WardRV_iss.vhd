@@ -73,6 +73,8 @@ begin
   begin
     init_ram(FIRMWARE_FILE, mem);
     iss.reset(C_FIRMWARE_ADDR);
+    iss.set_verbose(VERBOSE);
+
     wait until arst_b_i = '1';
 
     while not sim_end loop
@@ -82,7 +84,7 @@ begin
       v_addr := to_integer(unsigned(iss.get_pc) - unsigned(C_FIRMWARE_ADDR));
       
       if v_addr < C_MEM_SIZE - 3 then
-        v_inst := mem(v_addr+3) & mem(v_addr+2) & mem(v_addr+1) & mem(v_addr);
+        v_inst := std_logic_vector(to_unsigned(character'pos(mem(v_addr+3)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr+2)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr+1)), 8)) & std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));
       else
         v_inst := (others => '0');
       end if;
@@ -102,7 +104,7 @@ begin
             alert(TB_ERROR, "ISS: TEST FAILED");
           end if;
 
-          iss.print_stats;
+          iss.stats("stats.txt");
 
           if SIGNATURE_FILE /= "" 
           then
@@ -120,12 +122,15 @@ begin
           if v_addr < C_MEM_SIZE - 3 then
             if v_we = '1' then
               if VERBOSE then log(ID_BFM, "ISS Store @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_wdata) & " (be:" & to_string(v_be) & ")"); end if;
-              if v_be(0) = '1' then mem(v_addr)   <= v_wdata(7 downto 0); end if;
-              if v_be(1) = '1' then mem(v_addr+1) <= v_wdata(15 downto 8); end if;
-              if v_be(2) = '1' then mem(v_addr+2) <= v_wdata(23 downto 16); end if;
-              if v_be(3) = '1' then mem(v_addr+3) <= v_wdata(31 downto 24); end if;
+              if v_be(0) = '1' then mem(v_addr)   <= character'val(to_integer(unsigned(v_wdata(7 downto 0)))); end if;
+              if v_be(1) = '1' then mem(v_addr+1) <= character'val(to_integer(unsigned(v_wdata(15 downto 8)))); end if;
+              if v_be(2) = '1' then mem(v_addr+2) <= character'val(to_integer(unsigned(v_wdata(23 downto 16)))); end if;
+              if v_be(3) = '1' then mem(v_addr+3) <= character'val(to_integer(unsigned(v_wdata(31 downto 24)))); end if;
             else
-              v_rdata := mem(v_addr+3) & mem(v_addr+2) & mem(v_addr+1) & mem(v_addr);
+              v_rdata(7 downto 0)   := std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));
+              v_rdata(15 downto 8)  := std_logic_vector(to_unsigned(character'pos(mem(v_addr+1)), 8));
+              v_rdata(23 downto 16) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+2)), 8));
+              v_rdata(31 downto 24) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+3)), 8));
               if VERBOSE then log(ID_BFM, "ISS Load  @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_rdata)); end if;
               iss.complete_load(v_rdata);
             end if;

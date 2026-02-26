@@ -1,5 +1,6 @@
 default                          : Default Target
 sim                              : default rule to sim (DON'T RUN)
+sim_basic                        : Basic testcase
 sim_compliance_add_01            : Add-01 testcase
 sim_compliance_addi_01           : Addi-01 testcase
 sim_compliance_and_01            : And-01 testcase

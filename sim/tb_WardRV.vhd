@@ -33,6 +33,7 @@ entity tb_WardRV is
   generic (
     FIRMWARE_FILE  : string  := "firmware.hex";
     SIGNATURE_FILE : string  := "signature.output";
+    GOLDEN_FILE    : string  := "";
     VERBOSE        : boolean := false
   );
 end tb_WardRV;
@@ -131,9 +132,6 @@ begin
     variable i_addr : integer;
     variable d_addr : integer;
     variable v_inst : std_logic_vector(31 downto 0);
-    file f_sig      : text;
-    variable l      : line;
-    variable f_open : boolean := false;
   begin
     if rising_edge(clk_i) then
       -- Instruction Fetch
@@ -163,23 +161,23 @@ begin
         -- Check for TOHOST (Simulation Exit)
         -- Assuming writing to a specific high address signals end
         if sbi_ini.addr = C_TOHOST_ADDR and sbi_ini.we = '1' then
-           if to_integer(unsigned(sbi_ini.wdata)) = 1 then
-             log(ID_LOG_HDR, "TEST PASSED (tohost = 1)");
+           if sbi_ini.wdata = C_TOHOST_DATA_OK
+           then
+             log(ID_LOG_HDR, "RTL: TEST PASSED");
            else
-             alert(TB_ERROR, "TEST FAILED (tohost = " & integer'image(to_integer(unsigned(sbi_ini.wdata))) & ")");
+             alert(TB_ERROR, "RTL: TEST FAILED");
+           end if;
+
+           if SIGNATURE_FILE /= "" 
+           then
+             dump_signature(SIGNATURE_FILE, std_logic_vector(unsigned(C_SIGNATURE_ADDR) - unsigned(C_FIRMWARE_ADDR)), C_MEM_SIZE, mem);
+             if GOLDEN_FILE /= "" 
+             then
+               compare_signature(SIGNATURE_FILE, GOLDEN_FILE);
+             end if;
            end if;
            sim_end_rtl <= true;
            
-        elsif sbi_ini.addr = C_SIGNATURE_ADDR and sbi_ini.we = '1' then
-           -- Write to Signature File
-           if not f_open then
-             file_open(f_sig, SIGNATURE_FILE, write_mode);
-             f_open := true;
-           end if;
-           write(l, to_hstring(sbi_ini.wdata));
-           writeline(f_sig, l);
-           sbi_tgt.ready <= '1';
-
         elsif unsigned(sbi_ini.addr) < C_MEM_SIZE - 3 then
           d_addr := to_integer(unsigned(sbi_ini.addr));
           sbi_tgt.ready <= '1';
