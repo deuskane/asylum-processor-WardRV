@@ -72,7 +72,7 @@ begin
   begin
     init_ram(FIRMWARE_FILE, mem);
     iss.reset(C_FIRMWARE_ADDR);
-    iss.set_verbose(VERBOSE);
+    iss.set_verbose(true);
 
     wait until arst_b_i = '1';
 

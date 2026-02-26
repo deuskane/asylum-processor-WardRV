@@ -12,7 +12,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+use ieee.numeric_bit.all;
 use std.textio.all;
 
 library asylum;
@@ -107,7 +107,7 @@ package body WardRV_iss_pkg is
     I_TOTAL
   );
 
-  type stats_array_t is array (inst_type_t) of integer;
+  type stats_array_t is array (inst_type_t) of natural;
 
   type inst_names_t is array (inst_type_t) of string(1 to 18);
 
@@ -152,17 +152,17 @@ package body WardRV_iss_pkg is
     I_TOTAL => "Total Instructions"
   );
 
-  type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
+  type regfile_t is array (0 to 31) of bit_vector(31 downto 0);
 
   type iss_t is protected body
     
-    variable pc_r   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
+    variable pc_r   : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
     variable regs_r : regfile_t;
     variable verbose_r : boolean := true;
     
     -- State for pending load
-    variable pending_load_rd     : std_logic_vector(4 downto 0);
-    variable pending_load_funct3 : std_logic_vector(2 downto 0);
+    variable pending_load_rd     : bit_vector(4 downto 0);
+    variable pending_load_funct3 : bit_vector(2 downto 0);
     variable pending_load_byte_off : integer;
 
     -- Statistics counters
@@ -172,7 +172,7 @@ package body WardRV_iss_pkg is
       start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
     ) is
     begin
-      pc_r   := start_pc;
+      pc_r   := to_bitvector(start_pc);
       regs_r := (others => (others => '0'));
       stats_v := (others => 0);
       pending_load_rd := (others => '0');
@@ -180,13 +180,13 @@ package body WardRV_iss_pkg is
 
     impure function get_pc return std_logic_vector is
     begin
-      return pc_r;
+      return to_stdlogicvector(pc_r);
     end function;
 
     impure function get_reg(r : integer) return std_logic_vector is
     begin
       if r = 0 then return x"00000000"; end if;
-      return regs_r(r);
+      return to_stdlogicvector(regs_r(r));
     end function;
 
     procedure set_verbose(v : in boolean) is
@@ -202,41 +202,44 @@ package body WardRV_iss_pkg is
       mem_wdata     : out std_logic_vector(DMEM_DATA_WIDTH-1 downto 0);
       mem_be        : out std_logic_vector((DMEM_DATA_WIDTH/8)-1 downto 0)
     ) is
-      alias opcode : std_logic_vector(6 downto 0) is inst(6 downto 0);
-      alias rd     : std_logic_vector(4 downto 0) is inst(11 downto 7);
-      alias funct3 : std_logic_vector(2 downto 0) is inst(14 downto 12);
-      alias rs1    : std_logic_vector(4 downto 0) is inst(19 downto 15);
-      alias rs2    : std_logic_vector(4 downto 0) is inst(24 downto 20);
-      alias funct7 : std_logic_vector(6 downto 0) is inst(31 downto 25);
-      alias funct12: std_logic_vector(11 downto 0) is inst(31 downto 20);
-
-      variable v_imm_i : std_logic_vector(31 downto 0);
-      variable v_imm_s : std_logic_vector(31 downto 0);
-      variable v_imm_b : std_logic_vector(31 downto 0);
-      variable v_imm_u : std_logic_vector(31 downto 0);
-      variable v_imm_j : std_logic_vector(31 downto 0);
-      variable v_op1   : signed(31 downto 0);
-      variable v_op2   : signed(31 downto 0);
-      variable v_res   : std_logic_vector(31 downto 0);
-      variable v_pc    : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
-      variable v_npc   : std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0);
-      variable v_addr  : std_logic_vector(DMEM_ADDR_WIDTH-1 downto 0);
-      variable v_shamt : integer;
-      variable v_msg   : line;
+      variable v_inst         : bit_vector(31 downto 0) := to_bitvector(inst);
+      variable opcode         : bit_vector(6 downto 0)  := v_inst( 6 downto  0);
+      variable rd             : bit_vector(4 downto 0)  := v_inst(11 downto  7);
+      variable funct3         : bit_vector(2 downto 0)  := v_inst(14 downto 12);
+      variable rs1            : bit_vector(4 downto 0)  := v_inst(19 downto 15);
+      variable rs2            : bit_vector(4 downto 0)  := v_inst(24 downto 20);
+      variable funct7         : bit_vector(6 downto 0)  := v_inst(31 downto 25);
+      variable funct12        : bit_vector(11 downto 0) := v_inst(31 downto 20);      
+      
+      variable v_imm_sign     : bit_vector(31 downto 0);
+      variable v_imm_i        : bit_vector(31 downto 0);
+      variable v_imm_s        : bit_vector(31 downto 0);
+      variable v_imm_b        : bit_vector(31 downto 0);
+      variable v_imm_u        : bit_vector(31 downto 0);
+      variable v_imm_j        : bit_vector(31 downto 0);
+      variable v_op1          : signed(31 downto 0);
+      variable v_op2          : signed(31 downto 0);
+      variable v_res          : bit_vector(31 downto 0);
+      variable v_pc           : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
+      variable v_npc          : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
+      variable v_addr         : bit_vector(DMEM_ADDR_WIDTH-1 downto 0);
+      variable v_shamt        : integer;
+      variable v_mnemonic_str : string(1 to 10);
     begin
       -- Initialize outputs
-      mem_req   := false;
-      mem_we    := '0';
-      mem_addr  := (others => '0');
-      mem_wdata := (others => '0');
-      mem_be    := (others => '0');
+      mem_req    := false;
+      mem_we     := '0';
+      mem_addr   := (others => '0');
+      mem_wdata  := (others => '0');
+      mem_be     := (others => '0');
 
       -- Immediates
-      v_imm_i := std_logic_vector(resize(signed(inst(31 downto 20)), 32));
-      v_imm_s := std_logic_vector(resize(signed(std_logic_vector'(inst(31 downto 25) & inst(11 downto 7))), 32));
-      v_imm_b := std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(7) & inst(30 downto 25) & inst(11 downto 8) & '0')), 32));
-      v_imm_u := inst(31 downto 12) & x"000";
-      v_imm_j := std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(19 downto 12) & inst(20) & inst(30 downto 21) & '0')), 32));
+      v_imm_sign := (others => v_inst(31));
+      v_imm_i    := v_imm_sign(31 downto 12) & v_inst(31 downto 20);
+      v_imm_s    := v_imm_sign(31 downto 12) & v_inst(31 downto 25) & v_inst(11 downto 7);
+      v_imm_b    := v_imm_sign(31 downto 13) & v_inst(31) & v_inst(7) & v_inst(30 downto 25) & v_inst(11 downto 8) & '0';
+      v_imm_u    := v_inst(31 downto 12) & x"000";
+      v_imm_j    := v_imm_sign(31 downto 21) & v_inst(31) & v_inst(19 downto 12) & v_inst(20) & v_inst(30 downto 21) & '0';
 
       -- Operands
       if unsigned(rs1) = 0 then v_op1 := (others => '0'); else v_op1 := signed(regs_r(to_integer(unsigned(rs1)))); end if;
@@ -244,19 +247,24 @@ package body WardRV_iss_pkg is
 
       -- Default Next PC
       v_pc  := pc_r;
-      v_npc := std_logic_vector(unsigned(pc_r) + 4);
+      v_npc := bit_vector(unsigned(pc_r) + 4);
       v_res := (others => '0');
 
       stats_v(I_TOTAL) := stats_v(I_TOTAL) + 1;
 
-      case opcode is
+      case (opcode) is
         -- =====================================================================
         -- U-Type Instructions
         -- =====================================================================
         when OPC_LUI =>
           -- Load Upper Immediate
-          write(v_msg, string'("LUI R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_imm_u));
           v_res := v_imm_u;
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   "LUI R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_imm_u);
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -266,8 +274,13 @@ package body WardRV_iss_pkg is
 
         when OPC_AUIPC =>
           -- Add Upper Immediate to PC
-          v_res := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_u));
-          write(v_msg, string'("AUIPC R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res));
+          v_res := bit_vector(unsigned(pc_r) + unsigned(v_imm_u));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   "AUIPC R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " (PC=0x" & to_hstring(pc_r) & ") = 0x" & to_hstring(v_res);
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -280,9 +293,14 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_JAL =>
           -- Jump and Link
-          v_res := std_logic_vector(unsigned(pc_r) + 4);
-          v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_j));
-          write(v_msg, string'("JAL R") & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
+          v_res := bit_vector(unsigned(pc_r) + 4);
+          v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_j));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   "JAL R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -295,9 +313,14 @@ package body WardRV_iss_pkg is
         -- =====================================================================
         when OPC_JALR =>
           -- Jump and Link Register
-          v_res := std_logic_vector(unsigned(pc_r) + 4);
-          v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
-          write(v_msg, string'("JALR R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(v_op1) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")");
+          v_res := bit_vector(unsigned(pc_r) + 4);
+          v_npc := bit_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   "JALR R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(bit_vector(v_op1)) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -311,15 +334,20 @@ package body WardRV_iss_pkg is
         when OPC_BRANCH =>
           -- Conditional Branch Instructions
           case funct3 is
-            when F3_BEQ  => write(v_msg, string'("BEQ"));  if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BEQ) := stats_v(I_BEQ) + 1;
-            when F3_BNE  => write(v_msg, string'("BNE"));  if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BNE) := stats_v(I_BNE) + 1;
-            when F3_BLT  => write(v_msg, string'("BLT"));  if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLT) := stats_v(I_BLT) + 1;
-            when F3_BGE  => write(v_msg, string'("BGE"));  if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGE) := stats_v(I_BGE) + 1;
-            when F3_BLTU => write(v_msg, string'("BLTU")); if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLTU) := stats_v(I_BLTU) + 1;
-            when F3_BGEU => write(v_msg, string'("BGEU")); if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGEU) := stats_v(I_BGEU) + 1;
-            when others => write(v_msg, string'("BRANCH_UNK"));
+            when F3_BEQ  => v_mnemonic_str := "BEQ       ";  if v_op1 = v_op2 then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BEQ) := stats_v(I_BEQ) + 1;
+            when F3_BNE  => v_mnemonic_str := "BNE       ";  if v_op1 /= v_op2 then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BNE) := stats_v(I_BNE) + 1;
+            when F3_BLT  => v_mnemonic_str := "BLT       ";  if v_op1 < v_op2 then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLT) := stats_v(I_BLT) + 1;
+            when F3_BGE  => v_mnemonic_str := "BGE       ";  if v_op1 >= v_op2 then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGE) := stats_v(I_BGE) + 1;
+            when F3_BLTU => v_mnemonic_str := "BLTU      "; if unsigned(v_op1) < unsigned(v_op2) then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BLTU) := stats_v(I_BLTU) + 1;
+            when F3_BGEU => v_mnemonic_str := "BGEU      "; if unsigned(v_op1) >= unsigned(v_op2) then v_npc := bit_vector(unsigned(pc_r) + unsigned(v_imm_b)); end if; stats_v(I_BGEU) := stats_v(I_BGEU) + 1;
+            when others => v_mnemonic_str := "BRANCH_UNK";
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") NPC=0x" & to_hstring(v_npc));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") NPC=0x" & to_hstring(v_npc);
+          end if;
+          -- synthesis translate_on
           pc_r := v_npc;
 
         -- =====================================================================
@@ -328,18 +356,23 @@ package body WardRV_iss_pkg is
         when OPC_LOAD =>
           -- Load Instructions: LB, LH, LW, LBU, LHU
           case funct3 is
-            when F3_LB  => write(v_msg, string'("LB"));  stats_v(I_LB) := stats_v(I_LB) + 1;
-            when F3_LH  => write(v_msg, string'("LH"));  stats_v(I_LH) := stats_v(I_LH) + 1;
-            when F3_LW  => write(v_msg, string'("LW"));  stats_v(I_LW) := stats_v(I_LW) + 1;
-            when F3_LBU => write(v_msg, string'("LBU")); stats_v(I_LBU) := stats_v(I_LBU) + 1;
-            when F3_LHU => write(v_msg, string'("LHU")); stats_v(I_LHU) := stats_v(I_LHU) + 1;
-            when others => write(v_msg, string'("LOAD_UNK"));
+            when F3_LB  => v_mnemonic_str := "LB        ";  stats_v(I_LB) := stats_v(I_LB) + 1;
+            when F3_LH  => v_mnemonic_str := "LH        ";  stats_v(I_LH) := stats_v(I_LH) + 1;
+            when F3_LW  => v_mnemonic_str := "LW        ";  stats_v(I_LW) := stats_v(I_LW) + 1;
+            when F3_LBU => v_mnemonic_str := "LBU       "; stats_v(I_LBU) := stats_v(I_LBU) + 1;
+            when F3_LHU => v_mnemonic_str := "LHU       "; stats_v(I_LHU) := stats_v(I_LHU) + 1;
+            when others => v_mnemonic_str := "LOAD_UNK  ";
           end case;
-          v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ")");
+          v_addr := bit_vector(resize(unsigned(v_op1) + unsigned(v_imm_i), DMEM_ADDR_WIDTH));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ")";
+          end if;
+          -- synthesis translate_on
           mem_req  := true;
           mem_we   := '0';
-          mem_addr := v_addr;
+          mem_addr := to_stdlogicvector(v_addr);
           
           -- Save state for completion
           pending_load_rd       := rd;
@@ -355,22 +388,27 @@ package body WardRV_iss_pkg is
         when OPC_STORE =>
           -- Store Instructions: SB, SH, SW
           case funct3 is
-            when F3_SB  => write(v_msg, string'("SB")); stats_v(I_SB) := stats_v(I_SB) + 1;
-            when F3_SH  => write(v_msg, string'("SH")); stats_v(I_SH) := stats_v(I_SH) + 1;
-            when F3_SW  => write(v_msg, string'("SW")); stats_v(I_SW) := stats_v(I_SW) + 1;
-            when others => write(v_msg, string'("STORE_UNK"));
+            when F3_SB  => v_mnemonic_str := "SB        "; stats_v(I_SB) := stats_v(I_SB) + 1;
+            when F3_SH  => v_mnemonic_str := "SH        "; stats_v(I_SH) := stats_v(I_SH) + 1;
+            when F3_SW  => v_mnemonic_str := "SW        "; stats_v(I_SW) := stats_v(I_SW) + 1;
+            when others => v_mnemonic_str := "STORE_UNK ";
           end case;
-          v_addr := std_logic_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ", Data=0x" & to_hstring(v_op2) & ")");
+          v_addr := bit_vector(resize(unsigned(v_op1) + unsigned(v_imm_s), DMEM_ADDR_WIDTH));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ", Data=0x" & to_hstring(bit_vector(v_op2)) & ")";
+          end if;
+          -- synthesis translate_on
           mem_req   := true;
           mem_we    := '1';
-          mem_addr  := v_addr;
+          mem_addr  := to_stdlogicvector(v_addr);
           v_shamt   := to_integer(unsigned(v_addr(1 downto 0))) * 8;
-          mem_wdata := std_logic_vector(shift_left(unsigned(v_op2), v_shamt));
+          mem_wdata := to_stdlogicvector(bit_vector(shift_left(unsigned(bit_vector(v_op2)), v_shamt)));
           
           case funct3 is
-            when F3_SB  => mem_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
-            when F3_SH  => mem_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
+            when F3_SB  => mem_be := to_stdlogicvector(bit_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0))))));
+            when F3_SH  => mem_be := to_stdlogicvector(bit_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0))))));
             when F3_SW  => mem_be := (others => '1');
             when others => mem_be := (others => '0');
           end case;
@@ -384,58 +422,62 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_ADD_SUB =>
               -- ADDI
-              write(v_msg, string'("ADDI"));
-              v_res := std_logic_vector(v_op1 + signed(v_imm_i));
+              v_mnemonic_str := "ADDI      ";
+              v_res := bit_vector(v_op1 + signed(v_imm_i));
               stats_v(I_ADDI) := stats_v(I_ADDI) + 1;
             when F3_SLL =>
               -- SLLI
-              write(v_msg, string'("SLLI"));
+              v_mnemonic_str := "SLLI      ";
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
-              v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
+              v_res := bit_vector(shift_left(unsigned(v_op1), v_shamt));
               stats_v(I_SLLI) := stats_v(I_SLLI) + 1;
             when F3_SLT =>
               -- SLTI
-              write(v_msg, string'("SLTI"));
+              v_mnemonic_str := "SLTI      ";
               if v_op1 < signed(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
               stats_v(I_SLTI) := stats_v(I_SLTI) + 1;
             when F3_SLTU =>
               -- SLTIU
-              write(v_msg, string'("SLTIU"));
+              v_mnemonic_str := "SLTIU     ";
               if unsigned(v_op1) < unsigned(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
               stats_v(I_SLTIU) := stats_v(I_SLTIU) + 1;
             when F3_XOR =>
               -- XORI
-              write(v_msg, string'("XORI"));
-              v_res := std_logic_vector(v_op1 xor signed(v_imm_i));
+              v_mnemonic_str := "XORI      ";
+              v_res := bit_vector(v_op1 xor signed(v_imm_i));
               stats_v(I_XORI) := stats_v(I_XORI) + 1;
             when F3_SRL_SRA =>
               -- SRLI / SRAI
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
               if funct7(5) = '1' then
                 -- SRAI (Arithmetic Right Shift)
-                write(v_msg, string'("SRAI"));
-                v_res := std_logic_vector(shift_right(v_op1, v_shamt));
+                v_mnemonic_str := "SRAI      ";
+                v_res := bit_vector(shift_right(v_op1, v_shamt));
                 stats_v(I_SRAI) := stats_v(I_SRAI) + 1;
               else
                 -- SRLI (Logical Right Shift)
-                write(v_msg, string'("SRLI"));
-                v_res := std_logic_vector(shift_right(unsigned(v_op1), v_shamt));
+                v_mnemonic_str := "SRLI      ";
+                v_res := bit_vector(shift_right(unsigned(v_op1), v_shamt));
                 stats_v(I_SRLI) := stats_v(I_SRLI) + 1;
               end if;
             when F3_OR =>
               -- ORI
-              write(v_msg, string'("ORI"));
-              v_res := std_logic_vector(v_op1 or signed(v_imm_i));
+              v_mnemonic_str := "ORI       ";
+              v_res := bit_vector(v_op1 or signed(v_imm_i));
               stats_v(I_ORI) := stats_v(I_ORI) + 1;
             when F3_AND =>
               -- ANDI
-              write(v_msg, string'("ANDI"));
-              v_res := std_logic_vector(v_op1 and signed(v_imm_i));
+              v_mnemonic_str := "ANDI      ";
+              v_res := bit_vector(v_op1 and signed(v_imm_i));
               stats_v(I_ANDI) := stats_v(I_ANDI) + 1;
             when others => null;
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res));
-          
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res);
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -450,53 +492,57 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_ADD_SUB =>
               if funct7(5) = '1' then
-                write(v_msg, string'("SUB"));
-                v_res := std_logic_vector(v_op1 - v_op2);
+                v_mnemonic_str := "SUB       ";
+                v_res := bit_vector(v_op1 - v_op2);
                 stats_v(I_SUB) := stats_v(I_SUB) + 1;
               else
-                write(v_msg, string'("ADD"));
-                v_res := std_logic_vector(v_op1 + v_op2);
+                v_mnemonic_str := "ADD       ";
+                v_res := bit_vector(v_op1 + v_op2);
                 stats_v(I_ADD) := stats_v(I_ADD) + 1;
               end if;
             when F3_SLL =>
-              write(v_msg, string'("SLL"));
+              v_mnemonic_str := "SLL       ";
               v_shamt := to_integer(unsigned(v_op2(4 downto 0)));
-              v_res := std_logic_vector(shift_left(unsigned(v_op1), v_shamt));
+              v_res := bit_vector(shift_left(unsigned(v_op1), v_shamt));
               stats_v(I_SLL) := stats_v(I_SLL) + 1;
             when F3_SLT =>
-              write(v_msg, string'("SLT"));
+              v_mnemonic_str := "SLT       ";
               if v_op1 < v_op2 then v_res := x"00000001"; else v_res := (others => '0'); end if;
               stats_v(I_SLT) := stats_v(I_SLT) + 1;
             when F3_SLTU =>
-              write(v_msg, string'("SLTU"));
+              v_mnemonic_str := "SLTU      ";
               if unsigned(v_op1) < unsigned(v_op2) then v_res := x"00000001"; else v_res := (others => '0'); end if;
               stats_v(I_SLTU) := stats_v(I_SLTU) + 1;
             when F3_XOR =>
-              write(v_msg, string'("XOR"));
-              v_res := std_logic_vector(v_op1 xor v_op2);
+              v_mnemonic_str := "XOR       ";
+              v_res := bit_vector(v_op1 xor v_op2);
               stats_v(I_XOR) := stats_v(I_XOR) + 1;
             when F3_SRL_SRA =>
               if funct7(5) = '1' then
-                write(v_msg, string'("SRA"));
-                v_res := std_logic_vector(shift_right(v_op1, to_integer(unsigned(v_op2(4 downto 0)))));
+                v_mnemonic_str := "SRA       ";
+                v_res := bit_vector(shift_right(v_op1, to_integer(unsigned(v_op2(4 downto 0)))));
                 stats_v(I_SRA) := stats_v(I_SRA) + 1;
               else
-                write(v_msg, string'("SRL"));
-                v_res := std_logic_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
+                v_mnemonic_str := "SRL       ";
+                v_res := bit_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
                 stats_v(I_SRL) := stats_v(I_SRL) + 1;
               end if;
             when F3_OR =>
-              write(v_msg, string'("OR"));
-              v_res := std_logic_vector(v_op1 or v_op2);
+              v_mnemonic_str := "OR        ";
+              v_res := bit_vector(v_op1 or v_op2);
               stats_v(I_OR) := stats_v(I_OR) + 1;
             when F3_AND =>
-              write(v_msg, string'("AND"));
-              v_res := std_logic_vector(v_op1 and v_op2);
+              v_mnemonic_str := "AND       ";
+              v_res := bit_vector(v_op1 and v_op2);
               stats_v(I_AND) := stats_v(I_AND) + 1;
             when others => null;
           end case;
-          write(v_msg, string'(" R") & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(v_op1) & ", 0x" & to_hstring(v_op2) & ") = 0x" & to_hstring(v_res));
-          
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   v_mnemonic_str & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") = 0x" & to_hstring(v_res);
+          end if;
+          -- synthesis translate_on
           if unsigned(rd) /= 0
           then
             regs_r(to_integer(unsigned(rd))) := v_res;
@@ -509,7 +555,12 @@ package body WardRV_iss_pkg is
         when OPC_MISC_MEM =>
           -- FENCE, FENCE.I
           -- These instructions are typically NOPs in simulation
-          write(v_msg, string'("FENCE"));
+          -- synthesis translate_off
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " &
+                   "FENCE";
+          end if;
+          -- synthesis translate_on
           pc_r := v_npc;
 
         -- =====================================================================
@@ -520,73 +571,67 @@ package body WardRV_iss_pkg is
           case funct3 is
             when F3_PRIV =>
               -- ECALL, EBREAK
+              v_mnemonic_str := "UNKNOWN   ";
               if funct12 = x"000" then
                 -- ECALL - Environment Call
-                write(v_msg, string'("ECALL"));
+                v_mnemonic_str := "ECALL     ";
               elsif funct12 = x"001" then
                 -- EBREAK - Environment Breakpoint
-                write(v_msg, string'("EBREAK"));
+                v_mnemonic_str := "EBREAK    ";
               end if;
+              -- synthesis translate_off
+              if verbose_r then
+                report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & v_mnemonic_str;
+              end if;
+              -- synthesis translate_on
             when F3_CSRRW | F3_CSRRS | F3_CSRRC | F3_CSRRWI | F3_CSRRSI | F3_CSRRCI =>
               -- CSR instructions (require CSR register file support)
-              write(v_msg, string'("CSR_OP"));
+              -- synthesis translate_off
+              if verbose_r then
+                report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & "CSR_OP";
+              end if;
+              -- synthesis translate_on
             when others => null;
           end case;
           pc_r := v_npc;
 
         when others =>
           -- Unknown instruction - NOP
-          write(v_msg, string'("UNKNOWN"));
+          if verbose_r then
+            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & "UNKNOWN";
+          end if;
           pc_r := v_npc;
       end case;
-
-      -- synthesis translate_off
-      if v_msg /= null and verbose_r
-      then
-        report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & v_msg.all;
-        deallocate(v_msg);
-      end if;
-      -- synthesis translate_on
     end procedure;
 
     procedure complete_load(
       mem_rdata     : in std_logic_vector(DMEM_DATA_WIDTH-1 downto 0)
     ) is
       variable v_shamt : integer;
-      variable v_rdata : std_logic_vector(31 downto 0);
-      variable v_res   : std_logic_vector(31 downto 0);
-      variable v_msg   : line;
+      variable v_rdata : bit_vector(31 downto 0);
+      variable v_res   : bit_vector(31 downto 0);
     begin
-      -- synthesis translate_off
-      if verbose_r
-      then
-        write(v_msg, string'("Complete Load: R") & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off));
-      end if;
-      -- synthesis translate_on
-
       v_shamt := pending_load_byte_off * 8;
-      v_rdata := std_logic_vector(shift_right(unsigned(mem_rdata), v_shamt));
+      v_rdata := bit_vector(shift_right(unsigned(to_bitvector(mem_rdata)), v_shamt));
       
       case pending_load_funct3 is
-        when F3_LB  => v_res := std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
-        when F3_LH  => v_res := std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
-        when F3_LW  => v_res := std_logic_vector(resize(unsigned(mem_rdata), 32));
-        when F3_LBU => v_res := std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
-        when F3_LHU => v_res := std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-        when others => v_res := std_logic_vector(resize(unsigned(mem_rdata), 32));
+        when F3_LB  => v_res := bit_vector(resize(signed(v_rdata(7 downto 0)),   32));
+        when F3_LH  => v_res := bit_vector(resize(signed(v_rdata(15 downto 0)),  32));
+        when F3_LW  => v_res := bit_vector(resize(unsigned(to_bitvector(mem_rdata)), 32));
+        when F3_LBU => v_res := bit_vector(resize(unsigned(v_rdata(7 downto 0)),   32));
+        when F3_LHU => v_res := bit_vector(resize(unsigned(v_rdata(15 downto 0)),  32));
+        when others => v_res := bit_vector(resize(unsigned(to_bitvector(mem_rdata)), 32));
       end case;
 
       -- synthesis translate_off
       if verbose_r
       then
-        write(v_msg, string'(" -> final_res=0x") & to_hstring(v_res));
-        report "[ISS] " & v_msg.all;
-        deallocate(v_msg);
+        report "[ISS] Complete Load: R" & integer'image(to_integer(unsigned(pending_load_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off) & " -> final_res=0x" & to_hstring(v_res);
       end if;
       -- synthesis translate_on
 
-      if unsigned(pending_load_rd) /= 0 then 
-        regs_r(to_integer(unsigned(pending_load_rd))) := v_res; 
+      if unsigned(pending_load_rd) /= 0 then
+        regs_r(to_integer(unsigned(pending_load_rd))) := v_res;
       end if;
     end procedure;
 
