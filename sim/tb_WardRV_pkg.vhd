@@ -61,6 +61,23 @@ package tb_WardRV_pkg is
     constant golden_file : in string
   );
 
+  -- Helper to write to memory
+  procedure write_mem(
+    signal   mem     : inout ram_t;
+    constant addr    : in std_logic_vector(31 downto 0);
+    constant wdata   : in std_logic_vector(31 downto 0);
+    constant be      : in std_logic_vector(3 downto 0);
+    constant verbose : in boolean
+  );
+
+  -- Helper to read from memory
+  procedure read_mem(
+    signal   mem     : in ram_t;
+    constant addr    : in std_logic_vector(31 downto 0);
+    variable rdata   : out std_logic_vector(31 downto 0);
+    constant verbose : in boolean
+  );
+
 end package tb_WardRV_pkg;
 
 package body tb_WardRV_pkg is
@@ -75,7 +92,7 @@ package body tb_WardRV_pkg is
     variable addr   : integer := 0;
     variable good   : boolean;
   begin
-    report "Load data from " & file_name;
+    log(ID_LOG_HDR, "Load data from " & file_name);
 
     while not endfile(f_in) and addr < C_MEM_SIZE loop
       readline(f_in, l);
@@ -97,7 +114,7 @@ package body tb_WardRV_pkg is
     --  ram(addr to C_MEM_SIZE - 1) <= (others => x"00");
     --end if;
     
-    report "Loaded " & integer'image(addr) & " bytes from " & file_name;
+    log(ID_LOG_HDR, "Loaded " & integer'image(addr) & " bytes from " & file_name);
 
   end procedure;
 
@@ -181,6 +198,62 @@ package body tb_WardRV_pkg is
 
     file_close(f_sig);
     file_close(f_gold);
+  end procedure;
+
+  procedure write_mem(
+    signal   mem     : inout ram_t;
+    constant addr    : in std_logic_vector(31 downto 0);
+    constant wdata   : in std_logic_vector(31 downto 0);
+    constant be      : in std_logic_vector(3 downto 0);
+    constant verbose : in boolean
+  ) is
+    variable v_addr      : integer;
+    variable v_maddr_tmp : std_logic_vector(31 downto 0);
+  begin
+    v_maddr_tmp := addr(31 downto 2) & "00";
+    v_addr      := to_integer(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR));
+
+    if v_addr >= 0 and v_addr < C_MEM_SIZE - 3 then
+      if verbose then
+        log(ID_BFM, "ISS Store @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(wdata) & " (be:" & to_string(be) & ")");
+      end if;
+      if be(0) = '1' then mem(v_addr)   <= character'val(to_integer(unsigned(wdata(7 downto 0)))); end if;
+      if be(1) = '1' then mem(v_addr+1) <= character'val(to_integer(unsigned(wdata(15 downto 8)))); end if;
+      if be(2) = '1' then mem(v_addr+2) <= character'val(to_integer(unsigned(wdata(23 downto 16)))); end if;
+      if be(3) = '1' then mem(v_addr+3) <= character'val(to_integer(unsigned(wdata(31 downto 24)))); end if;
+    else
+      if verbose then
+        log(ID_BFM, "ISS Access Out of Bounds @ 0x" & to_hstring(addr));
+      end if;
+    end if;
+  end procedure;
+
+  procedure read_mem(
+    signal   mem     : in ram_t;
+    constant addr    : in std_logic_vector(31 downto 0);
+    variable rdata   : out std_logic_vector(31 downto 0);
+    constant verbose : in boolean
+  ) is
+    variable v_addr      : integer;
+    variable v_maddr_tmp : std_logic_vector(31 downto 0);
+  begin
+    v_maddr_tmp := addr(31 downto 2) & "00";
+    v_addr      := to_integer(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR));
+
+    if v_addr >= 0 and v_addr < C_MEM_SIZE - 3 then
+      rdata(7 downto 0)   := std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));
+      rdata(15 downto 8)  := std_logic_vector(to_unsigned(character'pos(mem(v_addr+1)), 8));
+      rdata(23 downto 16) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+2)), 8));
+      rdata(31 downto 24) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+3)), 8));
+      if verbose then
+        log(ID_BFM, "ISS Load  @ 0x" & to_hstring(addr) & " : 0x" & to_hstring(rdata));
+      end if;
+    else
+      rdata := (others => '0');
+      if verbose then
+        log(ID_BFM, "ISS Access Out of Bounds @ 0x" & to_hstring(addr));
+      end if;
+    end if;
   end procedure;
 
 end package body tb_WardRV_pkg;

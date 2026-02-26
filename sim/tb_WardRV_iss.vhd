@@ -65,7 +65,6 @@ begin
     variable v_mem_req : boolean;
     variable v_we      : std_logic;
     variable v_maddr   : std_logic_vector(31 downto 0);
-    variable v_maddr_tmp   : std_logic_vector(31 downto 0);
     variable v_wdata   : std_logic_vector(31 downto 0);
     variable v_be      : std_logic_vector(3 downto 0);
     variable v_rdata   : std_logic_vector(31 downto 0);
@@ -117,28 +116,11 @@ begin
           sim_end <= true;
 
         else
-          v_maddr_tmp := v_maddr(31 downto 2) & std_logic_vector'("00");
-          v_addr      := to_integer(unsigned(v_maddr_tmp)-unsigned(C_FIRMWARE_ADDR));
-          if v_addr < C_MEM_SIZE - 3 then
-            if v_we = '1' then
-              if VERBOSE then log(ID_BFM, "ISS Store @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_wdata) & " (be:" & to_string(v_be) & ")"); end if;
-              if v_be(0) = '1' then mem(v_addr)   <= character'val(to_integer(unsigned(v_wdata(7 downto 0)))); end if;
-              if v_be(1) = '1' then mem(v_addr+1) <= character'val(to_integer(unsigned(v_wdata(15 downto 8)))); end if;
-              if v_be(2) = '1' then mem(v_addr+2) <= character'val(to_integer(unsigned(v_wdata(23 downto 16)))); end if;
-              if v_be(3) = '1' then mem(v_addr+3) <= character'val(to_integer(unsigned(v_wdata(31 downto 24)))); end if;
-            else
-              v_rdata(7 downto 0)   := std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));
-              v_rdata(15 downto 8)  := std_logic_vector(to_unsigned(character'pos(mem(v_addr+1)), 8));
-              v_rdata(23 downto 16) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+2)), 8));
-              v_rdata(31 downto 24) := std_logic_vector(to_unsigned(character'pos(mem(v_addr+3)), 8));
-              if VERBOSE then log(ID_BFM, "ISS Load  @ 0x" & to_hstring(v_maddr) & " : 0x" & to_hstring(v_rdata)); end if;
-              iss.complete_load(v_rdata);
-            end if;
+          if v_we = '1' then
+            write_mem(mem, v_maddr, v_wdata, v_be, VERBOSE);
           else
-            if VERBOSE then log(ID_BFM, "ISS Access Out of Bounds @ 0x" & to_hstring(v_maddr)); end if;
-            if v_we = '0' then
-              iss.complete_load((others => '0'));
-            end if;
+            read_mem(mem, v_maddr, v_rdata, VERBOSE);
+            iss.complete_load(v_rdata);
           end if;
         end if;
       end if;
