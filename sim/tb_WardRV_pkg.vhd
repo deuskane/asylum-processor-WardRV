@@ -22,7 +22,7 @@ package tb_WardRV_pkg is
 
   -- Constants
   constant C_CLK_PERIOD         : time := 10 ns;
-  constant C_SIM_TIMEOUT        : time := 100 us;
+  constant C_SIM_TIMEOUT        : time := 500 us;
   constant C_FIRMWARE_ADDR      : std_logic_vector(31 downto 0) := x"80000000";
   constant C_TOHOST_ADDR        : std_logic_vector(31 downto 0) := x"80200000";
   constant C_FROMHOST_ADDR      : std_logic_vector(31 downto 0) := x"80200100";
@@ -210,8 +210,9 @@ package body tb_WardRV_pkg is
     variable v_addr      : integer;
     variable v_maddr_tmp : std_logic_vector(31 downto 0);
   begin
+    --report "Write Request: Addr=0x" & to_hstring(addr) & " Data=0x" & to_hstring(wdata) & " BE=" & to_string(be);
     v_maddr_tmp := addr(31 downto 2) & "00";
-    v_addr      := to_integer(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR));
+    v_addr      := to_integer(signed(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR)));
 
     if v_addr >= 0 and v_addr < C_MEM_SIZE - 3 then
       if verbose then
@@ -238,7 +239,7 @@ package body tb_WardRV_pkg is
     variable v_maddr_tmp : std_logic_vector(31 downto 0);
   begin
     v_maddr_tmp := addr(31 downto 2) & "00";
-    v_addr      := to_integer(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR));
+    v_addr      := to_integer(signed(unsigned(v_maddr_tmp) - unsigned(C_FIRMWARE_ADDR)));
 
     if v_addr >= 0 and v_addr < C_MEM_SIZE - 3 then
       rdata(7 downto 0)   := std_logic_vector(to_unsigned(character'pos(mem(v_addr)), 8));

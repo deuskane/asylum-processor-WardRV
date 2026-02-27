@@ -30,6 +30,7 @@ filesets:
       - hdl/RV_pkg.vhd
       - hdl/WardRV_pkg.vhd
       - hdl/iss/WardRV_iss_pkg.vhd
+      - hdl/iss/WardRV_iss.vhd
       - hdl/debug/WardRV_debug_pkg.vhd
       - hdl/debug/WardRV_debug.vhd
       - hdl/fsm/WardRV_fsm.vhd
@@ -82,13 +83,28 @@ targets:
     << : *default
     description     : default rule to sim (DON'T RUN)
     default_tool    : ghdl
-    toplevel        : tb_WardRV_iss
+    toplevel        : tb_WardRV
     filesets_append :
       - files_sim
     tools :
       ghdl :
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
+
+  #---------------------------------------
+  lint_nxmap:
+  #- --------------------------------------
+    << : *default
+    description  : NanoXplore NG_MEDIUM Board
+    default_tool : nxmap
+    flags :
+      TARGET  : NANOXPLORE_NG_MEDIUM
+    tools:
+      nxmap:
+        fpga         : NG-MEDIUM
+        program      : False
+        logical_name : asylum
+    toplevel     : WardRV_iss
 
   #---------------------------------------
   sim_basic:
