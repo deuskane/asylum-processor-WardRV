@@ -64,7 +64,7 @@ architecture behavioural of WardRV_fsm is
 
   -- Current Instruction
   signal inst     : std_logic_vector(31 downto 0);
-  signal inst_bv  : bit_vector(31 downto 0) := to_bitvector(inst);
+  signal inst_bv  : bit_vector(31 downto 0);
 
 
   -- Decoded Fields
@@ -106,7 +106,8 @@ architecture behavioural of WardRV_fsm is
   end procedure;
 
 begin
-
+  inst_bv := to_bitvector(inst);
+  
   -- ALU Instance
   u_alu : entity work.WardRV_fsm_alu
   port map (
@@ -336,6 +337,15 @@ begin
               state <= S_WRITEBACK;
 
             when OPC_BRANCH => -- BRANCH
+              case funct3 is
+                when F3_BEQ  => log("BEQ x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BNE  => log("BNE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BLT  => log("BLT x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BGE  => log("BGE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BLTU => log("BLTU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BGEU => log("BGEU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when others => null;
+              end case;
               state <= S_BRANCH_DECISION;
 
             when OPC_LOAD => -- LOAD
@@ -359,10 +369,47 @@ begin
               state <= S_MEM_REQ;
 
             when OPC_OP_IMM => -- OP-IMM
+              case funct3 is
+                when F3_ADD  => log("ADDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_SLT  => log("SLTI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_SLTU => log("SLTIU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_XOR  => log("XORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_OR   => log("ORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_AND  => log("ANDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
+                when F3_SLL  => log("SLLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                when F3_SRL  => 
+                  if v_imm_i(30) = '1' then 
+                    log("SRAI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                  else
+                    log("SRLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                  end if;
+                when others => null;
+              end case;
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_OP => -- OP
+              case funct3 is
+                when F3_ADD  => 
+                  if funct7(5) = '1' then 
+                    log("SUB x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                  else
+                    log("ADD x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                  end if;
+                when F3_SLL  => log("SLL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_SLT  => log("SLT x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_SLTU => log("SLTU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_XOR  => log("XOR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_SRL  => 
+                  if funct7(5) = '1' then
+                    log("SRA x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                  else
+                    log("SRL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                  end if;
+                when F3_OR   => log("OR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_AND  => log("AND x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when others  => null;
+              end case;
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
@@ -383,7 +430,7 @@ begin
               end case;
 
             when others => -- NOP
-              state <= S_FETCH_REQ;
+              state <= S_WRITEBACK;
           end case;
 
           -- Update Flags from ALU (Combinatorial inputs valid for this state)

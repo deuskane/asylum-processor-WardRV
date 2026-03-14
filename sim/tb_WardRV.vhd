@@ -67,7 +67,7 @@ begin
   dut : entity asylum.WardRV_fsm
     generic map (
       RESET_ADDR => C_FIRMWARE_ADDR,
-      VERBOSE    => VERBOSE
+      VERBOSE    => true
     )
     port map (
       clk_i      => clk_i,
