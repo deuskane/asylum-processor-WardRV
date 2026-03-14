@@ -100,14 +100,14 @@ architecture behavioural of WardRV_fsm is
   begin
     -- synthesis translate_off
     if VERBOSE then
-      report "[WardRV FSM] " & msg;
+      report "[WardRV FSM] " & to_hstring(pc) & " : " & to_hstring(inst) & " : " & msg;
     end if;
     -- synthesis translate_on
   end procedure;
 
 begin
-  inst_bv := to_bitvector(inst);
-  
+  inst_bv <= to_bitvector(inst);
+
   -- ALU Instance
   u_alu : entity work.WardRV_fsm_alu
   port map (
@@ -120,7 +120,7 @@ begin
   );
 
   -- ALU Control Process (Combinatorial)
-  process(state, pc, regs, inst, next_pc, opcode, rd, funct3, funct7, rs1, rs2)
+  process(all)
     variable v_imm_i : std_logic_vector(31 downto 0);
     variable v_imm_s : std_logic_vector(31 downto 0);
     variable v_imm_b : std_logic_vector(31 downto 0);
@@ -298,8 +298,6 @@ begin
 
         -- 3. Decode & Execute (Behavioral)
         when S_DECODE =>
-          log("PC=" & to_hstring(pc) & " Inst=" & to_hstring(inst));
-
           -- Immediates
           v_imm_i := std_logic_vector(resize(signed(inst(31 downto 20)), 32));
           v_imm_s := std_logic_vector(resize(signed(std_logic_vector'(inst(31 downto 25) & inst(11 downto 7))), 32)); -- Store
@@ -458,17 +456,17 @@ begin
            -- If Taken, we update next_pc with Target (v_alu_res).
            -- Since we are in the same state case, we can check condition and write next_pc.
            if (funct3 = F3_BEQ and alu_zero = '1') or
-              (funct3 = F3_BNE and alu_zero = '0') or
-              (funct3 = F3_BLT and alu_sign = '1') or
-              (funct3 = F3_BGE and alu_sign = '0') or
-              (funct3 = F3_BLTU and alu_sign = '1') or
-              (funct3 = F3_BGEU and alu_sign = '0') then
+                (funct3 = F3_BNE and alu_zero = '0') or
+                (funct3 = F3_BLT and alu_sign = '1') or
+                (funct3 = F3_BGE and alu_sign = '0') or
+                (funct3 = F3_BLTU and alu_sign = '1') or
+                (funct3 = F3_BGEU and alu_sign = '0') then
               -- Taken
               next_pc <= w_alu_res; -- ALU computed Target (PC+ImmB) in this state
               -- Flag logic:
-              log("BRANCH TAKEN");
+              -- log("BRANCH TAKEN");
            else
-              log("BRANCH NOT TAKEN");
+              -- log("BRANCH NOT TAKEN");
               -- If not taken, we just go to WB with existing next_pc.
            end if;
            state <= S_WRITEBACK;
