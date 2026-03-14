@@ -21,11 +21,12 @@ use     ieee.numeric_std.all;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
+use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm is
   generic (
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
-    VERBOSE    : boolean                       := false
+    VERBOSE    : boolean                       := true
   );
   port (
     clk_i      : in  std_logic;
@@ -44,8 +45,14 @@ end entity WardRV_fsm;
 architecture behavioural of WardRV_fsm is
 
   -- State Machine
-  type state_t is (S_FETCH_REQ, S_FETCH_WAIT, S_DECODE, S_MEM_REQ, S_MEM_WAIT, S_WRITEBACK);
-  signal state : state_t;
+  type state_t is (S_FETCH_REQ, 
+                   S_FETCH_WAIT,
+                   S_DECODE, 
+                   S_BRANCH_DECISION, 
+                   S_MEM_REQ, 
+                   S_MEM_WAIT, 
+                   S_WRITEBACK);
+  signal state   : state_t;
 
   -- CPU State
   signal pc      : std_logic_vector(31 downto 0);
@@ -53,25 +60,39 @@ architecture behavioural of WardRV_fsm is
   
   -- Register File (x0 is hardwired to 0 in logic)
   type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
-  signal regs : regfile_t;
+  signal regs     : regfile_t;
 
   -- Current Instruction
-  signal inst : std_logic_vector(31 downto 0);
+  signal inst     : std_logic_vector(31 downto 0);
+  signal inst_bv  : bit_vector(31 downto 0) := to_bitvector(inst);
+
 
   -- Decoded Fields
-  alias opcode : std_logic_vector(6 downto 0) is inst(6 downto 0);
-  alias rd     : std_logic_vector(4 downto 0) is inst(11 downto 7);
-  alias funct3 : std_logic_vector(2 downto 0) is inst(14 downto 12);
-  alias rs1    : std_logic_vector(4 downto 0) is inst(19 downto 15);
-  alias rs2    : std_logic_vector(4 downto 0) is inst(24 downto 20);
-  alias funct7 : std_logic_vector(6 downto 0) is inst(31 downto 25);
+  alias opcode     : bit_vector      (6 downto 0) is inst_bv(6 downto 0);
+  alias rd         : std_logic_vector(4 downto 0) is inst   (11 downto 7);
+  alias funct3     : bit_vector      (2 downto 0) is inst_bv(14 downto 12);
+  alias rs1        : std_logic_vector(4 downto 0) is inst   (19 downto 15);
+  alias rs2        : std_logic_vector(4 downto 0) is inst   (24 downto 20);
+  alias funct7     : bit_vector      (6 downto 0) is inst_bv(31 downto 25);
 
   -- Internal
-  signal alu_res  : std_logic_vector(31 downto 0);
-  signal mem_addr : std_logic_vector(31 downto 0);
-  signal mem_wdata: std_logic_vector(31 downto 0);
-  signal mem_we   : std_logic;
-  signal mem_be   : std_logic_vector(3 downto 0);
+  signal alu_res   : std_logic_vector(31 downto 0);
+  signal mem_addr  : std_logic_vector(31 downto 0);
+  signal mem_wdata : std_logic_vector(31 downto 0);
+  signal mem_we    : std_logic;
+  signal mem_be    : std_logic_vector(3 downto 0);
+
+  -- ALU Status (for Branch Decision)
+  signal alu_zero  : std_logic;
+  signal alu_sign  : std_logic;
+
+  -- ALU Interconnect
+  signal alu_src_a : std_logic_vector(31 downto 0);
+  signal alu_src_b : std_logic_vector(31 downto 0);
+  signal alu_op    : alu_op_t;
+  signal w_alu_res : std_logic_vector(31 downto 0);
+  signal w_alu_zero: std_logic;
+  signal w_alu_sign: std_logic;
 
   procedure log(
     msg   : in string
@@ -86,6 +107,145 @@ architecture behavioural of WardRV_fsm is
 
 begin
 
+  -- ALU Instance
+  u_alu : entity work.WardRV_fsm_alu
+  port map (
+    src_a_i => alu_src_a,
+    src_b_i => alu_src_b,
+    op_i    => alu_op,
+    res_o   => w_alu_res,
+    zero_o  => w_alu_zero,
+    sign_o  => w_alu_sign
+  );
+
+  -- ALU Control Process (Combinatorial)
+  process(state, pc, regs, inst, next_pc, opcode, rd, funct3, funct7, rs1, rs2)
+    variable v_imm_i : std_logic_vector(31 downto 0);
+    variable v_imm_s : std_logic_vector(31 downto 0);
+    variable v_imm_b : std_logic_vector(31 downto 0);
+    variable v_imm_u : std_logic_vector(31 downto 0);
+    variable v_imm_j : std_logic_vector(31 downto 0);
+    variable v_src_a : std_logic_vector(31 downto 0);
+    variable v_src_b : std_logic_vector(31 downto 0);
+  begin
+    -- Default ALU Control
+    alu_src_a <= (others => '0');
+    alu_src_b <= (others => '0');
+    alu_op    <= ALU_ADD;
+
+    -- Immediates Decoding
+    v_imm_i := std_logic_vector(resize(signed(inst(31 downto 20)), 32));
+    v_imm_s := std_logic_vector(resize(signed(std_logic_vector'(inst(31 downto 25) & inst(11 downto 7))), 32));
+    v_imm_b := std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(7) & inst(30 downto 25) & inst(11 downto 8) & '0')), 32));
+    v_imm_u := inst(31 downto 12) & x"000";
+    v_imm_j := std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(19 downto 12) & inst(20) & inst(30 downto 21) & '0')), 32));
+
+    -- Operand Reading
+    v_src_a := regs(to_integer(unsigned(rs1)));
+    v_src_b := regs(to_integer(unsigned(rs2)));
+
+    case state is
+      when S_FETCH_REQ =>
+        alu_src_a <= pc;
+        alu_src_b <= x"00000004";
+        alu_op    <= ALU_ADD;
+
+      when S_DECODE =>
+        case opcode is
+          when OPC_LUI =>
+            alu_src_a <= (others => '0');
+            alu_src_b <= v_imm_u;
+            alu_op    <= ALU_ADD;
+          
+          when OPC_AUIPC =>
+            alu_src_a <= pc;
+            alu_src_b <= v_imm_u;
+            alu_op    <= ALU_ADD;
+
+          when OPC_JAL =>
+            -- Target calculation
+            alu_src_a <= pc;
+            alu_src_b <= v_imm_j;
+            alu_op    <= ALU_ADD;
+
+          when OPC_JALR =>
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_imm_i;
+            alu_op    <= ALU_ADD;
+
+          when OPC_BRANCH =>
+            -- Comparison for flags
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_src_b;
+            alu_op    <= ALU_SUB; 
+
+          when OPC_LOAD =>
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_imm_i;
+            alu_op    <= ALU_ADD;
+
+          when OPC_STORE =>
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_imm_s;
+            alu_op    <= ALU_ADD;
+
+          when OPC_OP_IMM =>
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_imm_i;
+            case funct3 is
+              when F3_ADD  => alu_op <= ALU_ADD;
+              when F3_SLT  => alu_op <= ALU_SLT;
+              when F3_SLTU => alu_op <= ALU_SLTU;
+              when F3_XOR  => alu_op <= ALU_XOR;
+              when F3_OR   => alu_op <= ALU_OR;
+              when F3_AND  => alu_op <= ALU_AND;
+              when F3_SLL  => alu_op <= ALU_SLL;
+              when F3_SRL  => 
+                if v_imm_i(30) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
+              when others => null;
+            end case;
+
+          when OPC_OP =>
+            alu_src_a <= v_src_a;
+            alu_src_b <= v_src_b;
+            case funct3 is
+              when F3_ADD  => 
+                if funct7(5) = '1' then alu_op <= ALU_SUB; else alu_op <= ALU_ADD; end if;
+              when F3_SLL  => alu_op <= ALU_SLL;
+              when F3_SLT  => alu_op <= ALU_SLT;
+              when F3_SLTU => alu_op <= ALU_SLTU;
+              when F3_XOR  => alu_op <= ALU_XOR;
+              when F3_SRL  => 
+                if funct7(5) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
+              when F3_OR   => alu_op <= ALU_OR;
+              when F3_AND  => alu_op <= ALU_AND;
+              when others  => null;
+            end case;
+
+          when OPC_SYSTEM =>
+             -- CSR Pass Through (dummy)
+             alu_src_a <= (others => '0');
+             alu_src_b <= (others => '0');
+             alu_op    <= ALU_PASS_B;
+
+          when others => null;
+        end case;
+
+      when S_BRANCH_DECISION =>
+        -- Calculate Branch Target
+        alu_src_a <= pc;
+        alu_src_b <= v_imm_b;
+        alu_op    <= ALU_ADD;
+      
+      -- For S_MEM_REQ/WAIT/WB, alu inputs don't matter much unless we pipeline,
+      -- but we must ensure we don't latch garbage if we were using alu_res logic.
+      when others =>
+        alu_src_a <= (others => '0');
+        alu_src_b <= (others => '0');
+        alu_op    <= ALU_ADD;
+    end case;
+  end process;
+
   process(clk_i, arst_b_i)
     variable v_imm_i : std_logic_vector(31 downto 0);
     variable v_imm_s : std_logic_vector(31 downto 0);
@@ -94,19 +254,21 @@ begin
     variable v_imm_j : std_logic_vector(31 downto 0);
     variable v_op1   : signed(31 downto 0);
     variable v_op2   : signed(31 downto 0);
-    variable v_res   : std_logic_vector(31 downto 0);
-    variable v_npc   : std_logic_vector(31 downto 0);
+
     variable v_addr  : std_logic_vector(31 downto 0);
     variable v_shamt : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
   begin
     if arst_b_i = '0' then
-      state <= S_FETCH_REQ;
-      pc    <= RESET_ADDR;
-      regs  <= (others => (others => '0'));
+      state            <= S_FETCH_REQ;
+      pc               <= RESET_ADDR;
+      regs             <= (others => (others => '0'));
       inst_ini_o.valid <= '0';
       sbi_ini_o.valid  <= '0';
-      inst <= (others => '0');
+      inst             <= (others => '0');
+      next_pc          <= (others => '0');
+      alu_zero         <= '0';
+      alu_sign         <= '0';
     elsif rising_edge(clk_i) then
       
       -- Default Bus Outputs
@@ -120,7 +282,8 @@ begin
         when S_FETCH_REQ =>
           inst_ini_o.valid <= '1';
           inst_ini_o.addr  <= pc;
-          state <= S_FETCH_WAIT;
+          next_pc          <= w_alu_res; -- PC + 4 from ALU
+          state            <= S_FETCH_WAIT;
 
         -- 2. Fetch Wait
         when S_FETCH_WAIT =>
@@ -143,58 +306,45 @@ begin
           v_imm_u := inst(31 downto 12) & x"000";
           v_imm_j := std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(19 downto 12) & inst(20) & inst(30 downto 21) & '0')), 32));
 
-          -- Operands
+          -- Read Operands for Log/Mem calculations (ALU handled in comb process)
           v_op1 := signed(regs(to_integer(unsigned(rs1))));
           v_op2 := signed(regs(to_integer(unsigned(rs2))));
           
-          -- Defaults
-          v_npc := std_logic_vector(unsigned(pc) + 4);
-          v_res := (others => '0');
           mem_we <= '0';
 
           case opcode is
             when OPC_LUI => -- LUI
               log("LUI  x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_imm_u));
-              v_res := v_imm_u;
+              alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_AUIPC => -- AUIPC
-              log("AUIPC x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(std_logic_vector(unsigned(pc) + unsigned(v_imm_u))));
-              v_res := std_logic_vector(unsigned(pc) + unsigned(v_imm_u));
+              log("AUIPC x" & integer'image(to_integer(unsigned(rd))));
+              alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_JAL => -- JAL
-              log("JAL  x" & integer'image(to_integer(unsigned(rd))) & " target=" & to_hstring(std_logic_vector(unsigned(pc) + unsigned(v_imm_j))));
-              v_res := std_logic_vector(unsigned(pc) + 4);
-              v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_j));
+              log("JAL  x" & integer'image(to_integer(unsigned(rd))));
+              pc <= w_alu_res; -- Target from ALU
+              alu_res  <= next_pc; -- Hack to pass next_pc to WB via alu_res signal
               state <= S_WRITEBACK;
 
             when OPC_JALR => -- JALR
-              log("JALR x" & integer'image(to_integer(unsigned(rd))) & " target=" & to_hstring(std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE")));
-              v_res := std_logic_vector(unsigned(pc) + 4);
-              v_npc := std_logic_vector(unsigned(unsigned(v_op1) + unsigned(v_imm_i)) and x"FFFFFFFE");
+              log("JALR x" & integer'image(to_integer(unsigned(rd))));
+              pc <= w_alu_res; -- Target from ALU
+              alu_res  <= next_pc; 
               state <= S_WRITEBACK;
 
             when OPC_BRANCH => -- BRANCH
-              state <= S_FETCH_REQ; -- No WB
-              case funct3 is
-                when F3_BEQ  => if v_op1 = v_op2 then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when F3_BNE  => if v_op1 /= v_op2 then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when F3_BLT  => if v_op1 < v_op2 then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when F3_BGE  => if v_op1 >= v_op2 then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when F3_BLTU => if unsigned(v_op1) < unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when F3_BGEU => if unsigned(v_op1) >= unsigned(v_op2) then v_npc := std_logic_vector(unsigned(pc) + unsigned(v_imm_b)); end if;
-                when others => null;
-              end case;
-              log("BRANCH target=" & to_hstring(v_npc));
+              state <= S_BRANCH_DECISION;
 
             when OPC_LOAD => -- LOAD
               log("LOAD x" & integer'image(to_integer(unsigned(rd))) & " from " & to_hstring(std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i))));
-              mem_addr <= std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i));
+              mem_addr <= w_alu_res;
               state <= S_MEM_REQ;
 
             when OPC_STORE => -- STORE
-              v_addr := std_logic_vector(unsigned(v_op1) + unsigned(v_imm_s));
+              v_addr := w_alu_res; -- From ALU (Calc in comb process)
               log("STORE from x" & integer'image(to_integer(unsigned(rs2))) & " to " & to_hstring(v_addr));
               mem_addr <= v_addr;
               v_shamt  := to_integer(unsigned(v_addr(1 downto 0))) * 8;
@@ -209,59 +359,26 @@ begin
               state <= S_MEM_REQ;
 
             when OPC_OP_IMM => -- OP-IMM
-              case funct3 is
-                when F3_ADD  => v_res := std_logic_vector(v_op1 + signed(v_imm_i)); -- ADDI
-                when F3_SLT  => if v_op1 < signed(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if; -- SLTI
-                when F3_SLTU => if unsigned(v_op1) < unsigned(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if; -- SLTIU
-                when F3_XOR  => v_res := std_logic_vector(v_op1) xor v_imm_i; -- XORI
-                when F3_OR   => v_res := std_logic_vector(v_op1) or v_imm_i;  -- ORI
-                when F3_AND  => v_res := std_logic_vector(v_op1) and v_imm_i; -- ANDI
-                when F3_SLL  => v_res := std_logic_vector(shift_left(unsigned(v_op1), to_integer(unsigned(v_imm_i(4 downto 0))))); -- SLLI
-                when F3_SRL  => -- SRLI / SRAI
-                  if v_imm_i(30) = '1' then -- SRAI
-                    v_res := std_logic_vector(shift_right(v_op1, to_integer(unsigned(v_imm_i(4 downto 0)))));
-                  else -- SRLI
-                    v_res := std_logic_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_imm_i(4 downto 0)))));
-                  end if;
-                when others => null;
-              end case;
-              log("OP-IMM x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_res));
+              alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_OP => -- OP
-              case funct3 is
-                when F3_ADD  => -- ADD / SUB
-                  if funct7(5) = '1' then v_res := std_logic_vector(v_op1 - v_op2);
-                  else                    v_res := std_logic_vector(v_op1 + v_op2);
-                  end if;
-                when F3_SLL  => v_res := std_logic_vector(shift_left(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
-                when F3_SLT  => if v_op1 < v_op2 then v_res := x"00000001"; else v_res := (others => '0'); end if;
-                when F3_SLTU => if unsigned(v_op1) < unsigned(v_op2) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-                when F3_XOR  => v_res := std_logic_vector(v_op1 xor v_op2);
-                when F3_SRL  => -- SRL / SRA
-                  if funct7(5) = '1' then v_res := std_logic_vector(shift_right(v_op1, to_integer(unsigned(v_op2(4 downto 0)))));
-                  else                    v_res := std_logic_vector(shift_right(unsigned(v_op1), to_integer(unsigned(v_op2(4 downto 0)))));
-                  end if;
-                when F3_OR   => v_res := std_logic_vector(v_op1 or v_op2);
-                when F3_AND  => v_res := std_logic_vector(v_op1 and v_op2);
-                when others  => null;
-              end case;
-              log("OP x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_res));
+              alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
-            when OPC_MISC_MEM => -- FENCE
+            when OPC_MISC_MEM => -- FENCE / FENCE.I
               log("FENCE");
               state <= S_FETCH_REQ;
 
             when OPC_SYSTEM => -- SYSTEM
               case funct3 is
                 when F3_PRIV => -- ECALL / EBREAK
-                  log("SYSTEM PRIV");
+                  log("SYSTEM PRIV (Ignored)");
                   state <= S_FETCH_REQ;
                 when others => -- CSR Instructions (CSRRW, CSRRS, etc.)
-                  -- Simplified: Read 0, Write Ignored
+                  -- Simplified: Read 0, Write Ignored, just for compliance
                   log("SYSTEM CSR x" & integer'image(to_integer(unsigned(rd))));
-                  v_res := (others => '0');
+                  alu_res <= w_alu_res; -- (0)
                   state <= S_WRITEBACK;
               end case;
 
@@ -269,8 +386,45 @@ begin
               state <= S_FETCH_REQ;
           end case;
 
-          alu_res <= v_res;
-          next_pc <= v_npc;
+          -- Update Flags from ALU (Combinatorial inputs valid for this state)
+          alu_zero <= w_alu_zero;
+          alu_sign <= w_alu_sign;
+          
+        -- 3.b Branch Decision
+        when S_BRANCH_DECISION =>
+           -- Check result of Comparison (performed in S_DECODE, latched in alu_zero/alu_sign)
+           
+           -- Default: Next is PC+4 (already in next_pc)
+           state <= S_WRITEBACK; -- Update PC with next_pc
+
+           case funct3 is
+             when F3_BEQ  => if alu_zero = '1' then state <= S_BRANCH_DECISION; end if; -- Taken
+             when F3_BNE  => if alu_zero = '0' then state <= S_BRANCH_DECISION; end if;
+             when F3_BLT  => if alu_sign = '1' then state <= S_BRANCH_DECISION; end if;
+             when F3_BGE  => if alu_sign = '0' then state <= S_BRANCH_DECISION; end if;
+             when F3_BLTU => if alu_sign = '1' then state <= S_BRANCH_DECISION; end if; -- Unsigned comparison via S_DECODE op
+             when F3_BGEU => if alu_sign = '0' then state <= S_BRANCH_DECISION; end if;
+             when others => null;
+           end case;
+           
+           -- Reuse state to indicate "Taken"? 
+           -- If Taken, we update next_pc with Target (v_alu_res).
+           -- Since we are in the same state case, we can check condition and write next_pc.
+           if (funct3 = F3_BEQ and alu_zero = '1') or
+              (funct3 = F3_BNE and alu_zero = '0') or
+              (funct3 = F3_BLT and alu_sign = '1') or
+              (funct3 = F3_BGE and alu_sign = '0') or
+              (funct3 = F3_BLTU and alu_sign = '1') or
+              (funct3 = F3_BGEU and alu_sign = '0') then
+              -- Taken
+              next_pc <= w_alu_res; -- ALU computed Target (PC+ImmB) in this state
+              -- Flag logic:
+              log("BRANCH TAKEN");
+           else
+              log("BRANCH NOT TAKEN");
+              -- If not taken, we just go to WB with existing next_pc.
+           end if;
+           state <= S_WRITEBACK;
 
         -- 4. Memory Access
         when S_MEM_REQ =>

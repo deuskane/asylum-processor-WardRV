@@ -64,7 +64,7 @@ begin
   end process;
 
   -- ISS Instance
-  dut : entity asylum.WardRV_iss
+  dut : entity asylum.WardRV_fsm
     generic map (
       RESET_ADDR => C_FIRMWARE_ADDR,
       VERBOSE    => VERBOSE
