@@ -313,47 +313,47 @@ begin
 
           case opcode is
             when OPC_LUI => -- LUI
-              log("LUI  x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_imm_u));
+              log("LUI  x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_imm_u) & " # " & to_hstring(w_alu_res));
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_AUIPC => -- AUIPC
-              log("AUIPC x" & integer'image(to_integer(unsigned(rd))));
+              log("AUIPC x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(w_alu_res));
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_JAL => -- JAL
-              log("JAL  x" & integer'image(to_integer(unsigned(rd))));
+              log("JAL  x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(next_pc));
               pc <= w_alu_res; -- Target from ALU
               alu_res  <= next_pc; -- Hack to pass next_pc to WB via alu_res signal
               state <= S_WRITEBACK;
 
             when OPC_JALR => -- JALR
-              log("JALR x" & integer'image(to_integer(unsigned(rd))));
+              log("JALR x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(next_pc) & " : " & to_hstring(std_logic_vector(v_op1)));
               pc <= w_alu_res; -- Target from ALU
               alu_res  <= next_pc; 
               state <= S_WRITEBACK;
 
             when OPC_BRANCH => -- BRANCH
               case funct3 is
-                when F3_BEQ  => log("BEQ x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
-                when F3_BNE  => log("BNE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
-                when F3_BLT  => log("BLT x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
-                when F3_BGE  => log("BGE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
-                when F3_BLTU => log("BLTU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
-                when F3_BGEU => log("BGEU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target");
+                when F3_BEQ  => log("BEQ x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BNE  => log("BNE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BLT  => log("BLT x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BGE  => log("BGE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BLTU => log("BLTU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BGEU => log("BGEU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                 when others => null;
               end case;
               state <= S_BRANCH_DECISION;
 
             when OPC_LOAD => -- LOAD
-              log("LOAD x" & integer'image(to_integer(unsigned(rd))) & " from " & to_hstring(std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i))));
+              log("LOAD x" & integer'image(to_integer(unsigned(rd))) & " from " & to_hstring(std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i))) & " # " & to_hstring(std_logic_vector(v_op1)));
               mem_addr <= w_alu_res;
               state <= S_MEM_REQ;
 
             when OPC_STORE => -- STORE
               v_addr := w_alu_res; -- From ALU (Calc in comb process)
-              log("STORE from x" & integer'image(to_integer(unsigned(rs2))) & " to " & to_hstring(v_addr));
+              log("STORE from x" & integer'image(to_integer(unsigned(rs2))) & " to " & to_hstring(v_addr) & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
               mem_addr <= v_addr;
               v_shamt  := to_integer(unsigned(v_addr(1 downto 0))) * 8;
               mem_wdata <= std_logic_vector(shift_left(unsigned(v_op2), v_shamt));
@@ -368,18 +368,18 @@ begin
 
             when OPC_OP_IMM => -- OP-IMM
               case funct3 is
-                when F3_ADD  => log("ADDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_SLT  => log("SLTI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_SLTU => log("SLTIU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_XOR  => log("XORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_OR   => log("ORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_AND  => log("ANDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", imm");
-                when F3_SLL  => log("SLLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                when F3_ADD  => log("ADDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_SLT  => log("SLTI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_SLTU => log("SLTIU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_XOR  => log("XORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_OR   => log("ORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_AND  => log("ANDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_SLL  => log("SLLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
                 when F3_SRL  => 
                   if v_imm_i(30) = '1' then 
-                    log("SRAI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                    log("SRAI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
                   else
-                    log("SRLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt");
+                    log("SRLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
                   end if;
                 when others => null;
               end case;
@@ -390,22 +390,22 @@ begin
               case funct3 is
                 when F3_ADD  => 
                   if funct7(5) = '1' then 
-                    log("SUB x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                    log("SUB x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                   else
-                    log("ADD x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                    log("ADD x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                   end if;
-                when F3_SLL  => log("SLL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
-                when F3_SLT  => log("SLT x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
-                when F3_SLTU => log("SLTU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
-                when F3_XOR  => log("XOR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_SLL  => log("SLL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_SLT  => log("SLT x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_SLTU => log("SLTU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_XOR  => log("XOR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                 when F3_SRL  => 
                   if funct7(5) = '1' then
-                    log("SRA x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                    log("SRA x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                   else
-                    log("SRL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                    log("SRL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                   end if;
-                when F3_OR   => log("OR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
-                when F3_AND  => log("AND x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))));
+                when F3_OR   => log("OR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_AND  => log("AND x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
                 when others  => null;
               end case;
               alu_res <= w_alu_res;
