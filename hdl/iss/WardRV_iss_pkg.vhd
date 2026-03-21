@@ -34,7 +34,7 @@ package WardRV_iss_pkg is
     );
 
     -- Accessors
-    impure function get_pc return std_logic_vector;
+    impure function get_pc               return std_logic_vector;
     impure function get_reg(r : integer) return std_logic_vector;
     
     -- Verbose control
@@ -68,94 +68,6 @@ package WardRV_iss_pkg is
 end package;
 
 package body WardRV_iss_pkg is
-
-  type inst_type_t is (
-    I_ADD,
-    I_ADDI,
-    I_AND,
-    I_ANDI,
-    I_AUIPC,
-    I_BEQ,
-    I_BGE,
-    I_BGEU,
-    I_BLT,
-    I_BLTU,
-    I_BNE,
-    I_JAL,
-    I_JALR,
-    I_LB,
-    I_LBU,
-    I_LH,
-    I_LHU,
-    I_LUI,
-    I_LW,
-    I_OR,
-    I_ORI,
-    I_SB,
-    I_SH,
-    I_SLL,
-    I_SLLI,
-    I_SLT,
-    I_SLTI,
-    I_SLTIU,
-    I_SLTU,
-    I_SRA,
-    I_SRAI,
-    I_SRL,
-    I_SRLI,
-    I_SUB,
-    I_SW,
-    I_XOR,
-    I_XORI,
-    I_UNKNOWN,
-    I_TOTAL
-  );
-
-  type stats_array_t is array (inst_type_t) of natural;
-
-  type inst_names_t is array (inst_type_t) of string(1 to 8);
-
-  constant INST_NAMES : inst_names_t := (
-    I_ADD         => "ADD     ",
-    I_ADDI        => "ADDI    ",
-    I_AND         => "AND     ",
-    I_ANDI        => "ANDI    ",
-    I_AUIPC       => "AUIPC   ",
-    I_BEQ         => "BEQ     ",
-    I_BGE         => "BGE     ",
-    I_BGEU        => "BGEU    ",
-    I_BLT         => "BLT     ",
-    I_BLTU        => "BLTU    ",
-    I_BNE         => "BNE     ",
-    I_JAL         => "JAL     ",
-    I_JALR        => "JALR    ",
-    I_LB          => "LB      ",
-    I_LBU         => "LBU     ",
-    I_LH          => "LH      ",
-    I_LHU         => "LHU     ",
-    I_LUI         => "LUI     ",
-    I_LW          => "LW      ",
-    I_OR          => "OR      ",
-    I_ORI         => "ORI     ",
-    I_SB          => "SB      ",
-    I_SH          => "SH      ",
-    I_SLL         => "SLL     ",
-    I_SLLI        => "SLLI    ",
-    I_SLT         => "SLT     ",
-    I_SLTI        => "SLTI    ",
-    I_SLTIU       => "SLTIU   ",
-    I_SLTU        => "SLTU    ",
-    I_SRA         => "SRA     ",
-    I_SRAI        => "SRAI    ",
-    I_SRL         => "SRL     ",
-    I_SRLI        => "SRLI    ",
-    I_SUB         => "SUB     ",
-    I_SW          => "SW      ",
-    I_XOR         => "XOR     ",
-    I_XORI        => "XORI    ",
-    I_UNKNOWN     => "UNKNOWN ",
-    I_TOTAL       => "Total   "
-  );
 
   type regfile_t is array (0 to 31) of bit_vector(31 downto 0);
 
