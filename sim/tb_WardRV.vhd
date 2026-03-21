@@ -31,7 +31,8 @@ entity tb_WardRV is
     FIRMWARE_FILE  : string  := "firmware.hex";
     SIGNATURE_FILE : string  := "";
     GOLDEN_FILE    : string  := "";
-    VERBOSE        : boolean := false
+    VERBOSE        : boolean := false;
+    MODEL          : string  := "ISS"  -- Options: "ISS", "FSM"
   );
 end tb_WardRV;
 
@@ -63,20 +64,37 @@ begin
     wait;
   end process;
 
-  -- ISS Instance
-  dut : entity asylum.WardRV_fsm
-    generic map (
-      RESET_ADDR => C_FIRMWARE_ADDR,
-      VERBOSE    => true
-    )
-    port map (
-      clk_i      => clk_i,
-      arst_b_i   => arst_b_i,
-      inst_ini_o => inst_ini,
-      inst_tgt_i => inst_tgt,
-      sbi_ini_o  => sbi_ini,
-      sbi_tgt_i  => sbi_tgt
-    );
+  g_ISS : if MODEL = "ISS" generate
+    dut : entity asylum.WardRV_iss
+      generic map (
+        RESET_ADDR => C_FIRMWARE_ADDR,
+        VERBOSE    => true
+      )
+      port map (
+        clk_i      => clk_i,
+        arst_b_i   => arst_b_i,
+        inst_ini_o => inst_ini,
+        inst_tgt_i => inst_tgt,
+        sbi_ini_o  => sbi_ini,
+        sbi_tgt_i  => sbi_tgt
+      );
+  end generate g_ISS;
+
+  g_FSM : if MODEL = "FSM" generate
+    dut : entity asylum.WardRV_fsm
+      generic map (
+        RESET_ADDR => C_FIRMWARE_ADDR,
+        VERBOSE    => true
+      )
+      port map (
+        clk_i      => clk_i,
+        arst_b_i   => arst_b_i,
+        inst_ini_o => inst_ini,
+        inst_tgt_i => inst_tgt,
+        sbi_ini_o  => sbi_ini,
+        sbi_tgt_i  => sbi_tgt
+      );
+  end generate g_FSM;
 
   -- Memory Responder
   p_mem : process
