@@ -14,10 +14,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_bit.all;
 use std.textio.all;
-
 library asylum;
 use asylum.WardRV_pkg.all;
 use asylum.RV_pkg.all;
+use asylum.WardRV_stats_pkg.all;
+
+
 
 package WardRV_iss_pkg is
 
@@ -34,7 +36,7 @@ package WardRV_iss_pkg is
     );
 
     -- Accessors
-    impure function get_pc               return std_logic_vector;
+    impure function get_pc return std_logic_vector;
     impure function get_reg(r : integer) return std_logic_vector;
     
     -- Verbose control
@@ -88,7 +90,7 @@ package body WardRV_iss_pkg is
     variable pending_load_byte_off : integer := 0;
 
     -- Statistics counters
-    variable stats_v : stats_array_t;
+    variable stats_inst : WardRV_stats;
 
     procedure reset(
       start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
@@ -96,7 +98,7 @@ package body WardRV_iss_pkg is
     begin
       pc_r            := to_bitvector(start_pc);
       regs_r          := (others => (others => '0'));
-      stats_v         := (others => 0);
+      stats_inst.reset;
       pending_npc     := (others => '0');
       pending_rd      := (others => '0');
       pending_res     := (others => '0');
@@ -297,28 +299,23 @@ package body WardRV_iss_pkg is
               -- ADDI
               v_inst_type := I_ADDI;
               v_res := bit_vector(v_op1 + signed(v_imm_i));
-              stats_v(I_ADDI) := stats_v(I_ADDI) + 1;
             when F3_SLL =>
               -- SLLI
               v_inst_type := I_SLLI;
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
               v_res := bit_vector(shift_left(unsigned(v_op1), v_shamt));
-              stats_v(I_SLLI) := stats_v(I_SLLI) + 1;
             when F3_SLT =>
               -- SLTI
               v_inst_type := I_SLTI;
               if v_op1 < signed(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats_v(I_SLTI) := stats_v(I_SLTI) + 1;
             when F3_SLTU =>
               -- SLTIU
               v_inst_type := I_SLTIU;
               if unsigned(v_op1) < unsigned(v_imm_i) then v_res := x"00000001"; else v_res := (others => '0'); end if;
-              stats_v(I_SLTIU) := stats_v(I_SLTIU) + 1;
             when F3_XOR =>
               -- XORI
               v_inst_type := I_XORI;
               v_res := bit_vector(v_op1 xor signed(v_imm_i));
-              stats_v(I_XORI) := stats_v(I_XORI) + 1;
             when F3_SRL_SRA =>
               -- SRLI / SRAI
               v_shamt := to_integer(unsigned(v_imm_i(4 downto 0)));
@@ -326,23 +323,19 @@ package body WardRV_iss_pkg is
                 -- SRAI (Arithmetic Right Shift)
                 v_inst_type := I_SRAI;
                 v_res := bit_vector(shift_right(v_op1, v_shamt));
-                stats_v(I_SRAI) := stats_v(I_SRAI) + 1;
               else
                 -- SRLI (Logical Right Shift)
                 v_inst_type := I_SRLI;
                 v_res := bit_vector(shift_right(unsigned(v_op1), v_shamt));
-                stats_v(I_SRLI) := stats_v(I_SRLI) + 1;
               end if;
             when F3_OR =>
               -- ORI
               v_inst_type := I_ORI;
               v_res := bit_vector(v_op1 or signed(v_imm_i));
-              stats_v(I_ORI) := stats_v(I_ORI) + 1;
             when F3_AND =>
               -- ANDI
               v_inst_type := I_ANDI;
               v_res := bit_vector(v_op1 and signed(v_imm_i));
-              stats_v(I_ANDI) := stats_v(I_ANDI) + 1;
             when others => null;
           end case;
           pending_rd  := rd;
@@ -429,8 +422,7 @@ package body WardRV_iss_pkg is
       end case;
       pending_npc := v_npc;
 
-      stats_v(v_inst_type) := stats_v(v_inst_type) + 1;
-      stats_v(I_TOTAL)     := stats_v(I_TOTAL) + 1;
+      stats_inst.increment(v_inst_type);
 
       -- synthesis translate_off
 
@@ -518,39 +510,8 @@ package body WardRV_iss_pkg is
       end procedure;
 
     procedure stats(filename : in string := "") is
-      variable v_ratio : real;
-      file f_out       : text;
-      variable l       : line;
-      variable v_open  : boolean := false;
     begin
-      if filename /= ""
-      then
-        file_open(f_out, filename, write_mode);
-        v_open := true;
-      end if;
-
-      report "--- WardRV ISS Statistics ---";
-      for i in inst_type_t
-      loop
-        if stats_v(I_TOTAL) > 0
-        then
-          v_ratio := (real(stats_v(i)) * 100.0) / real(stats_v(I_TOTAL));
-        else
-          v_ratio := 0.0;
-        end if;
-        report INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)";
-        if v_open
-        then
-          write(l, INST_NAMES(i) & " : " & integer'image(stats_v(i)) & " (" & to_string(v_ratio, 2) & " %)");
-          writeline(f_out, l);
-        end if;
-      end loop;
-      report "-----------------------------";
-
-      if v_open
-      then
-        file_close(f_out);
-      end if;
+      stats_inst.dump(filename);
     end procedure;
 
   end protected body;
