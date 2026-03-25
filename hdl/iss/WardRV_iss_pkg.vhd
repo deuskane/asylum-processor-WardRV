@@ -84,6 +84,7 @@ package body WardRV_iss_pkg is
     variable pending_npc           : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
     variable pending_rd            : bit_vector(4 downto 0);
     variable pending_res           : bit_vector(31 downto 0);
+    variable pending_report        : inst_t;
     
     -- State for pending load
     variable pending_load_funct3   : bit_vector(2 downto 0);
@@ -154,10 +155,10 @@ package body WardRV_iss_pkg is
       variable v_shamt        : integer;
       variable v_inst_type    : inst_type_t;
     begin
-      if (debug_r) 
-      then
-         report "[ISS] Execute Instruction: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " Inst=0x" & to_hstring(inst);
-      end if; 
+      --if (debug_r) 
+      --then
+      --   report "[ISS] Execute Instruction: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " Inst=0x" & to_hstring(inst);
+      --end if; 
       -- Initialize outputs
       mem_req    := false;
       mem_we     := '0';
@@ -424,54 +425,46 @@ package body WardRV_iss_pkg is
 
       stats_inst.increment(v_inst_type);
 
-      -- synthesis translate_off
+      -- Prepare report structure
+      pending_report.pc        := v_pc;
+      pending_report.npc       := v_npc;
+      pending_report.inst      := v_inst;
+      pending_report.inst_type := v_inst_type;
+      pending_report.rd        := to_integer(unsigned(rd));
+      pending_report.rs1       := to_integer(unsigned(rs1));
+      pending_report.rs2       := to_integer(unsigned(rs2));
+      pending_report.imm_u     := v_imm_u;
+      pending_report.imm_j     := v_imm_j;
+      pending_report.imm_i     := v_imm_i;
+      pending_report.imm_b     := v_imm_b;
+      pending_report.imm_s     := v_imm_s;
+      pending_report.op1       := bit_vector(v_op1);
+      pending_report.op2       := bit_vector(v_op2);
+      pending_report.res       := v_res;
+      pending_report.mem_addr  := v_addr;
 
-      if verbose_r then
-        
-        case (opcode) is
-          when OPC_LUI | OPC_AUIPC =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_u) & " = 0x" & to_hstring(v_res);
-          when OPC_JAL =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", 0x" & to_hstring(v_imm_j) & " (Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
-          when OPC_JALR =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (R" & integer'image(to_integer(unsigned(rs1))) & "=0x" & to_hstring(bit_vector(v_op1)) & ", Link=0x" & to_hstring(v_res) & ", NPC=0x" & to_hstring(v_npc) & ")";
-          when OPC_BRANCH =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & ", 0x" & to_hstring(v_imm_b) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") NPC=0x" & to_hstring(v_npc);
-          when OPC_LOAD =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", " & integer'image(to_integer(signed(v_imm_i))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ")";
-          when OPC_STORE =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rs2))) & ", " & integer'image(to_integer(signed(v_imm_s))) & "(R" & integer'image(to_integer(unsigned(rs1))) & ") (Addr=0x" & to_hstring(v_addr) & ", Data=0x" & to_hstring(bit_vector(v_op2)) & ")";
-          when OPC_OP_IMM =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", " & integer'image(to_integer(signed(v_imm_i))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(v_imm_i) & ") = 0x" & to_hstring(v_res);
-          when OPC_OP =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type) & " R" & integer'image(to_integer(unsigned(rd))) & ", R" & integer'image(to_integer(unsigned(rs1))) & ", R" & integer'image(to_integer(unsigned(rs2))) & " (0x" & to_hstring(bit_vector(v_op1)) & ", 0x" & to_hstring(bit_vector(v_op2)) & ") = 0x" & to_hstring(v_res);
-          when OPC_MISC_MEM =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type);
-          when OPC_SYSTEM =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type);
-          when others =>
-            report "[ISS] PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " : " & INST_NAMES(v_inst_type);
-        end case;
-      end if;
-      -- synthesis translate_on
-
-
-      if (debug_r) 
-      then
-      report "[ISS] Execute Complete: PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " Pending Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(pending_res);
-      end if;
+      --if (debug_r) 
+      --then
+      --report "[ISS] Execute Complete: PC=0x" & to_hstring(v_pc) & " NPC=0x" & to_hstring(v_npc) & " Pending Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(pending_res);
+      --end if;
     end procedure;
 
     procedure complete is
     begin
-      if (debug_r) 
-      then
-        report "[ISS] Completing Instruction: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " -> NPC=0x" & to_hstring(to_stdlogicvector(pending_npc)) & " Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(pending_res);
-      end if;
+      --if (debug_r) 
+      --then
+      --  report "[ISS] Completing Instruction: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " -> NPC=0x" & to_hstring(to_stdlogicvector(pending_npc)) & " Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(pending_res);
+      --end if;
       if unsigned(pending_rd) /= 0 then
         regs_r(to_integer(unsigned(pending_rd))) := pending_res;
       end if;
       pc_r := pending_npc;
+      
+      if verbose_r then
+         pending_report.res := pending_res; -- Update result (important for loads)
+         pending_report.npc := pending_npc; -- Update NPC (if changed by branch taken/not taken calculation)
+         print_inst(pending_report);
+      end if;
     end procedure;
 
 
@@ -482,10 +475,10 @@ package body WardRV_iss_pkg is
       variable v_rdata : bit_vector(31 downto 0);
       variable v_res   : bit_vector(31 downto 0);
     begin
-      if (debug_r) 
-      then
-        report "[ISS] Completing Load: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " -> NPC=0x" & to_hstring(to_stdlogicvector(pending_npc)) & " Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(mem_rdata) & " (Pending funct3=" & to_hstring(pending_load_funct3) & ", byte_off=" & integer'image(pending_load_byte_off) & ")";
-      end if;
+      --if (debug_r) 
+      --then
+      --  report "[ISS] Completing Load: PC=0x" & to_hstring(to_stdlogicvector(pc_r)) & " -> NPC=0x" & to_hstring(to_stdlogicvector(pending_npc)) & " Write: R" & integer'image(to_integer(unsigned(pending_rd))) & " = 0x" & to_hstring(mem_rdata) & " (Pending funct3=" & to_hstring(pending_load_funct3) & ", byte_off=" & integer'image(pending_load_byte_off) & ")";
+      --end if;
       v_shamt := pending_load_byte_off * 8;
       v_rdata := bit_vector(shift_right(unsigned(to_bitvector(mem_rdata)), v_shamt));
       
@@ -499,10 +492,10 @@ package body WardRV_iss_pkg is
       end case;
 
       -- synthesis translate_off
-      if verbose_r
-      then
-        report "[ISS] Complete Load: R" & integer'image(to_integer(unsigned(pending_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off) & " -> final_res=0x" & to_hstring(v_res);
-      end if;
+      --if verbose_r
+      --then
+      --  report "[ISS] Complete Load: R" & integer'image(to_integer(unsigned(pending_rd))) & " data=0x" & to_hstring(mem_rdata) & " offset=" & integer'image(pending_load_byte_off) & " -> final_res=0x" & to_hstring(v_res);
+      --end if;
       -- synthesis translate_on
 
       pending_res := v_res;
