@@ -442,6 +442,7 @@ package body WardRV_iss_pkg is
       pending_report.op2       := bit_vector(v_op2);
       pending_report.res       := v_res;
       pending_report.mem_addr  := v_addr;
+      pending_report.mem_be    := to_bitvector(mem_be);
 
       --if (debug_r) 
       --then
@@ -498,7 +499,8 @@ package body WardRV_iss_pkg is
       --end if;
       -- synthesis translate_on
 
-      pending_res := v_res;
+      pending_res              := v_res;
+      pending_report.mem_rdata := v_res;
 
       end procedure;
 

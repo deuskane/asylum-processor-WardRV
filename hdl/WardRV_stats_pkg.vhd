@@ -81,6 +81,8 @@ package WardRV_stats_pkg is
     op2         : bit_vector(31 downto 0);
     res         : bit_vector(31 downto 0);
     mem_addr    : bit_vector(31 downto 0);
+    mem_rdata   : bit_vector(31 downto 0);
+    mem_be      : bit_vector(3 downto 0);
   end record;
 
   procedure print_inst(r : in inst_t);
@@ -157,9 +159,9 @@ package body WardRV_stats_pkg is
          when I_BEQ | I_BNE | I_BLT | I_BGE | I_BLTU | I_BGEU =>
             report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & ", 0x" & to_hstring(r.imm_b) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") NPC=0x" & to_hstring(r.npc);
          when I_LB | I_LH | I_LW | I_LBU | I_LHU =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", " & integer'image(to_integer(signed(r.imm_i))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ")";
+            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", " & integer'image(to_integer(signed(r.imm_i))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Rdata=0x" & to_hstring(r.mem_rdata) & ")";
          when I_SB | I_SH | I_SW =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs2) & ", " & integer'image(to_integer(signed(r.imm_s))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Data=0x" & to_hstring(r.op2) & ")";
+            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs2) & ", " & integer'image(to_integer(signed(r.imm_s))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Wdata=0x" & to_hstring(r.op2) & ", BE=0x" & to_hstring(r.mem_be) & ")";
          when I_ADDI | I_SLLI | I_SLTI | I_SLTIU | I_XORI | I_SRLI | I_SRAI | I_ORI | I_ANDI =>
              report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.imm_i) & ") = 0x" & to_hstring(r.res);
          when I_ADD | I_SUB | I_SLL | I_SLT | I_SLTU | I_XOR | I_SRL | I_SRA | I_OR | I_AND =>
