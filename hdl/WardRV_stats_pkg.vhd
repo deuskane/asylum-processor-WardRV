@@ -64,6 +64,7 @@ package WardRV_stats_pkg is
 
   function get_inst_name(inst : in inst_type_t) return string;
 
+ 
   type inst_t is record
     inst        : bit_vector(31 downto 0);
     pc          : bit_vector(31 downto 0);
@@ -85,7 +86,7 @@ package WardRV_stats_pkg is
     mem_be      : bit_vector(3 downto 0);
   end record;
 
-  procedure print_inst(r : in inst_t);
+  procedure print_inst(r : in inst_t; filename : in string := "");
 
   type WardRV_stats is protected
     procedure reset;
@@ -147,28 +148,43 @@ package body WardRV_stats_pkg is
       return INST_NAMES(inst);
     end function;
     
-    procedure print_inst(r : in inst_t) is
+    procedure print_inst(r : in inst_t; filename : in string := "") is
+      variable l : line;
+      file f_out : text;
+      variable v_open : boolean := false;
     begin
+       if filename /= "" then
+         file_open(f_out, filename, append_mode);
+         v_open := true;
+       end if;
+
        case r.inst_type is
          when I_LUI | I_AUIPC =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", 0x" & to_hstring(r.imm_u) & " = 0x" & to_hstring(r.res);
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", 0x" & to_hstring(r.imm_u) & " = 0x" & to_hstring(r.res));
          when I_JAL =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", 0x" & to_hstring(r.imm_j) & " (Link=0x" & to_hstring(r.res) & ", NPC=0x" & to_hstring(r.npc) & ")";
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", 0x" & to_hstring(r.imm_j) & " (Link=0x" & to_hstring(r.res) & ", NPC=0x" & to_hstring(r.npc) & ")");
          when I_JALR =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (R" & integer'image(r.rs1) & "=0x" & to_hstring(r.op1) & ", Link=0x" & to_hstring(r.res) & ", NPC=0x" & to_hstring(r.npc) & ")";
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (R" & integer'image(r.rs1) & "=0x" & to_hstring(r.op1) & ", Link=0x" & to_hstring(r.res) & ", NPC=0x" & to_hstring(r.npc) & ")");
          when I_BEQ | I_BNE | I_BLT | I_BGE | I_BLTU | I_BGEU =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & ", 0x" & to_hstring(r.imm_b) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") NPC=0x" & to_hstring(r.npc);
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & ", 0x" & to_hstring(r.imm_b) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") NPC=0x" & to_hstring(r.npc));
          when I_LB | I_LH | I_LW | I_LBU | I_LHU =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", " & integer'image(to_integer(signed(r.imm_i))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Rdata=0x" & to_hstring(r.mem_rdata) & ")";
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", " & integer'image(to_integer(signed(r.imm_i))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Rdata=0x" & to_hstring(r.mem_rdata) & ")");
          when I_SB | I_SH | I_SW =>
-            report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs2) & ", " & integer'image(to_integer(signed(r.imm_s))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Wdata=0x" & to_hstring(r.op2) & ", BE=0x" & to_hstring(r.mem_be) & ")";
+            write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rs2) & ", " & integer'image(to_integer(signed(r.imm_s))) & "(R" & integer'image(r.rs1) & ") (Addr=0x" & to_hstring(r.mem_addr) & ", Wdata=0x" & to_hstring(r.op2) & ", BE=0x" & to_hstring(r.mem_be) & ")");
          when I_ADDI | I_SLLI | I_SLTI | I_SLTIU | I_XORI | I_SRLI | I_SRAI | I_ORI | I_ANDI =>
-             report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.imm_i) & ") = 0x" & to_hstring(r.res);
+             write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.imm_i) & ") = 0x" & to_hstring(r.res));
          when I_ADD | I_SUB | I_SLL | I_SLT | I_SLTU | I_XOR | I_SRL | I_SRA | I_OR | I_AND =>
-             report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") = 0x" & to_hstring(r.res);
+             write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") = 0x" & to_hstring(r.res));
          when others =>
-             report "[ISS] PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type);
+             write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type));
        end case;
+       
+       if v_open then
+         writeline(f_out, l);
+         file_close(f_out);
+       else
+         writeline(output, l);
+       end if;
     end procedure;
 
     type WardRV_stats is protected body

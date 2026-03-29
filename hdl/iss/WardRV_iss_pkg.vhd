@@ -464,7 +464,7 @@ package body WardRV_iss_pkg is
       if verbose_r then
          pending_report.res := pending_res; -- Update result (important for loads)
          pending_report.npc := pending_npc; -- Update NPC (if changed by branch taken/not taken calculation)
-         print_inst(pending_report);
+         print_inst(pending_report,"exec_iss.log");
       end if;
     end procedure;
 
