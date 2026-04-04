@@ -21,6 +21,7 @@ use     ieee.numeric_std.all;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
+use     asylum.WardRV_stats_pkg.all;
 use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm is
@@ -94,17 +95,9 @@ architecture behavioural of WardRV_fsm is
   signal w_alu_zero: std_logic;
   signal w_alu_sign: std_logic;
 
-  procedure log(
-    msg   : in string
-  ) is
-  begin
-    -- synthesis translate_off
-    if VERBOSE then
-      report "[WardRV FSM] " & to_hstring(pc) & " : " & to_hstring(inst) & " : " & msg;
-    end if;
-    -- synthesis translate_on
-  end procedure;
-
+  -- Report structure for logging
+  signal pending_report : inst_t;
+ 
 begin
   inst_bv <= to_bitvector(inst);
 
@@ -259,6 +252,7 @@ begin
     variable v_addr  : std_logic_vector(31 downto 0);
     variable v_shamt : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
+    variable v_report : inst_t;
   begin
     if arst_b_i = '0' then
       state            <= S_FETCH_REQ;
@@ -270,6 +264,7 @@ begin
       next_pc          <= (others => '0');
       alu_zero         <= '0';
       alu_sign         <= '0';
+      pending_report   <= INST_UNKNOWN;
     elsif rising_edge(clk_i) then
       
       -- Default Bus Outputs
@@ -292,6 +287,8 @@ begin
           inst_ini_o.addr  <= pc;
           if inst_tgt_i.ready = '1' then
             inst <= inst_tgt_i.inst;
+            pending_report.pc   <= to_bitvector(pc);
+            pending_report.inst <= to_bitvector(inst_tgt_i.inst);
             state <= S_DECODE;
             inst_ini_o.valid <= '0';
           end if;
@@ -309,78 +306,104 @@ begin
           v_op1 := signed(regs(to_integer(unsigned(rs1))));
           v_op2 := signed(regs(to_integer(unsigned(rs2))));
           
+          -- Common report fields
+          pending_report.rd    <= to_integer(unsigned(rd));
+          pending_report.rs1   <= to_integer(unsigned(rs1));
+          pending_report.rs2   <= to_integer(unsigned(rs2));
+          pending_report.imm_i <= to_bitvector(v_imm_i);
+          pending_report.imm_s <= to_bitvector(v_imm_s);
+          pending_report.imm_b <= to_bitvector(v_imm_b);
+          pending_report.imm_u <= to_bitvector(v_imm_u);
+          pending_report.imm_j <= to_bitvector(v_imm_j);
+          pending_report.op1   <= to_bitvector(std_logic_vector(v_op1));
+          pending_report.op2   <= to_bitvector(std_logic_vector(v_op2));
+
           mem_we <= '0';
 
           case opcode is
             when OPC_LUI => -- LUI
-              log("LUI  x" & integer'image(to_integer(unsigned(rd))) & " = " & to_hstring(v_imm_u) & " # " & to_hstring(w_alu_res));
+              pending_report.inst_type <= I_LUI;
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_AUIPC => -- AUIPC
-              log("AUIPC x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(w_alu_res));
+              pending_report.inst_type <= I_AUIPC;
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_JAL => -- JAL
-              log("JAL  x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(next_pc));
-              pc <= w_alu_res; -- Target from ALU
-              alu_res  <= next_pc; -- Hack to pass next_pc to WB via alu_res signal
-              state <= S_WRITEBACK;
+              pending_report.inst_type <= I_JAL;
+              alu_res <= std_logic_vector(unsigned(pc) + 4); -- Link address
+              next_pc <= w_alu_res; -- Target (PC+ImmJ)
+              state <= S_BRANCH_DECISION;
 
             when OPC_JALR => -- JALR
-              log("JALR x" & integer'image(to_integer(unsigned(rd))) & " # " & to_hstring(next_pc) & " : " & to_hstring(std_logic_vector(v_op1)));
-              pc <= w_alu_res; -- Target from ALU
-              alu_res  <= next_pc; 
-              state <= S_WRITEBACK;
+              pending_report.inst_type <= I_JALR;
+              alu_res <= std_logic_vector(unsigned(pc) + 4); -- Link address
+              next_pc <= w_alu_res; -- Target (Rs1+ImmI)
+              state <= S_BRANCH_DECISION;
+
 
             when OPC_BRANCH => -- BRANCH
               case funct3 is
-                when F3_BEQ  => log("BEQ x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_BNE  => log("BNE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_BLT  => log("BLT x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_BGE  => log("BGE x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_BLTU => log("BLTU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_BGEU => log("BGEU x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & ", target" & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                when F3_BEQ  => pending_report.inst_type <= I_BEQ;
+                when F3_BNE  => pending_report.inst_type <= I_BNE;
+                when F3_BLT  => pending_report.inst_type <= I_BLT;
+                when F3_BGE  => pending_report.inst_type <= I_BGE;
+                when F3_BLTU => pending_report.inst_type <= I_BLTU;
+                when F3_BGEU => pending_report.inst_type <= I_BGEU;
                 when others => null;
               end case;
               state <= S_BRANCH_DECISION;
 
             when OPC_LOAD => -- LOAD
-              log("LOAD x" & integer'image(to_integer(unsigned(rd))) & " from " & to_hstring(std_logic_vector(unsigned(v_op1) + unsigned(v_imm_i))) & " # " & to_hstring(std_logic_vector(v_op1)));
+              case funct3 is
+                when F3_LB  => pending_report.inst_type <= I_LB;
+                when F3_LH  => pending_report.inst_type <= I_LH;
+                when F3_LW  => pending_report.inst_type <= I_LW;
+                when F3_LBU => pending_report.inst_type <= I_LBU;
+                when F3_LHU => pending_report.inst_type <= I_LHU;
+                when others => null;
+              end case;
               mem_addr <= w_alu_res;
+              pending_report.mem_addr <= to_bitvector(w_alu_res);
               state <= S_MEM_REQ;
 
             when OPC_STORE => -- STORE
               v_addr := w_alu_res; -- From ALU (Calc in comb process)
-              log("STORE from x" & integer'image(to_integer(unsigned(rs2))) & " to " & to_hstring(v_addr) & " # " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
               mem_addr <= v_addr;
+              pending_report.mem_addr <= to_bitvector(v_addr);
               v_shamt  := to_integer(unsigned(v_addr(1 downto 0))) * 8;
               mem_wdata <= std_logic_vector(shift_left(unsigned(v_op2), v_shamt));
               mem_we <= '1';
               case funct3 is
-                when F3_SB  => mem_be <= std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
-                when F3_SH  => mem_be <= std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
-                when F3_SW  => mem_be <= "1111"; -- Word
-                when others => mem_be <= "0000";
+                when F3_SB  => 
+                  pending_report.inst_type <= I_SB;
+                  mem_be <= std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
+                when F3_SH  => 
+                  pending_report.inst_type <= I_SH;
+                  mem_be <= std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
+                when F3_SW  => 
+                  pending_report.inst_type <= I_SW;
+                  mem_be <= "1111";
+                when others => 
+                  mem_be <= "0000";
               end case;
+              pending_report.mem_be <= to_bitvector(mem_be);
               state <= S_MEM_REQ;
 
             when OPC_OP_IMM => -- OP-IMM
               case funct3 is
-                when F3_ADD  => log("ADDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_SLT  => log("SLTI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_SLTU => log("SLTIU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_XOR  => log("XORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_OR   => log("ORI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_AND  => log("ANDI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", " & to_hstring(v_imm_i) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                when F3_SLL  => log("SLLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
+                when F3_ADD  => pending_report.inst_type <= I_ADDI;
+                when F3_SLT  => pending_report.inst_type <= I_SLTI;
+                when F3_SLTU => pending_report.inst_type <= I_SLTIU;
+                when F3_XOR  => pending_report.inst_type <= I_XORI;
+                when F3_OR   => pending_report.inst_type <= I_ORI;
+                when F3_AND  => pending_report.inst_type <= I_ANDI;
+                when F3_SLL  => pending_report.inst_type <= I_SLLI;
                 when F3_SRL  => 
-                  if v_imm_i(30) = '1' then 
-                    log("SRAI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                  else
-                    log("SRLI x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", shamt" & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)));
-                  end if;
+                  if v_imm_i(30) = '1' then pending_report.inst_type <= I_SRAI;
+                  else                     pending_report.inst_type <= I_SRLI; end if;
                 when others => null;
               end case;
               alu_res <= w_alu_res;
@@ -389,45 +412,41 @@ begin
             when OPC_OP => -- OP
               case funct3 is
                 when F3_ADD  => 
-                  if funct7(5) = '1' then 
-                    log("SUB x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                  else
-                    log("ADD x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                  end if;
-                when F3_SLL  => log("SLL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_SLT  => log("SLT x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_SLTU => log("SLTU x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_XOR  => log("XOR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                  if funct7(5) = '1' then pending_report.inst_type <= I_SUB;
+                  else                     pending_report.inst_type <= I_ADD; end if;
+                when F3_SLL  => pending_report.inst_type <= I_SLL;
+                when F3_SLT  => pending_report.inst_type <= I_SLT;
+                when F3_SLTU => pending_report.inst_type <= I_SLTU;
+                when F3_XOR  => pending_report.inst_type <= I_XOR;
                 when F3_SRL  => 
-                  if funct7(5) = '1' then
-                    log("SRA x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                  else
-                    log("SRL x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                  end if;
-                when F3_OR   => log("OR x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
-                when F3_AND  => log("AND x" & integer'image(to_integer(unsigned(rd))) & ", x" & integer'image(to_integer(unsigned(rs1))) & ", x" & integer'image(to_integer(unsigned(rs2))) & " # " & to_hstring(w_alu_res) & " : " & to_hstring(std_logic_vector(v_op1)) & " " & to_hstring(std_logic_vector(v_op2)));
+                  if funct7(5) = '1' then pending_report.inst_type <= I_SRA;
+                  else                     pending_report.inst_type <= I_SRL; end if;
+                when F3_OR   => pending_report.inst_type <= I_OR;
+                when F3_AND  => pending_report.inst_type <= I_AND;
                 when others  => null;
               end case;
               alu_res <= w_alu_res;
               state <= S_WRITEBACK;
 
             when OPC_MISC_MEM => -- FENCE / FENCE.I
-              log("FENCE");
-              state <= S_FETCH_REQ;
+              pending_report.inst_type <= I_UNKNOWN;
+              state <= S_WRITEBACK; next_pc <= std_logic_vector(unsigned(pc) + 4);
 
             when OPC_SYSTEM => -- SYSTEM
               case funct3 is
                 when F3_PRIV => -- ECALL / EBREAK
-                  log("SYSTEM PRIV (Ignored)");
-                  state <= S_FETCH_REQ;
+                  pending_report.inst_type <= I_UNKNOWN;
+                  state <= S_WRITEBACK; next_pc <= std_logic_vector(unsigned(pc) + 4);
                 when others => -- CSR Instructions (CSRRW, CSRRS, etc.)
                   -- Simplified: Read 0, Write Ignored, just for compliance
-                  log("SYSTEM CSR x" & integer'image(to_integer(unsigned(rd))));
+                  pending_report.inst_type <= I_UNKNOWN;
                   alu_res <= w_alu_res; -- (0)
                   state <= S_WRITEBACK;
               end case;
 
             when others => -- NOP
+              pending_report.inst_type <= I_UNKNOWN;
+              next_pc <= std_logic_vector(unsigned(pc) + 4);
               state <= S_WRITEBACK;
           end case;
 
@@ -437,37 +456,26 @@ begin
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
-           -- Check result of Comparison (performed in S_DECODE, latched in alu_zero/alu_sign)
-           
-           -- Default: Next is PC+4 (already in next_pc)
-           state <= S_WRITEBACK; -- Update PC with next_pc
-
-           case funct3 is
-             when F3_BEQ  => if alu_zero = '1' then state <= S_BRANCH_DECISION; end if; -- Taken
-             when F3_BNE  => if alu_zero = '0' then state <= S_BRANCH_DECISION; end if;
-             when F3_BLT  => if alu_sign = '1' then state <= S_BRANCH_DECISION; end if;
-             when F3_BGE  => if alu_sign = '0' then state <= S_BRANCH_DECISION; end if;
-             when F3_BLTU => if alu_sign = '1' then state <= S_BRANCH_DECISION; end if; -- Unsigned comparison via S_DECODE op
-             when F3_BGEU => if alu_sign = '0' then state <= S_BRANCH_DECISION; end if;
-             when others => null;
-           end case;
-           
-           -- Reuse state to indicate "Taken"? 
-           -- If Taken, we update next_pc with Target (v_alu_res).
-           -- Since we are in the same state case, we can check condition and write next_pc.
+           if  
+                (opcode = OPC_JAL) or 
+                (opcode = OPC_JALR)
+           then
+              -- Unconditional Jumps
+              null; -- next_pc already set in S_DECODE
+           elsif opcode = OPC_BRANCH then
            if (funct3 = F3_BEQ and alu_zero = '1') or
                 (funct3 = F3_BNE and alu_zero = '0') or
                 (funct3 = F3_BLT and alu_sign = '1') or
                 (funct3 = F3_BGE and alu_sign = '0') or
                 (funct3 = F3_BLTU and alu_sign = '1') or
-                (funct3 = F3_BGEU and alu_sign = '0') then
-              -- Taken
-              next_pc <= w_alu_res; -- ALU computed Target (PC+ImmB) in this state
-              -- Flag logic:
-              -- log("BRANCH TAKEN");
+                (funct3 = F3_BGEU and alu_sign = '0') 
+                then
+              next_pc <= w_alu_res;
            else
-              -- log("BRANCH NOT TAKEN");
-              -- If not taken, we just go to WB with existing next_pc.
+              next_pc <= std_logic_vector(unsigned(pc) + 4);
+           end if;
+           else
+             next_pc <= std_logic_vector(unsigned(pc) + 4);
            end if;
            state <= S_WRITEBACK;
 
@@ -490,8 +498,10 @@ begin
                  when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
                  when others => alu_res <= sbi_tgt_i.rdata;
                end case;
+               pending_report.mem_rdata <= to_bitvector(alu_res);
+               next_pc <= std_logic_vector(unsigned(pc) + 4);
              end if;
-             if mem_we = '1' then state <= S_FETCH_REQ; pc <= next_pc; else state <= S_WRITEBACK; end if;
+             state <= S_WRITEBACK;
           else
              state <= S_MEM_WAIT;
           end if;
@@ -514,13 +524,34 @@ begin
                  when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
                  when others => alu_res <= sbi_tgt_i.rdata;
                end case;
+               pending_report.mem_rdata <= to_bitvector(alu_res);
+               next_pc <= std_logic_vector(unsigned(pc) + 4);
              end if;
-             if mem_we = '1' then state <= S_FETCH_REQ; pc <= next_pc; else state <= S_WRITEBACK; end if;
+             state <= S_WRITEBACK;
           end if;
 
         -- 5. Writeback
         when S_WRITEBACK =>
-          if unsigned(rd) /= 0 then regs(to_integer(unsigned(rd))) <= alu_res; end if;
+          -- Use variables to capture current signal states for accurate logging
+          v_report           := pending_report;
+          v_report.res       := to_bitvector(alu_res);
+          v_report.npc       := to_bitvector(next_pc);
+          
+          -- synthesis translate_off
+          if VERBOSE then
+            print_inst(v_report, "exec_fsm.log");
+          end if;
+          -- synthesis translate_on
+          
+          -- Only update register file for instructions that have a destination register
+          case opcode is
+            when OPC_LUI | OPC_AUIPC | OPC_JAL | OPC_JALR | OPC_LOAD | OPC_OP_IMM | OPC_OP | OPC_SYSTEM =>
+              if unsigned(rd) /= 0 then 
+                regs(to_integer(unsigned(rd))) <= alu_res; 
+              end if;
+            when others => null;
+          end case;
+
           pc <= next_pc;
           state <= S_FETCH_REQ;
 
