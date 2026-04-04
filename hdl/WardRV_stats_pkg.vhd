@@ -86,6 +86,27 @@ package WardRV_stats_pkg is
     mem_be      : bit_vector(3 downto 0);
   end record;
 
+  constant INST_UNKNOWN : inst_t := (
+    inst        => (others => '0'),
+    pc          => (others => '0'),
+    npc         => (others => '0'),
+    inst_type   => I_UNKNOWN,
+    rd          => 0,
+    rs1         => 0,
+    rs2         => 0,
+    imm_u       => (others => '0'),
+    imm_j       => (others => '0'),
+    imm_i       => (others => '0'),
+    imm_b       => (others => '0'),
+    imm_s       => (others => '0'),
+    op1         => (others => '0'),
+    op2         => (others => '0'),
+    res         => (others => '0'),
+    mem_addr    => (others => '0'),
+    mem_rdata   => (others => '0'),
+    mem_be      => (others => '0')
+  );
+
   procedure print_inst(r : in inst_t; filename : in string := "");
 
   type WardRV_stats is protected
