@@ -46,8 +46,7 @@ package RV_pkg is
   constant F3_OR        : bit_vector(2 downto 0) := "110";
   constant F3_AND       : bit_vector(2 downto 0) := "111";
   constant F3_ADD       : bit_vector(2 downto 0) := "000";
-  constant F3_SRL       : bit_vector(2 downto 0) := "101";
-
+  
   -- RV32I Funct7
   constant F7_DEFAULT   : bit_vector(6 downto 0) := "0000000";
   constant F7_ALT       : bit_vector(6 downto 0) := "0100000";

@@ -86,12 +86,14 @@ architecture behavioural of WardRV_fsm is
   -- ALU Status (for Branch Decision)
   signal alu_zero  : std_logic;
   signal alu_sign  : std_logic;
+  signal alu_carry : std_logic;
 
   -- ALU Interconnect
   signal alu_src_a : std_logic_vector(31 downto 0);
   signal alu_src_b : std_logic_vector(31 downto 0);
   signal alu_op    : alu_op_t;
   signal w_alu_res : std_logic_vector(31 downto 0);
+  signal w_alu_carry: std_logic;
   signal w_alu_zero: std_logic;
   signal w_alu_sign: std_logic;
 
@@ -108,6 +110,7 @@ begin
     src_b_i => alu_src_b,
     op_i    => alu_op,
     res_o   => w_alu_res,
+    carry_o => w_alu_carry,
     zero_o  => w_alu_zero,
     sign_o  => w_alu_sign
   );
@@ -171,7 +174,7 @@ begin
             -- Comparison for flags
             alu_src_a <= v_src_a;
             alu_src_b <= v_src_b;
-            alu_op    <= ALU_SUB; 
+            alu_op    <= ALU_SUB;
 
           when OPC_LOAD =>
             alu_src_a <= v_src_a;
@@ -194,8 +197,8 @@ begin
               when F3_OR   => alu_op <= ALU_OR;
               when F3_AND  => alu_op <= ALU_AND;
               when F3_SLL  => alu_op <= ALU_SLL;
-              when F3_SRL  => 
-                if v_imm_i(30) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
+              when F3_SRL_SRA => 
+                if funct7(5) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
               when others => null;
             end case;
 
@@ -209,7 +212,7 @@ begin
               when F3_SLT  => alu_op <= ALU_SLT;
               when F3_SLTU => alu_op <= ALU_SLTU;
               when F3_XOR  => alu_op <= ALU_XOR;
-              when F3_SRL  => 
+              when F3_SRL_SRA => 
                 if funct7(5) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
               when F3_OR   => alu_op <= ALU_OR;
               when F3_AND  => alu_op <= ALU_AND;
@@ -252,6 +255,7 @@ begin
     variable v_addr  : std_logic_vector(31 downto 0);
     variable v_shamt : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
+    variable v_be    : std_logic_vector(3 downto 0);
     variable v_report : inst_t;
   begin
     if arst_b_i = '0' then
@@ -263,6 +267,7 @@ begin
       inst             <= (others => '0');
       next_pc          <= (others => '0');
       alu_zero         <= '0';
+      alu_carry        <= '0';
       alu_sign         <= '0';
       pending_report   <= INST_UNKNOWN;
     elsif rising_edge(clk_i) then
@@ -379,17 +384,19 @@ begin
               case funct3 is
                 when F3_SB  => 
                   pending_report.inst_type <= I_SB;
-                  mem_be <= std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
+                  v_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(v_addr(1 downto 0)))));
                 when F3_SH  => 
                   pending_report.inst_type <= I_SH;
-                  mem_be <= std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
+                  v_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(v_addr(1 downto 0)))));
                 when F3_SW  => 
                   pending_report.inst_type <= I_SW;
-                  mem_be <= "1111";
+                  v_be := "1111";
                 when others => 
-                  mem_be <= "0000";
+                  v_be := "0000";
               end case;
-              pending_report.mem_be <= to_bitvector(mem_be);
+              mem_be <= v_be;
+
+              pending_report.mem_be <= to_bitvector(v_be);
               state <= S_MEM_REQ;
 
             when OPC_OP_IMM => -- OP-IMM
@@ -401,8 +408,8 @@ begin
                 when F3_OR   => pending_report.inst_type <= I_ORI;
                 when F3_AND  => pending_report.inst_type <= I_ANDI;
                 when F3_SLL  => pending_report.inst_type <= I_SLLI;
-                when F3_SRL  => 
-                  if v_imm_i(30) = '1' then pending_report.inst_type <= I_SRAI;
+                when F3_SRL_SRA => 
+                  if funct7(5) = '1' then pending_report.inst_type <= I_SRAI;
                   else                     pending_report.inst_type <= I_SRLI; end if;
                 when others => null;
               end case;
@@ -418,7 +425,7 @@ begin
                 when F3_SLT  => pending_report.inst_type <= I_SLT;
                 when F3_SLTU => pending_report.inst_type <= I_SLTU;
                 when F3_XOR  => pending_report.inst_type <= I_XOR;
-                when F3_SRL  => 
+                when F3_SRL_SRA => 
                   if funct7(5) = '1' then pending_report.inst_type <= I_SRA;
                   else                     pending_report.inst_type <= I_SRL; end if;
                 when F3_OR   => pending_report.inst_type <= I_OR;
@@ -453,6 +460,7 @@ begin
           -- Update Flags from ALU (Combinatorial inputs valid for this state)
           alu_zero <= w_alu_zero;
           alu_sign <= w_alu_sign;
+          alu_carry <= w_alu_carry;
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
@@ -467,8 +475,8 @@ begin
                 (funct3 = F3_BNE and alu_zero = '0') or
                 (funct3 = F3_BLT and alu_sign = '1') or
                 (funct3 = F3_BGE and alu_sign = '0') or
-                (funct3 = F3_BLTU and alu_sign = '1') or
-                (funct3 = F3_BGEU and alu_sign = '0') 
+                (funct3 = F3_BLTU and alu_carry = '1') or
+                (funct3 = F3_BGEU and alu_carry = '0') 
                 then
               next_pc <= w_alu_res;
            else
@@ -498,7 +506,7 @@ begin
                  when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
                  when others => alu_res <= sbi_tgt_i.rdata;
                end case;
-               pending_report.mem_rdata <= to_bitvector(alu_res);
+               pending_report.mem_rdata <= to_bitvector(v_rdata);
                next_pc <= std_logic_vector(unsigned(pc) + 4);
              end if;
              state <= S_WRITEBACK;
@@ -517,14 +525,15 @@ begin
                v_shamt := to_integer(unsigned(mem_addr(1 downto 0))) * 8;
                v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
                case funct3 is
-                 when F3_LB  => alu_res <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
-                 when F3_LH  => alu_res <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
-                 when F3_LW  => alu_res <= sbi_tgt_i.rdata;
-                 when F3_LBU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
-                 when F3_LHU => alu_res <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-                 when others => alu_res <= sbi_tgt_i.rdata;
+                 when F3_LB  => v_rdata := std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
+                 when F3_LH  => v_rdata := std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
+                 when F3_LW  => v_rdata := sbi_tgt_i.rdata;
+                 when F3_LBU => v_rdata := std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
+                 when F3_LHU => v_rdata := std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
+                 when others => v_rdata := sbi_tgt_i.rdata;
                end case;
-               pending_report.mem_rdata <= to_bitvector(alu_res);
+               alu_res <= v_rdata;
+               pending_report.mem_rdata <= to_bitvector(v_rdata);
                next_pc <= std_logic_vector(unsigned(pc) + 4);
              end if;
              state <= S_WRITEBACK;

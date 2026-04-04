@@ -32,7 +32,7 @@ entity tb_WardRV is
     SIGNATURE_FILE : string  := "";
     GOLDEN_FILE    : string  := "";
     VERBOSE        : boolean := false;
-    MODEL          : string  := "ISS"  -- Options: "ISS", "FSM"
+    MODEL          : string  := "FSM"  -- Options: "ISS", "FSM"
   );
 end tb_WardRV;
 
