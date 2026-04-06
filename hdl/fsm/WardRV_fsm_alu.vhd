@@ -1,3 +1,18 @@
+-------------------------------------------------------------------------------
+-- Title      : WardRV
+-- Project    : 
+-------------------------------------------------------------------------------
+-- File       : WardRV_fsm_alu.vhd
+-- Author     : Mathieu Rosiere
+-------------------------------------------------------------------------------
+-- Description: 
+-------------------------------------------------------------------------------
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-02-01  1.0      mrosiere Created
+-------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
@@ -41,22 +56,22 @@ begin
     v_carry := '0';
 
     case op_i is
-      when ALU_ADD => 
+      when ALU_ADD     => 
         v_res_ext := unsigned('0' & src_a_i) + unsigned('0' & src_b_i);
         v_res     := std_logic_vector(v_res_ext(31 downto 0));
         v_carry   := v_res_ext(32);
 
-      when ALU_SUB => 
+      when ALU_SUB    => 
         v_res_ext := unsigned('0' & src_a_i) - unsigned('0' & src_b_i);
         v_res     := std_logic_vector(v_res_ext(31 downto 0));
         v_carry   := v_res_ext(32); -- Borrow flag
 
-      when ALU_SLL => v_res := std_logic_vector(shift_left(unsigned(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
+      when ALU_SLL    => v_res := std_logic_vector(shift_left(unsigned(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
 
-      when ALU_SLT => 
+      when ALU_SLT    => 
         if signed(src_a_i) < signed(src_b_i) then v_res := x"00000001"; end if;
 
-      when ALU_SLTU=> 
+      when ALU_SLTU   => 
         if unsigned(src_a_i) < unsigned(src_b_i) then v_res := x"00000001"; end if;
 
       when ALU_XOR    => v_res := src_a_i xor src_b_i;
@@ -72,9 +87,9 @@ begin
     carry <= v_carry;
   end process;
 
-  res_o <= res;
-  zero_o <= '1' when res = x"00000000" else '0';
-  sign_o <= res(31);
+  res_o   <= res;
+  zero_o  <= '1' when res = x"00000000" else '0';
+  sign_o  <= res(31);
   carry_o <= carry;
 
 end architecture behavioural;

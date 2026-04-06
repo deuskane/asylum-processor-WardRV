@@ -12,6 +12,8 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
+-- 2026-04-06  1.1      mrosiere Move decode into specific module
+--                               Add instruction type to report
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -53,19 +55,19 @@ architecture behavioural of WardRV_fsm is
                    S_MEM_REQ, 
                    S_MEM_WAIT, 
                    S_WRITEBACK);
-  signal state   : state_t;
+  signal state     : state_t;
 
   -- CPU State
-  signal pc      : std_logic_vector(31 downto 0);
-  signal next_pc : std_logic_vector(31 downto 0);
+  signal pc        : std_logic_vector(31 downto 0);
+  signal next_pc   : std_logic_vector(31 downto 0);
   
   -- Register File (x0 is hardwired to 0 in logic)
   type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
-  signal regs     : regfile_t;
+  signal regs      : regfile_t;
 
   -- Current Instruction
-  signal inst     : std_logic_vector(31 downto 0);
-  signal inst_bv  : bit_vector(31 downto 0);
+  signal inst      : std_logic_vector(31 downto 0);
+  signal inst_bv   : bit_vector(31 downto 0);
 
 
   -- Decoded Fields
@@ -89,35 +91,64 @@ architecture behavioural of WardRV_fsm is
   signal alu_carry : std_logic;
 
   -- ALU Interconnect
-  signal alu_src_a : std_logic_vector(31 downto 0);
-  signal alu_src_b : std_logic_vector(31 downto 0);
-  signal alu_op    : alu_op_t;
-  signal w_alu_res : std_logic_vector(31 downto 0);
+  signal alu_src_a  : std_logic_vector(31 downto 0);
+  signal alu_src_b  : std_logic_vector(31 downto 0);
+  signal alu_op     : alu_op_t;
+  signal w_alu_res  : std_logic_vector(31 downto 0);
   signal w_alu_carry: std_logic;
-  signal w_alu_zero: std_logic;
-  signal w_alu_sign: std_logic;
+  signal w_alu_zero : std_logic;
+  signal w_alu_sign : std_logic;
 
   -- Report structure for logging
   signal pending_report : inst_t;
 
-  -- Refactored Decoding Signals
-  signal imm_i, imm_s, imm_b, imm_u, imm_j : std_logic_vector(31 downto 0);
+  -- Signals from Decoder
+  signal dec_imm_i, dec_imm_s, dec_imm_b, dec_imm_u, dec_imm_j : std_logic_vector(31 downto 0);
+  signal dec_rd_addr, dec_rs1_addr, dec_rs2_addr             : std_logic_vector(4 downto 0);
+  signal dec_rd_we, dec_rs1_re, dec_rs2_re                   : std_logic;
+  signal dec_alu_op                                          : alu_op_t;
+  signal dec_alu_src_a_sel                                   : std_logic;
+  signal dec_alu_src_b_sel                                   : std_logic_vector(2 downto 0);
+  signal dec_mem_req, dec_mem_we                              : std_logic;
+  signal dec_is_branch, dec_is_jal, dec_is_jalr               : std_logic;
+  signal dec_funct3                                          : bit_vector(2 downto 0);
+  signal dec_inst_type                                       : inst_type_t;
+
   signal src_a_val, src_b_val             : std_logic_vector(31 downto 0);
   signal load_data_formatted               : std_logic_vector(31 downto 0);
  
 begin
-  inst_bv <= to_bitvector(inst);
 
-  -- Immediate Decoding (Centralized)
-  imm_i <= std_logic_vector(resize(signed(inst(31 downto 20)), 32));
-  imm_s <= std_logic_vector(resize(signed(std_logic_vector'(inst(31 downto 25) & inst(11 downto 7))), 32));
-  imm_b <= std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(7) & inst(30 downto 25) & inst(11 downto 8) & '0')), 32));
-  imm_u <= inst(31 downto 12) & x"000";
-  imm_j <= std_logic_vector(resize(signed(std_logic_vector'(inst(31) & inst(19 downto 12) & inst(20) & inst(30 downto 21) & '0')), 32));
+  -- Decoder Instance
+  u_decode : entity work.WardRV_fsm_decode
+  port map (
+    inst_i            => inst,
+    imm_i_o           => dec_imm_i,
+    imm_s_o           => dec_imm_s,
+    imm_b_o           => dec_imm_b,
+    imm_u_o           => dec_imm_u,
+    imm_j_o           => dec_imm_j,
+    rd_addr_o         => dec_rd_addr,
+    rs1_addr_o        => dec_rs1_addr,
+    rs2_addr_o        => dec_rs2_addr,
+    rd_we_o           => dec_rd_we,
+    rs1_re_o          => dec_rs1_re,
+    rs2_re_o          => dec_rs2_re,
+    alu_op_o          => dec_alu_op,
+    alu_src_a_sel_o   => dec_alu_src_a_sel,
+    alu_src_b_sel_o   => dec_alu_src_b_sel,
+    mem_req_o         => dec_mem_req,
+    mem_we_o          => dec_mem_we,
+    is_branch_o       => dec_is_branch,
+    is_jal_o          => dec_is_jal,
+    is_jalr_o         => dec_is_jalr,
+    funct3_o          => dec_funct3,
+    inst_type_o       => dec_inst_type
+  );
 
-  -- Register File Read
-  src_a_val <= regs(to_integer(unsigned(rs1)));
-  src_b_val <= regs(to_integer(unsigned(rs2)));
+  -- Register File Read (Controlled)
+  src_a_val <= regs(to_integer(unsigned(dec_rs1_addr))) when dec_rs1_re = '1' else (others => '0');
+  src_b_val <= regs(to_integer(unsigned(dec_rs2_addr))) when dec_rs2_re = '1' else (others => '0');
 
   -- ALU Instance
   u_alu : entity work.WardRV_fsm_alu
@@ -138,7 +169,7 @@ begin
   begin
     v_shamt := to_integer(unsigned(mem_addr(1 downto 0))) * 8;
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
-    case funct3 is
+    case dec_funct3 is
       when F3_LB  => load_data_formatted <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
       when F3_LH  => load_data_formatted <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
       when F3_LBU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
@@ -160,58 +191,26 @@ begin
         alu_src_b <= x"00000004";
 
       when S_DECODE =>
-        case opcode is
-          when OPC_LUI   => alu_src_b <= imm_u;
-          when OPC_AUIPC => alu_src_a <= pc; alu_src_b <= imm_u;
-          when OPC_JAL   => alu_src_a <= pc; alu_src_b <= imm_j;
-          when OPC_JALR  => alu_src_a <= src_a_val; alu_src_b <= imm_i;
-          when OPC_LOAD  => alu_src_a <= src_a_val; alu_src_b <= imm_i;
-          when OPC_STORE => alu_src_a <= src_a_val; alu_src_b <= imm_s;
-          when OPC_BRANCH => 
-            alu_src_a <= src_a_val;
-            alu_src_b <= src_b_val;
-            alu_op    <= ALU_SUB;
+        -- Source A selection
+        if dec_alu_src_a_sel = '1' then alu_src_a <= pc;
+        else                           alu_src_a <= src_a_val;
+        end if;
 
-          when OPC_OP_IMM =>
-            alu_src_a <= src_a_val;
-            alu_src_b <= imm_i;
-            case funct3 is
-              when F3_ADD  => alu_op <= ALU_ADD;
-              when F3_SLT  => alu_op <= ALU_SLT;
-              when F3_SLTU => alu_op <= ALU_SLTU;
-              when F3_XOR  => alu_op <= ALU_XOR;
-              when F3_OR   => alu_op <= ALU_OR;
-              when F3_AND  => alu_op <= ALU_AND;
-              when F3_SLL  => alu_op <= ALU_SLL;
-              when F3_SRL_SRA => 
-                if funct7(5) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
-              when others => null;
-            end case;
-
-          when OPC_OP =>
-            alu_src_a <= src_a_val;
-            alu_src_b <= src_b_val;
-            case funct3 is
-              when F3_ADD  => 
-                if funct7(5) = '1' then alu_op <= ALU_SUB; else alu_op <= ALU_ADD; end if;
-              when F3_SLL  => alu_op <= ALU_SLL;
-              when F3_SLT  => alu_op <= ALU_SLT;
-              when F3_SLTU => alu_op <= ALU_SLTU;
-              when F3_XOR  => alu_op <= ALU_XOR;
-              when F3_SRL_SRA => 
-                if funct7(5) = '1' then alu_op <= ALU_SRA; else alu_op <= ALU_SRL; end if;
-              when F3_OR   => alu_op <= ALU_OR;
-              when F3_AND  => alu_op <= ALU_AND;
-              when others  => null;
-            end case;
-
-          when OPC_SYSTEM => alu_op <= ALU_PASS_B;
-          when others => null;
+        -- Source B selection
+        case dec_alu_src_b_sel is
+          when "000" => alu_src_b <= src_b_val;
+          when "001" => alu_src_b <= dec_imm_i;
+          when "010" => alu_src_b <= dec_imm_s;
+          when "011" => alu_src_b <= dec_imm_u;
+          when "100" => alu_src_b <= dec_imm_j;
+          when others => alu_src_b <= (others => '0');
         end case;
+
+        alu_op <= dec_alu_op;
 
       when S_BRANCH_DECISION =>
         alu_src_a <= pc;
-        alu_src_b <= imm_b;
+        alu_src_b <= dec_imm_b;
       
       when others => null;
     end case;
@@ -272,175 +271,56 @@ begin
         -- 3. Decode & Execute (Behavioral)
         when S_DECODE =>
           -- synthesis translate_off
-          pending_report.rd    <= to_integer(unsigned(rd));
-          pending_report.rs1   <= to_integer(unsigned(rs1));
-          pending_report.rs2   <= to_integer(unsigned(rs2));
-          pending_report.imm_i <= to_bitvector(imm_i);
-          pending_report.imm_s <= to_bitvector(imm_s);
-          pending_report.imm_b <= to_bitvector(imm_b);
-          pending_report.imm_u <= to_bitvector(imm_u);
-          pending_report.imm_j <= to_bitvector(imm_j);
+          pending_report.inst_type <= dec_inst_type;
+          pending_report.rd    <= to_integer(unsigned(dec_rd_addr));
+          pending_report.rs1   <= to_integer(unsigned(dec_rs1_addr));
+          pending_report.rs2   <= to_integer(unsigned(dec_rs2_addr));
+          pending_report.imm_i <= to_bitvector(dec_imm_i);
+          pending_report.imm_s <= to_bitvector(dec_imm_s);
+          pending_report.imm_b <= to_bitvector(dec_imm_b);
+          pending_report.imm_u <= to_bitvector(dec_imm_u);
+          pending_report.imm_j <= to_bitvector(dec_imm_j);
           pending_report.op1   <= to_bitvector(src_a_val);
           pending_report.op2   <= to_bitvector(src_b_val);
           -- synthesis translate_on
 
-          mem_we <= '0';
+          mem_we  <= dec_mem_we;
+          alu_res <= w_alu_res;
 
-          case opcode is
-            when OPC_LUI => -- LUI
-              -- synthesis translate_off
-              pending_report.inst_type <= I_LUI;
-              -- synthesis translate_on
-              alu_res <= w_alu_res;
-              state <= S_WRITEBACK;
+          if dec_is_jal = '1' or dec_is_jalr = '1' then
+            alu_res <= std_logic_vector(unsigned(pc) + 4); -- Link address
+            next_pc <= w_alu_res;                         -- Target address
+            state   <= S_BRANCH_DECISION;
 
-            when OPC_AUIPC => -- AUIPC
-              -- synthesis translate_off
-              pending_report.inst_type <= I_AUIPC;
-              -- synthesis translate_on
-              alu_res <= w_alu_res;
-              state <= S_WRITEBACK;
+          elsif dec_is_branch = '1' then
+            state <= S_BRANCH_DECISION;
 
-            when OPC_JAL => -- JAL
-              -- synthesis translate_off
-              pending_report.inst_type <= I_JAL;
-              -- synthesis translate_on
-              alu_res <= std_logic_vector(unsigned(pc) + 4); -- Link address
-              next_pc <= w_alu_res; -- Target (PC+ImmJ)
-              state <= S_BRANCH_DECISION;
-
-            when OPC_JALR => -- JALR
-              -- synthesis translate_off
-              pending_report.inst_type <= I_JALR;
-              -- synthesis translate_on
-              alu_res <= std_logic_vector(unsigned(pc) + 4); -- Link address
-              next_pc <= w_alu_res; -- Target (Rs1+ImmI)
-              state <= S_BRANCH_DECISION;
-
-
-            when OPC_BRANCH => -- BRANCH
-              -- synthesis translate_off
-              case funct3 is
-                when F3_BEQ  => pending_report.inst_type <= I_BEQ;
-                when F3_BNE  => pending_report.inst_type <= I_BNE;
-                when F3_BLT  => pending_report.inst_type <= I_BLT;
-                when F3_BGE  => pending_report.inst_type <= I_BGE;
-                when F3_BLTU => pending_report.inst_type <= I_BLTU;
-                when F3_BGEU => pending_report.inst_type <= I_BGEU;
-                when others => null;
-              end case;
-              -- synthesis translate_on
-              state <= S_BRANCH_DECISION;
-
-            when OPC_LOAD => -- LOAD
-              -- synthesis translate_off
-              case funct3 is
-                when F3_LB  => pending_report.inst_type <= I_LB;
-                when F3_LH  => pending_report.inst_type <= I_LH;
-                when F3_LW  => pending_report.inst_type <= I_LW;
-                when F3_LBU => pending_report.inst_type <= I_LBU;
-                when F3_LHU => pending_report.inst_type <= I_LHU;
-                when others => null;
-              end case;
-              -- synthesis translate_on
-              mem_addr <= w_alu_res;
-              -- synthesis translate_off
-              pending_report.mem_addr <= to_bitvector(w_alu_res);
-              -- synthesis translate_on
-              state <= S_MEM_REQ;
-
-            when OPC_STORE => -- STORE
-              mem_addr <= w_alu_res;
-              -- synthesis translate_off
-              pending_report.mem_addr <= to_bitvector(w_alu_res);
-              -- synthesis translate_on
+          elsif dec_mem_req = '1' then
+            mem_addr <= w_alu_res;
+            -- synthesis translate_off
+            pending_report.mem_addr <= to_bitvector(w_alu_res);
+            -- synthesis translate_on
+            if dec_mem_we = '1' then
               mem_wdata <= std_logic_vector(shift_left(unsigned(src_b_val), to_integer(unsigned(w_alu_res(1 downto 0))) * 8));
-              mem_we <= '1';
               -- synthesis translate_off
-              case funct3 is
-                when F3_SB  => pending_report.inst_type <= I_SB;
-                               v_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(w_alu_res(1 downto 0)))));
-                when F3_SH  => pending_report.inst_type <= I_SH;
-                               v_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(w_alu_res(1 downto 0)))));
-                when F3_SW  => pending_report.inst_type <= I_SW; v_be := "1111";
-                when others => 
-                  v_be := "0000";
+              case dec_funct3 is
+                when F3_SB  => v_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(w_alu_res(1 downto 0)))));
+                when F3_SH  => v_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(w_alu_res(1 downto 0)))));
+                when F3_SW  => v_be := "1111";
+                when others => v_be := "0000";
               end case;
               pending_report.mem_be <= to_bitvector(v_be);
               -- synthesis translate_on
               mem_be <= v_be;
+            end if;
+            state <= S_MEM_REQ;
 
-              state <= S_MEM_REQ;
-
-            when OPC_OP_IMM => -- OP-IMM
-              -- synthesis translate_off
-              case funct3 is
-                when F3_ADD  => pending_report.inst_type <= I_ADDI;
-                when F3_SLT  => pending_report.inst_type <= I_SLTI;
-                when F3_SLTU => pending_report.inst_type <= I_SLTIU;
-                when F3_XOR  => pending_report.inst_type <= I_XORI;
-                when F3_OR   => pending_report.inst_type <= I_ORI;
-                when F3_AND  => pending_report.inst_type <= I_ANDI;
-                when F3_SLL  => pending_report.inst_type <= I_SLLI;
-                when F3_SRL_SRA => 
-                  if funct7(5) = '1' then pending_report.inst_type <= I_SRAI;
-                  else                     pending_report.inst_type <= I_SRLI; end if;
-                when others => null;
-              end case;
-              -- synthesis translate_on
-              alu_res <= w_alu_res;
-              state <= S_WRITEBACK;
-
-            when OPC_OP => -- OP
-              -- synthesis translate_off
-              case funct3 is
-                when F3_ADD  => 
-                  if funct7(5) = '1' then pending_report.inst_type <= I_SUB;
-                  else                     pending_report.inst_type <= I_ADD; end if;
-                when F3_SLL  => pending_report.inst_type <= I_SLL;
-                when F3_SLT  => pending_report.inst_type <= I_SLT;
-                when F3_SLTU => pending_report.inst_type <= I_SLTU;
-                when F3_XOR  => pending_report.inst_type <= I_XOR;
-                when F3_SRL_SRA => 
-                  if funct7(5) = '1' then pending_report.inst_type <= I_SRA;
-                  else                     pending_report.inst_type <= I_SRL; end if;
-                when F3_OR   => pending_report.inst_type <= I_OR;
-                when F3_AND  => pending_report.inst_type <= I_AND;
-                when others  => null;
-              end case;
-              -- synthesis translate_on
-              alu_res <= w_alu_res;
-              state <= S_WRITEBACK;
-
-            when OPC_MISC_MEM => -- FENCE / FENCE.I
-              -- synthesis translate_off
-              pending_report.inst_type <= I_UNKNOWN;
-              -- synthesis translate_on
-              state <= S_WRITEBACK; next_pc <= std_logic_vector(unsigned(pc) + 4);
-
-            when OPC_SYSTEM => -- SYSTEM
-              case funct3 is
-                when F3_PRIV => -- ECALL / EBREAK
-                  -- synthesis translate_off
-                  pending_report.inst_type <= I_UNKNOWN;
-                  -- synthesis translate_on
-                  state <= S_WRITEBACK; next_pc <= std_logic_vector(unsigned(pc) + 4);
-                when others => -- CSR Instructions (CSRRW, CSRRS, etc.)
-                  -- Simplified: Read 0, Write Ignored, just for compliance
-                  -- synthesis translate_off
-                  pending_report.inst_type <= I_UNKNOWN;
-                  -- synthesis translate_on
-                  alu_res <= w_alu_res; -- (0)
-                  state <= S_WRITEBACK;
-              end case;
-
-            when others => -- NOP
-              -- synthesis translate_off
-              pending_report.inst_type <= I_UNKNOWN;
-              -- synthesis translate_on
-              next_pc <= std_logic_vector(unsigned(pc) + 4);
-              state <= S_WRITEBACK;
-          end case;
+          elsif dec_inst_type /= I_UNKNOWN then
+             state <= S_WRITEBACK;
+          else
+             next_pc <= std_logic_vector(unsigned(pc) + 4);
+             state   <= S_WRITEBACK;
+          end if;
 
           -- Update Flags from ALU (Combinatorial inputs valid for this state)
           alu_zero <= w_alu_zero;
@@ -449,15 +329,13 @@ begin
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
-           if (opcode = OPC_JAL) or (opcode = OPC_JALR) then
-              null; -- PC déjà mis à jour dans S_DECODE
-           elsif opcode = OPC_BRANCH then
-              if (funct3 = F3_BEQ  and alu_zero = '1') or
-                 (funct3 = F3_BNE  and alu_zero = '0') or
-                 (funct3 = F3_BLT  and alu_sign = '1') or
-                 (funct3 = F3_BGE  and alu_sign = '0') or
-                 (funct3 = F3_BLTU and alu_carry = '1') or
-                 (funct3 = F3_BGEU and alu_carry = '0') then
+           if dec_is_branch = '1' then
+              if (dec_funct3 = F3_BEQ  and alu_zero = '1') or
+                 (dec_funct3 = F3_BNE  and alu_zero = '0') or
+                 (dec_funct3 = F3_BLT  and alu_sign = '1') or
+                 (dec_funct3 = F3_BGE  and alu_sign = '0') or
+                 (dec_funct3 = F3_BLTU and alu_carry = '1') or
+                 (dec_funct3 = F3_BGEU and alu_carry = '0') then
                 next_pc <= w_alu_res;
               else
                 next_pc <= std_logic_vector(unsigned(pc) + 4);
@@ -497,14 +375,9 @@ begin
           end if;
           -- synthesis translate_on
           
-          -- Only update register file for instructions that have a destination register
-          case opcode is
-            when OPC_LUI | OPC_AUIPC | OPC_JAL | OPC_JALR | OPC_LOAD | OPC_OP_IMM | OPC_OP | OPC_SYSTEM =>
-              if unsigned(rd) /= 0 then 
-                regs(to_integer(unsigned(rd))) <= alu_res; 
-              end if;
-            when others => null;
-          end case;
+          if dec_rd_we = '1' and unsigned(dec_rd_addr) /= 0 then
+            regs(to_integer(unsigned(dec_rd_addr))) <= alu_res;
+          end if;
 
           pc <= next_pc;
           state <= S_FETCH_REQ;
