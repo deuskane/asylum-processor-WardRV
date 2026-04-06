@@ -76,8 +76,8 @@ begin
 
       when ALU_XOR    => v_res := src_a_i xor src_b_i;
       when ALU_SRL    => v_res := std_logic_vector(shift_right(unsigned(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
-      when ALU_SRA    => v_res := std_logic_vector(shift_right(signed(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
-      when ALU_OR     => v_res := src_a_i or src_b_i;
+      when ALU_SRA    => v_res := std_logic_vector(shift_right(  signed(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
+      when ALU_OR     => v_res := src_a_i or  src_b_i;
       when ALU_AND    => v_res := src_a_i and src_b_i;
       when ALU_PASS_B => v_res := src_b_i;
       when others     => null;

@@ -5,6 +5,7 @@ use     ieee.numeric_std.all;
 library asylum;
 use     asylum.RV_pkg.all;
 use     asylum.WardRV_stats_pkg.all;
+use     asylum.WardRV_decode_pkg.all;
 use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm_decode is
@@ -64,22 +65,28 @@ begin
   process(all)
   begin
     -- Default assignments
-    rd_we_o         <= '0'; rs1_re_o <= '0'; rs2_re_o <= '0';
+    rd_we_o         <= '0';
+    rs1_re_o        <= '0';
+    rs2_re_o        <= '0';
     alu_op_o        <= ALU_ADD;
-    alu_src_a_sel_o <= '0'; alu_src_b_sel_o <= "000";
-    mem_req_o       <= '0'; mem_we_o  <= '0';
-    is_branch_o     <= '0'; is_jal_o  <= '0'; is_jalr_o <= '0';
+    alu_src_a_sel_o <= ALU_SRC_A_RS1; 
+    alu_src_b_sel_o <= ALU_SRC_B_RS2;
+    mem_req_o       <= '0'; 
+    mem_we_o        <= '0';
+    is_branch_o     <= '0';
+    is_jal_o        <= '0'; 
+    is_jalr_o       <= '0';
     inst_type_o     <= I_UNKNOWN;
 
     case opcode is
       when OPC_LUI =>
-        rd_we_o <= '1'; alu_op_o <= ALU_PASS_B; alu_src_b_sel_o <= "011"; inst_type_o <= I_LUI;
+        rd_we_o <= '1'; alu_op_o <= ALU_PASS_B; alu_src_b_sel_o <= ALU_SRC_B_IMM_U; inst_type_o <= I_LUI;
       when OPC_AUIPC =>
-        rd_we_o <= '1'; alu_src_a_sel_o <= '1'; alu_src_b_sel_o <= "011"; inst_type_o <= I_AUIPC;
+        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_U; inst_type_o <= I_AUIPC;
       when OPC_JAL =>
-        rd_we_o <= '1'; alu_src_a_sel_o <= '1'; alu_src_b_sel_o <= "100"; is_jal_o <= '1'; inst_type_o <= I_JAL;
+        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_J; is_jal_o <= '1'; inst_type_o <= I_JAL;
       when OPC_JALR =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= "001"; is_jalr_o <= '1'; inst_type_o <= I_JALR;
+        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; is_jalr_o <= '1'; inst_type_o <= I_JALR;
       when OPC_BRANCH =>
         rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1';
         case funct3 is
@@ -89,7 +96,7 @@ begin
           when others => null;
         end case;
       when OPC_LOAD =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= "001"; mem_req_o <= '1';
+        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; mem_req_o <= '1';
         case funct3 is
           when F3_LB => inst_type_o <= I_LB; when F3_LH => inst_type_o <= I_LH;
           when F3_LW => inst_type_o <= I_LW; when F3_LBU=> inst_type_o <= I_LBU;
@@ -97,13 +104,13 @@ begin
           when others => null;
         end case;
       when OPC_STORE =>
-        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_src_b_sel_o <= "010"; mem_req_o <= '1'; mem_we_o <= '1';
+        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_S; mem_req_o <= '1'; mem_we_o <= '1';
         case funct3 is
           when F3_SB => inst_type_o <= I_SB; when F3_SH => inst_type_o <= I_SH;
           when F3_SW => inst_type_o <= I_SW; when others => null;
         end case;
       when OPC_OP_IMM =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= "001";
+        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
         case funct3 is
           when F3_ADD  => alu_op_o <= ALU_ADD;  inst_type_o <= I_ADDI;
           when F3_SLT  => alu_op_o <= ALU_SLT;  inst_type_o <= I_SLTI;
