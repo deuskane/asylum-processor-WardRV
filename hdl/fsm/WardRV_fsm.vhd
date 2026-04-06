@@ -66,6 +66,7 @@ architecture behavioural of WardRV_fsm is
   signal inst_r              : std_logic_vector(31 downto 0);
 
   -- Internal
+  signal mem_valid_r         : std_logic;
   signal mem_addr_r          : std_logic_vector(31 downto 0);
   signal mem_wdata_r         : std_logic_vector(31 downto 0);
   signal mem_we_r            : std_logic;
@@ -237,11 +238,11 @@ begin
       state_r          <= S_FETCH_REQ;
       pc_r             <= RESET_ADDR;
       inst_ini_o.valid <= '0';
-      sbi_ini_o.valid  <= '0';
-      sbi_ini_o.addr   <= (others => '0');
-      sbi_ini_o.wdata  <= (others => '0');
-      sbi_ini_o.we     <= '0';
-      sbi_ini_o.be     <= "0000";
+      mem_valid_r      <= '0';
+      mem_addr_r       <= (others => '0');
+      mem_wdata_r      <= (others => '0');
+      mem_we_r         <= '0';
+      mem_be_r         <= "0000";
       inst_r           <= (others => '0');
       next_pc_r        <= (others => '0');
       alu_zero_r       <= '0';
@@ -254,9 +255,8 @@ begin
       
       -- Default Bus Outputs
       inst_ini_o.valid <= '0';
-      sbi_ini_o.valid  <= '0';
-      sbi_ini_o.we     <= '0';
-      sbi_ini_o.be     <= "0000";
+      mem_valid_r      <= '0';
+
 
       case state_r is
         -- 1. Fetch Request
@@ -352,11 +352,7 @@ begin
 
         -- 4. Memory Access
         when S_MEM_REQ | S_MEM_WAIT =>
-          sbi_ini_o.valid <= '1';
-          sbi_ini_o.addr  <= mem_addr_r;
-          sbi_ini_o.wdata <= mem_wdata_r;
-          sbi_ini_o.we    <= mem_we_r;
-          sbi_ini_o.be    <= mem_be_r;
+          mem_valid_r <= '1';
           if sbi_tgt_i.ready = '1' then
              if mem_we_r = '0' then
                alu_res_r <= load_data_formatted;
@@ -387,5 +383,13 @@ begin
       end case;
     end if;
   end process;
+
+  -- Bus Output Assignments
+  sbi_ini_o.valid <= mem_valid_r;
+  sbi_ini_o.addr  <= mem_addr_r;
+  sbi_ini_o.wdata <= mem_wdata_r;
+  sbi_ini_o.we    <= mem_we_r;
+  sbi_ini_o.be    <= mem_be_r;
+
 
 end architecture behavioural;
