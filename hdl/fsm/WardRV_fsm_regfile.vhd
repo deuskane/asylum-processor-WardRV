@@ -7,12 +7,14 @@ entity WardRV_fsm_regfile is
     clk_i       : in  std_logic;
     arst_b_i    : in  std_logic;
     -- Read Ports
-    rs1_addr_i  : in  std_logic_vector(4 downto 0);
     rs1_re_i    : in  std_logic;
+    rs1_addr_i  : in  std_logic_vector(4 downto 0);
     rs1_rdata_o : out std_logic_vector(31 downto 0);
-    rs2_addr_i  : in  std_logic_vector(4 downto 0);
+
     rs2_re_i    : in  std_logic;
+    rs2_addr_i  : in  std_logic_vector(4 downto 0);
     rs2_rdata_o : out std_logic_vector(31 downto 0);
+
     -- Write Port
     rd_addr_i   : in  std_logic_vector(4 downto 0);
     rd_wdata_i  : in  std_logic_vector(31 downto 0);

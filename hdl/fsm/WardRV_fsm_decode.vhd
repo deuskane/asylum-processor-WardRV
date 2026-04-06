@@ -35,6 +35,7 @@ entity WardRV_fsm_decode is
     is_branch_o       : out std_logic;
     is_jal_o          : out std_logic;
     is_jalr_o         : out std_logic;
+    pc_sel_o          : out std_logic_vector(1 downto 0);
     -- Instruction Metadata (for logging/FSM)
     funct3_o          : out bit_vector(2 downto 0);
     inst_type_o       : out inst_type_t
@@ -76,6 +77,7 @@ begin
     is_branch_o     <= '0';
     is_jal_o        <= '0'; 
     is_jalr_o       <= '0';
+    pc_sel_o        <= PC_SEL_NEXT;
     inst_type_o     <= I_UNKNOWN;
 
     case opcode is
@@ -84,11 +86,11 @@ begin
       when OPC_AUIPC =>
         rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_U; inst_type_o <= I_AUIPC;
       when OPC_JAL =>
-        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_J; is_jal_o <= '1'; inst_type_o <= I_JAL;
+        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_J; is_jal_o <= '1'; pc_sel_o <= PC_SEL_JUMP; inst_type_o <= I_JAL;
       when OPC_JALR =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; is_jalr_o <= '1'; inst_type_o <= I_JALR;
+        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; is_jalr_o <= '1'; pc_sel_o <= PC_SEL_JUMP; inst_type_o <= I_JALR;
       when OPC_BRANCH =>
-        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1';
+        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1'; pc_sel_o <= PC_SEL_BRANCH;
         case funct3 is
           when F3_BEQ => inst_type_o <= I_BEQ; when F3_BNE => inst_type_o <= I_BNE;
           when F3_BLT => inst_type_o <= I_BLT; when F3_BGE => inst_type_o <= I_BGE;
@@ -146,5 +148,10 @@ begin
       when others =>
         inst_type_o <= I_UNKNOWN;
     end case;
+
+    -- rd_we must be 0 if rd_addr is x0
+    if unsigned(inst_i(11 downto 7)) = 0 then
+      rd_we_o <= '0';
+    end if;
   end process;
 end architecture behavioural;

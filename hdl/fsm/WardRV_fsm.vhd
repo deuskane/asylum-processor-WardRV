@@ -110,6 +110,7 @@ architecture behavioural of WardRV_fsm is
   signal dec_is_branch       : std_logic;
   signal dec_is_jal          : std_logic;
   signal dec_is_jalr         : std_logic;
+  signal dec_pc_sel          : std_logic_vector(1 downto 0);
   signal dec_funct3          : bit_vector(2 downto 0);
   signal dec_inst_type       : inst_type_t;
   
@@ -119,6 +120,8 @@ architecture behavioural of WardRV_fsm is
   signal regfile_we          : std_logic;
  
 begin
+
+  
   -- Decoder Instance
   u_decode : entity work.WardRV_fsm_decode
   port map (
@@ -142,6 +145,7 @@ begin
     is_branch_o       => dec_is_branch,
     is_jal_o          => dec_is_jal,
     is_jalr_o         => dec_is_jalr,
+    pc_sel_o          => dec_pc_sel,
     funct3_o          => dec_funct3,
     inst_type_o       => dec_inst_type
   );
@@ -184,8 +188,8 @@ begin
     v_shamt := to_integer(unsigned(mem_addr_r(1 downto 0))) * 8;
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
     case dec_funct3 is
-      when F3_LB  => load_data_formatted <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32));
-      when F3_LH  => load_data_formatted <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32));
+      when F3_LB  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(7 downto 0)), 32));
+      when F3_LH  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32));
       when F3_LBU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
       when F3_LHU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
       when others => load_data_formatted <= sbi_tgt_i.rdata;
@@ -217,7 +221,7 @@ begin
           when ALU_SRC_B_IMM_S => alu_src_b <= dec_imm_s;
           when ALU_SRC_B_IMM_U => alu_src_b <= dec_imm_u;
           when ALU_SRC_B_IMM_J => alu_src_b <= dec_imm_j;
-          when others => alu_src_b <= (others => '0');
+          when others          => alu_src_b <= (others => '0');
         end case;
 
         alu_op <= dec_alu_op;
@@ -299,12 +303,12 @@ begin
           mem_we_r  <= dec_mem_we;
           alu_res_r <= alu_res;
 
-          if dec_is_jal = '1' or dec_is_jalr = '1' then
+          if dec_pc_sel = PC_SEL_JUMP then
             alu_res_r <= next_pc_r; -- Link address
             next_pc_r <= alu_res;                         -- Target address
             state_r   <= S_BRANCH_DECISION;
 
-          elsif dec_is_branch = '1' then
+          elsif dec_pc_sel = PC_SEL_BRANCH then
             state_r <= S_BRANCH_DECISION;
 
           elsif dec_mem_req = '1' then
@@ -338,7 +342,7 @@ begin
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
-           if dec_is_branch = '1' then
+           if dec_pc_sel = PC_SEL_BRANCH then
               if (dec_funct3 = F3_BEQ  and alu_zero_r = '1') or
                  (dec_funct3 = F3_BNE  and alu_zero_r = '0') or
                  (dec_funct3 = F3_BLT  and alu_sign_r = '1') or
