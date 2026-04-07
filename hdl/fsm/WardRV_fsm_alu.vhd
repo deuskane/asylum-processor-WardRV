@@ -20,7 +20,9 @@ use     ieee.numeric_std.all;
 library asylum;
 
 package WardRV_fsm_alu_pkg is
-  type alu_op_t is (ALU_ADD, ALU_SUB,ALU_SLL, ALU_SLT, ALU_SLTU, ALU_XOR, ALU_SRL, ALU_SRA, ALU_OR, ALU_AND, ALU_PASS_B);
+  type alu_op_t is (ALU_ADD, ALU_SUB,ALU_SLL, ALU_SLT, ALU_SLTU, ALU_XOR, ALU_SRL, ALU_SRA, ALU_OR, ALU_AND
+                    --, ALU_PASS_B
+                    );
 end package WardRV_fsm_alu_pkg;
 
 library ieee;
@@ -79,7 +81,7 @@ begin
       when ALU_SRA    => v_res := std_logic_vector(shift_right(  signed(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
       when ALU_OR     => v_res := src_a_i or  src_b_i;
       when ALU_AND    => v_res := src_a_i and src_b_i;
-      when ALU_PASS_B => v_res := src_b_i;
+      --when ALU_PASS_B => v_res := src_b_i;
       when others     => null;
     end case;
 

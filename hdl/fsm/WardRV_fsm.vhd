@@ -65,12 +65,14 @@ architecture behavioural of WardRV_fsm is
   -- Current Instruction
   signal inst_r              : std_logic_vector(31 downto 0);
 
+  signal imem_valid_r         : std_logic;
+
   -- Internal
-  signal mem_valid_r         : std_logic;
-  signal mem_addr_r          : std_logic_vector(31 downto 0);
-  signal mem_wdata_r         : std_logic_vector(31 downto 0);
-  signal mem_we_r            : std_logic;
-  signal mem_be_r            : std_logic_vector(3 downto 0);
+  signal dmem_valid_r         : std_logic;
+  signal dmem_addr_r          : std_logic_vector(31 downto 0);
+  signal dmem_wdata_r         : std_logic_vector(31 downto 0);
+  signal dmem_we_r            : std_logic;
+  signal dmem_be_r            : std_logic_vector(3 downto 0);
 
   -- ALU Status (for Branch Decision)
   signal alu_res_r           : std_logic_vector(31 downto 0);
@@ -105,11 +107,9 @@ architecture behavioural of WardRV_fsm is
   signal dec_alu_op          : alu_op_t;
   signal dec_alu_src_a_sel   : std_logic;
   signal dec_alu_src_b_sel   : std_logic_vector(2 downto 0);
-  signal dec_mem_req         : std_logic;
-  signal dec_mem_we          : std_logic;
+  signal dec_dmem_req         : std_logic;
+  signal dec_dmem_we          : std_logic;
   signal dec_is_branch       : std_logic;
-  signal dec_is_jal          : std_logic;
-  signal dec_is_jalr         : std_logic;
   signal dec_pc_sel          : std_logic_vector(1 downto 0);
   signal dec_funct3          : bit_vector(2 downto 0);
   signal dec_inst_type       : inst_type_t;
@@ -121,7 +121,10 @@ architecture behavioural of WardRV_fsm is
  
 begin
 
-  
+  -- Fetch Request and Wait
+  inst_ini_o.valid <= imem_valid_r;
+  inst_ini_o.addr  <= pc_r;
+
   -- Decoder Instance
   u_decode : entity work.WardRV_fsm_decode
   port map (
@@ -140,18 +143,19 @@ begin
     alu_op_o          => dec_alu_op,
     alu_src_a_sel_o   => dec_alu_src_a_sel,
     alu_src_b_sel_o   => dec_alu_src_b_sel,
-    mem_req_o         => dec_mem_req,
-    mem_we_o          => dec_mem_we,
+    mem_req_o         => dec_dmem_req,
+    mem_we_o          => dec_dmem_we,
     is_branch_o       => dec_is_branch,
-    is_jal_o          => dec_is_jal,
-    is_jalr_o         => dec_is_jalr,
     pc_sel_o          => dec_pc_sel,
     funct3_o          => dec_funct3,
     inst_type_o       => dec_inst_type
   );
 
   -- Register File Instance
-  regfile_we <= '1' when state_r = S_WRITEBACK and dec_rd_we = '1' and unsigned(dec_rd_addr) /= 0 else '0';
+  regfile_we <= '1' when state_r   = S_WRITEBACK and 
+                         dec_rd_we = '1'         and 
+                         unsigned(dec_rd_addr) /= 0 
+                else '0';
 
   u_regfile : entity work.WardRV_fsm_regfile
   port map (
@@ -185,7 +189,7 @@ begin
     variable v_shamt : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
   begin
-    v_shamt := to_integer(unsigned(mem_addr_r(1 downto 0))) * 8;
+    v_shamt := to_integer(unsigned(dmem_addr_r(1 downto 0))) * 8;
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
     case dec_funct3 is
       when F3_LB  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(7 downto 0)), 32));
@@ -241,12 +245,12 @@ begin
     if arst_b_i = '0' then
       state_r          <= S_FETCH_REQ;
       pc_r             <= RESET_ADDR;
-      inst_ini_o.valid <= '0';
-      mem_valid_r      <= '0';
-      mem_addr_r       <= (others => '0');
-      mem_wdata_r      <= (others => '0');
-      mem_we_r         <= '0';
-      mem_be_r         <= "0000";
+      imem_valid_r     <= '0';
+      dmem_valid_r      <= '0';
+      dmem_addr_r       <= (others => '0');
+      dmem_wdata_r      <= (others => '0');
+      dmem_we_r         <= '0';
+      dmem_be_r         <= "0000";
       inst_r           <= (others => '0');
       next_pc_r        <= (others => '0');
       alu_zero_r       <= '0';
@@ -258,22 +262,20 @@ begin
     elsif rising_edge(clk_i) then
       
       -- Default Bus Outputs
-      inst_ini_o.valid <= '0';
-      mem_valid_r      <= '0';
+      imem_valid_r      <= '0';
+      dmem_valid_r      <= '0';
 
 
       case state_r is
         -- 1. Fetch Request
         when S_FETCH_REQ =>
-          inst_ini_o.valid <= '1';
-          inst_ini_o.addr  <= pc_r;
+          imem_valid_r     <= '1';
           next_pc_r        <= alu_res; -- PC + 4 from ALU
           state_r          <= S_FETCH_WAIT;
 
         -- 2. Fetch Wait
         when S_FETCH_WAIT =>
-          inst_ini_o.valid <= '1';
-          inst_ini_o.addr  <= pc_r;
+          imem_valid_r <= '1';
           if inst_tgt_i.ready = '1' then
             inst_r <= inst_tgt_i.inst;
             -- synthesis translate_off
@@ -281,7 +283,7 @@ begin
             pending_report_r.inst <= to_bitvector(inst_tgt_i.inst);
             -- synthesis translate_on
             state_r <= S_DECODE;
-            inst_ini_o.valid <= '0';
+            imem_valid_r <= '0';
           end if;
 
         -- 3. Decode & Execute (Behavioral)
@@ -300,7 +302,7 @@ begin
           pending_report_r.op2   <= to_bitvector(src_b_val);
           -- synthesis translate_on
 
-          mem_we_r  <= dec_mem_we;
+          dmem_we_r  <= dec_dmem_we;
           alu_res_r <= alu_res;
 
           if dec_pc_sel = PC_SEL_JUMP then
@@ -311,13 +313,13 @@ begin
           elsif dec_pc_sel = PC_SEL_BRANCH then
             state_r <= S_BRANCH_DECISION;
 
-          elsif dec_mem_req = '1' then
-            mem_addr_r <= alu_res;
+          elsif dec_dmem_req = '1' then
+            dmem_addr_r <= alu_res;
             -- synthesis translate_off
             pending_report_r.mem_addr <= to_bitvector(alu_res);
             -- synthesis translate_on
-            if dec_mem_we = '1' then
-              mem_wdata_r <= std_logic_vector(shift_left(unsigned(src_b_val), to_integer(unsigned(alu_res(1 downto 0))) * 8));
+            if dec_dmem_we = '1' then
+              dmem_wdata_r <= std_logic_vector(shift_left(unsigned(src_b_val), to_integer(unsigned(alu_res(1 downto 0))) * 8));
               -- synthesis translate_off
               case dec_funct3 is
                 when F3_SB  => v_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(alu_res(1 downto 0)))));
@@ -327,7 +329,7 @@ begin
               end case;
               pending_report_r.mem_be <= to_bitvector(v_be);
               -- synthesis translate_on
-              mem_be_r <= v_be;
+              dmem_be_r <= v_be;
             end if;
             state_r <= S_MEM_REQ;
 
@@ -356,9 +358,9 @@ begin
 
         -- 4. Memory Access
         when S_MEM_REQ | S_MEM_WAIT =>
-          mem_valid_r <= '1';
+          dmem_valid_r <= '1';
           if sbi_tgt_i.ready = '1' then
-             if mem_we_r = '0' then
+             if dmem_we_r = '0' then
                alu_res_r <= load_data_formatted;
                -- synthesis translate_off
                pending_report_r.mem_rdata <= to_bitvector(load_data_formatted);
@@ -389,11 +391,11 @@ begin
   end process;
 
   -- Bus Output Assignments
-  sbi_ini_o.valid <= mem_valid_r;
-  sbi_ini_o.addr  <= mem_addr_r;
-  sbi_ini_o.wdata <= mem_wdata_r;
-  sbi_ini_o.we    <= mem_we_r;
-  sbi_ini_o.be    <= mem_be_r;
+  sbi_ini_o.valid <= dmem_valid_r;
+  sbi_ini_o.addr  <= dmem_addr_r;
+  sbi_ini_o.wdata <= dmem_wdata_r;
+  sbi_ini_o.we    <= dmem_we_r;
+  sbi_ini_o.be    <= dmem_be_r;
 
 
 end architecture behavioural;
