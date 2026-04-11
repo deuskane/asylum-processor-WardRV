@@ -192,44 +192,11 @@ begin
   );
 
   --------------------------------------------------------------------
-  -- ALU Instance
-  --------------------------------------------------------------------
-  inst_alu : entity work.WardRV_fsm_alu
-  port map (
-    src_a_i => alu_src_a,
-    src_b_i => alu_src_b,
-    op_i    => alu_op,
-    res_o   => alu_res,
-    carry_o => alu_carry,
-    zero_o  => alu_zero,
-    sign_o  => alu_sign
-  );
-
-  --------------------------------------------------------------------
-  -- Memory
-  -- Load Data Formatting (Combinatorial)
-  --------------------------------------------------------------------
-  
-  process(all)
-    variable v_shamt : integer;
-    variable v_rdata : std_logic_vector(31 downto 0);
-  begin
-    -- Take the relevant byte/half-word from the 32-bit read data
-    -- Use shamt to shift the relevant data to the LSBs.
-    v_shamt := to_integer(unsigned(dmem_addr_r(1 downto 0))) * 8;
-    v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
-
-    -- Apply sign or zero extension based on instruction type
-    case dec_dmem_be is
-      when "0001"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '1' else 
-                                             std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
-      when "0011"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '1' else 
-                                             std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-      when others  => load_data_formatted <= sbi_tgt_i.rdata;
-    end case;
-  end process;
-
   -- ALU Control Process (Combinatorial)
+  --------------------------------------------------------------------
+
+  -- ALU is used for PC increment, address calculation, and branch target calculation
+  -- The source operands and operation are determined by the current state and decoded instruction fields.
   process(all)
   begin
     alu_src_a <= (others => '0');
@@ -237,10 +204,12 @@ begin
     alu_op    <= ALU_ADD;
 
     case state_r is
+      -- Fetch: ALU computes PC + 4 for next instruction
       when S_FETCH_REQ =>
         alu_src_a <= pc_r;
         alu_src_b <= x"00000004";
 
+      -- Decode/Execute: ALU sources and operation determined by instruction type
       when S_DECODE =>
         -- Source A selection
         if dec_alu_src_a_sel = ALU_SRC_A_PC then alu_src_a <= pc_r;
@@ -259,6 +228,7 @@ begin
 
         alu_op <= dec_alu_op;
 
+      -- Branch Decision: ALU compute branch destination
       when S_BRANCH_DECISION =>
         alu_src_a <= pc_r;
         alu_src_b <= dec_imm_b;
@@ -266,6 +236,54 @@ begin
       when others => null;
     end case;
   end process;
+
+  --------------------------------------------------------------------
+  -- ALU Instance
+  --------------------------------------------------------------------
+  inst_alu : entity work.WardRV_fsm_alu
+  port map (
+    src_a_i => alu_src_a,
+    src_b_i => alu_src_b,
+    op_i    => alu_op,
+    res_o   => alu_res,
+    carry_o => alu_carry,
+    zero_o  => alu_zero,
+    sign_o  => alu_sign
+  );
+
+
+  --------------------------------------------------------------------
+  -- Bus Output Assignments
+  --------------------------------------------------------------------
+  sbi_ini_o.valid <= dmem_valid_r;
+  sbi_ini_o.addr  <= dmem_addr_r;
+  sbi_ini_o.wdata <= dmem_wdata_r;
+  sbi_ini_o.we    <= dmem_we_r;
+  sbi_ini_o.be    <= dmem_be_r;
+
+  --------------------------------------------------------------------
+  -- Memory
+  -- Load Data Formatting (Combinatorial)
+  --------------------------------------------------------------------
+  process(all)
+    variable v_shamt : integer;
+    variable v_rdata : std_logic_vector(31 downto 0);
+  begin
+    -- Take the relevant byte/half-word from the 32-bit read data
+    -- Use shamt to shift the relevant data to the LSBs.
+    v_shamt := to_integer(unsigned(dmem_addr_r(1 downto 0))) * 8;
+    v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
+
+    -- Apply sign or zero extension based on instruction type
+    case dec_dmem_be is
+      when "0001"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
+                                             std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
+      when "0011"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
+                                             std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
+      when others  => load_data_formatted <= sbi_tgt_i.rdata;
+    end case;
+  end process;
+
 
   process(clk_i, arst_b_i)
     variable v_be    : std_logic_vector(3 downto 0);
@@ -412,13 +430,5 @@ begin
       end case;
     end if;
   end process;
-
-  -- Bus Output Assignments
-  sbi_ini_o.valid <= dmem_valid_r;
-  sbi_ini_o.addr  <= dmem_addr_r;
-  sbi_ini_o.wdata <= dmem_wdata_r;
-  sbi_ini_o.we    <= dmem_we_r;
-  sbi_ini_o.be    <= dmem_be_r;
-
 
 end architecture behavioural;
