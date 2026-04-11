@@ -41,7 +41,6 @@ entity WardRV_fsm_decode is
     branch_flag_is_set_o     : out std_logic;
     pc_sel_o                 : out std_logic_vector(1 downto 0);
     -- Instruction Metadata (for logging/FSM)
-    funct3_o                 : out bit_vector(2 downto 0);
     inst_type_o              : out inst_type_t
   );
 end entity WardRV_fsm_decode;
@@ -52,41 +51,40 @@ architecture behavioural of WardRV_fsm_decode is
   alias funct3   : bit_vector(2 downto 0) is inst_bv(14 downto 12);
   alias funct7   : bit_vector(6 downto 0) is inst_bv(31 downto 25);
 begin
-  inst_bv <= to_bitvector(inst_i);
+  inst_bv    <= to_bitvector(inst_i);
   
   -- Immediate Decoding
-  imm_i_o <= std_logic_vector(resize(signed(inst_i(31 downto 20)), 32));
-  imm_s_o <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31 downto 25) & inst_i(11 downto 7))), 32));
-  imm_b_o <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(7) & inst_i(30 downto 25) & inst_i(11 downto 8) & '0')), 32));
-  imm_u_o <= inst_i(31 downto 12) & x"000";
-  imm_j_o <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(19 downto 12) & inst_i(20) & inst_i(30 downto 21) & '0')), 32));
+  imm_i_o    <= std_logic_vector(resize(signed(inst_i(31 downto 20)), 32));
+  imm_s_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31 downto 25) & inst_i(11 downto 7))), 32));
+  imm_b_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(7) & inst_i(30 downto 25) & inst_i(11 downto 8) & '0')), 32));
+  imm_u_o    <= inst_i(31 downto 12) & x"000";
+  imm_j_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(19 downto 12) & inst_i(20) & inst_i(30 downto 21) & '0')), 32));
 
   -- Register Addresses
   rd_addr_o  <= inst_i(11 downto 7);
   rs1_addr_o <= inst_i(19 downto 15);
   rs2_addr_o <= inst_i(24 downto 20);
-  funct3_o   <= funct3;
 
   process(all)
   begin
     -- Default assignments
-    rd_we_o             <= '0';
-    rs1_re_o            <= '0';
-    rs2_re_o            <= '0';
-    alu_op_o            <= ALU_ADD;
-    alu_src_a_sel_o     <= ALU_SRC_A_RS1; 
-    alu_src_b_sel_o     <= ALU_SRC_B_RS2;
-    mem_req_o           <= '0'; 
-    mem_we_o            <= '0';
-    mem_be_o            <= (others => '0');
-    mem_data_unsigned_o <= '0';
-    is_branch_o         <= '0';
+    rd_we_o                  <= '0';
+    rs1_re_o                 <= '0';
+    rs2_re_o                 <= '0';
+    alu_op_o                 <= ALU_ADD;
+    alu_src_a_sel_o          <= ALU_SRC_A_RS1; 
+    alu_src_b_sel_o          <= ALU_SRC_B_RS2;
+    mem_req_o                <= '0'; 
+    mem_we_o                 <= '0';
+    mem_be_o                 <= (others => '0');
+    mem_data_unsigned_o      <= '0';
+    is_branch_o              <= '0';
     branch_use_flag_zero_o   <= '0';
     branch_use_flag_carry_o  <= '0';
     branch_use_flag_sign_o   <= '0';
     branch_flag_is_set_o     <= '0';
-    pc_sel_o            <= PC_SEL_NEXT;
-    inst_type_o         <= I_UNKNOWN;
+    pc_sel_o                 <= PC_SEL_NEXT;
+    inst_type_o              <= I_UNKNOWN;
 
     case opcode is
       when OPC_LUI =>

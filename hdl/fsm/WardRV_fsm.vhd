@@ -56,74 +56,73 @@ architecture behavioural of WardRV_fsm is
                    S_MEM_REQ, 
                    S_MEM_WAIT, 
                    S_WRITEBACK);
-  signal state_r                : state_t;
+  signal state_r                    : state_t;
 
   -- CPU State
-  signal pc_r                   : std_logic_vector(31 downto 0);
-  signal next_pc_r              : std_logic_vector(31 downto 0);
+  signal pc_r                       : std_logic_vector(31 downto 0);
+  signal next_pc_r                  : std_logic_vector(31 downto 0);
 
   -- Current Instruction
-  signal inst_r                 : std_logic_vector(31 downto 0);
+  signal inst_r                     : std_logic_vector(31 downto 0);
 
-  signal imem_valid_r           : std_logic;
+  signal imem_valid_r               : std_logic;
 
   -- Internal
-  signal dmem_valid_r           : std_logic;
-  signal dmem_addr_r            : std_logic_vector(31 downto 0);
-  signal dmem_wdata_r           : std_logic_vector(31 downto 0);
-  signal dmem_we_r              : std_logic;
-  signal dmem_be_r              : std_logic_vector(3 downto 0);
+  signal dmem_valid_r               : std_logic;
+  signal dmem_addr_r                : std_logic_vector(31 downto 0);
+  signal dmem_wdata_r               : std_logic_vector(31 downto 0);
+  signal dmem_we_r                  : std_logic;
+  signal dmem_be_r                  : std_logic_vector(3 downto 0);
 
   -- ALU Status (for Branch Decision)
-  signal alu_res_r              : std_logic_vector(31 downto 0);
-  signal alu_zero_r             : std_logic;
-  signal alu_sign_r             : std_logic;
-  signal alu_carry_r            : std_logic;
+  signal alu_res_r                  : std_logic_vector(31 downto 0);
+  signal alu_zero_r                 : std_logic;
+  signal alu_sign_r                 : std_logic;
+  signal alu_carry_r                : std_logic;
 
   -- ALU Interconnect
-  signal alu_src_a              : std_logic_vector(31 downto 0);
-  signal alu_src_b              : std_logic_vector(31 downto 0);
-  signal alu_op                 : alu_op_t;
-  signal alu_res                : std_logic_vector(31 downto 0);
-  signal alu_carry              : std_logic;
-  signal alu_zero               : std_logic;
-  signal alu_sign               : std_logic;
+  signal alu_src_a                  : std_logic_vector(31 downto 0);
+  signal alu_src_b                  : std_logic_vector(31 downto 0);
+  signal alu_op                     : alu_op_t;
+  signal alu_res                    : std_logic_vector(31 downto 0);
+  signal alu_carry                  : std_logic;
+  signal alu_zero                   : std_logic;
+  signal alu_sign                   : std_logic;
 
   -- Report structure for logging
-  signal pending_report_r       : inst_t;
+  signal pending_report_r           : inst_t;
 
   -- Signals from Decoder
-  signal dec_imm_i              : std_logic_vector(31 downto 0);
-  signal dec_imm_s              : std_logic_vector(31 downto 0);
-  signal dec_imm_b              : std_logic_vector(31 downto 0);
-  signal dec_imm_u              : std_logic_vector(31 downto 0);
-  signal dec_imm_j              : std_logic_vector(31 downto 0);
-  signal dec_rd_addr            : std_logic_vector(4 downto 0);
-  signal dec_rs1_addr           : std_logic_vector(4 downto 0);
-  signal dec_rs2_addr           : std_logic_vector(4 downto 0);
-  signal dec_rd_we              : std_logic;
-  signal dec_rs1_re             : std_logic;
-  signal dec_rs2_re             : std_logic;
-  signal dec_alu_op             : alu_op_t;
-  signal dec_alu_src_a_sel      : std_logic;
-  signal dec_alu_src_b_sel      : std_logic_vector(2 downto 0);
-  signal dec_dmem_req           : std_logic;
-  signal dec_dmem_we            : std_logic;
-  signal dec_dmem_be            : std_logic_vector(3 downto 0);
-  signal dec_dmem_data_unsigned : std_logic;
-  signal dec_is_branch          : std_logic;
+  signal dec_imm_i                  : std_logic_vector(31 downto 0);
+  signal dec_imm_s                  : std_logic_vector(31 downto 0);
+  signal dec_imm_b                  : std_logic_vector(31 downto 0);
+  signal dec_imm_u                  : std_logic_vector(31 downto 0);
+  signal dec_imm_j                  : std_logic_vector(31 downto 0);
+  signal dec_rd_addr                : std_logic_vector(4 downto 0);
+  signal dec_rs1_addr               : std_logic_vector(4 downto 0);
+  signal dec_rs2_addr               : std_logic_vector(4 downto 0);
+  signal dec_rd_we                  : std_logic;
+  signal dec_rs1_re                 : std_logic;
+  signal dec_rs2_re                 : std_logic;
+  signal dec_alu_op                 : alu_op_t;
+  signal dec_alu_src_a_sel          : std_logic;
+  signal dec_alu_src_b_sel          : std_logic_vector(2 downto 0);
+  signal dec_dmem_req               : std_logic;
+  signal dec_dmem_we                : std_logic;
+  signal dec_dmem_be                : std_logic_vector(3 downto 0);
+  signal dec_dmem_data_unsigned     : std_logic;
+  signal dec_is_branch              : std_logic;
   signal dec_branch_use_flag_zero   : std_logic;
   signal dec_branch_use_flag_carry  : std_logic;
   signal dec_branch_use_flag_sign   : std_logic;
   signal dec_branch_flag_is_set     : std_logic;
-  signal dec_pc_sel             : std_logic_vector(1 downto 0);
-  signal dec_funct3             : bit_vector(2 downto 0);
-  signal dec_inst_type          : inst_type_t;
+  signal dec_pc_sel                 : std_logic_vector(1 downto 0);
+  signal dec_inst_type              : inst_type_t;
      
-  signal src_a_val              : std_logic_vector(31 downto 0);
-  signal src_b_val              : std_logic_vector(31 downto 0);
-  signal load_data_formatted    : std_logic_vector(31 downto 0);
-  signal regfile_we             : std_logic;
+  signal src_a_val                  : std_logic_vector(31 downto 0);
+  signal src_b_val                  : std_logic_vector(31 downto 0);
+  signal load_data_formatted        : std_logic_vector(31 downto 0);
+  signal regfile_we                 : std_logic;
  
 begin
 
@@ -138,33 +137,32 @@ begin
   --------------------------------------------------------------------
   inst_decode : entity work.WardRV_fsm_decode
   port map (
-    inst_i              => inst_r,
-    imm_i_o             => dec_imm_i,
-    imm_s_o             => dec_imm_s,
-    imm_b_o             => dec_imm_b,
-    imm_u_o             => dec_imm_u,
-    imm_j_o             => dec_imm_j,
-    rd_addr_o           => dec_rd_addr,
-    rs1_addr_o          => dec_rs1_addr,
-    rs2_addr_o          => dec_rs2_addr,
-    rd_we_o             => dec_rd_we,
-    rs1_re_o            => dec_rs1_re,
-    rs2_re_o            => dec_rs2_re,
-    alu_op_o            => dec_alu_op,
-    alu_src_a_sel_o     => dec_alu_src_a_sel,
-    alu_src_b_sel_o     => dec_alu_src_b_sel,
-    mem_req_o           => dec_dmem_req,
-    mem_we_o            => dec_dmem_we,
-    mem_be_o            => dec_dmem_be,
-    mem_data_unsigned_o => dec_dmem_data_unsigned,
-    is_branch_o         => dec_is_branch,
+    inst_i                   => inst_r,
+    imm_i_o                  => dec_imm_i,
+    imm_s_o                  => dec_imm_s,
+    imm_b_o                  => dec_imm_b,
+    imm_u_o                  => dec_imm_u,
+    imm_j_o                  => dec_imm_j,
+    rd_addr_o                => dec_rd_addr,
+    rs1_addr_o               => dec_rs1_addr,
+    rs2_addr_o               => dec_rs2_addr,
+    rd_we_o                  => dec_rd_we,
+    rs1_re_o                 => dec_rs1_re,
+    rs2_re_o                 => dec_rs2_re,
+    alu_op_o                 => dec_alu_op,
+    alu_src_a_sel_o          => dec_alu_src_a_sel,
+    alu_src_b_sel_o          => dec_alu_src_b_sel,
+    mem_req_o                => dec_dmem_req,
+    mem_we_o                 => dec_dmem_we,
+    mem_be_o                 => dec_dmem_be,
+    mem_data_unsigned_o      => dec_dmem_data_unsigned,
+    is_branch_o              => dec_is_branch,
     branch_use_flag_zero_o   => dec_branch_use_flag_zero,
     branch_use_flag_carry_o  => dec_branch_use_flag_carry,
     branch_use_flag_sign_o   => dec_branch_use_flag_sign,
     branch_flag_is_set_o     => dec_branch_flag_is_set,
-    pc_sel_o            => dec_pc_sel,
-    funct3_o            => dec_funct3,
-    inst_type_o         => dec_inst_type
+    pc_sel_o                 => dec_pc_sel,
+    inst_type_o              => dec_inst_type
   );
 
   --------------------------------------------------------------------
@@ -370,13 +368,12 @@ begin
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
-           if dec_pc_sel = PC_SEL_BRANCH then
-              if (dec_funct3 = F3_BEQ  and alu_zero_r = '1') or
-                 (dec_funct3 = F3_BNE  and alu_zero_r = '0') or
-                 (dec_funct3 = F3_BLT  and alu_sign_r = '1') or
-                 (dec_funct3 = F3_BGE  and alu_sign_r = '0') or
-                 (dec_funct3 = F3_BLTU and alu_carry_r = '1') or
-                 (dec_funct3 = F3_BGEU and alu_carry_r = '0') then
+           if dec_pc_sel = PC_SEL_BRANCH
+           then
+              if (((alu_zero_r  and dec_branch_use_flag_zero  ) or
+                   (alu_carry_r and dec_branch_use_flag_carry ) or
+                   (alu_sign_r  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)
+              then
                 next_pc_r <= alu_res;
               end if;
            end if;
