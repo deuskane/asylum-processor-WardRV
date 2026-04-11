@@ -76,9 +76,6 @@ architecture behavioural of WardRV_fsm is
 
   -- ALU Status (for Branch Decision)
   signal alu_res_r                  : std_logic_vector(31 downto 0);
-  signal alu_zero_r                 : std_logic;
-  signal alu_sign_r                 : std_logic;
-  signal alu_carry_r                : std_logic;
 
   -- ALU Interconnect
   signal alu_src_a                  : std_logic_vector(31 downto 0);
@@ -172,8 +169,7 @@ begin
   -- Write Enable Logic: 
   -- Only write back for instructions that write registers, and never write to x0
   regfile_we <= '1' when state_r   = S_WRITEBACK and 
-                         dec_rd_we = '1'         and 
-                         unsigned(dec_rd_addr) /= 0 
+                         dec_rd_we = '1' 
                 else '0';
 
   inst_regfile : entity work.WardRV_fsm_regfile
@@ -223,15 +219,18 @@ begin
           when ALU_SRC_B_IMM_S => alu_src_b <= dec_imm_s;
           when ALU_SRC_B_IMM_U => alu_src_b <= dec_imm_u;
           when ALU_SRC_B_IMM_J => alu_src_b <= dec_imm_j;
+          when ALU_SRC_B_IMM_B => alu_src_b <= dec_imm_b;
           when others          => alu_src_b <= (others => '0');
+
         end case;
 
         alu_op <= dec_alu_op;
 
       -- Branch Decision: ALU compute branch destination
       when S_BRANCH_DECISION =>
-        alu_src_a <= pc_r;
-        alu_src_b <= dec_imm_b;
+        alu_op    <= ALU_SUB;
+        alu_src_a <= src_a_val;
+        alu_src_b <= src_b_val;
       
       when others => null;
     end case;
@@ -253,7 +252,9 @@ begin
 
 
   --------------------------------------------------------------------
-  -- Bus Output Assignments
+  -- Memory
+  --
+  -- Data Bus Output Assignments
   --------------------------------------------------------------------
   sbi_ini_o.valid <= dmem_valid_r;
   sbi_ini_o.addr  <= dmem_addr_r;
@@ -263,6 +264,7 @@ begin
 
   --------------------------------------------------------------------
   -- Memory
+  --
   -- Load Data Formatting (Combinatorial)
   --------------------------------------------------------------------
   process(all)
@@ -284,36 +286,38 @@ begin
     end case;
   end process;
 
+  --------------------------------------------------------------------
+  -- FSM
+  --------------------------------------------------------------------
 
   process(clk_i, arst_b_i)
-    variable v_be    : std_logic_vector(3 downto 0);
+    variable v_be     : std_logic_vector(3 downto 0);
     variable v_report : inst_t;
   begin
     if arst_b_i = '0' then
       state_r          <= S_FETCH_REQ;
       pc_r             <= RESET_ADDR;
       imem_valid_r     <= '0';
-      dmem_valid_r      <= '0';
-      dmem_addr_r       <= (others => '0');
-      dmem_wdata_r      <= (others => '0');
-      dmem_we_r         <= '0';
-      dmem_be_r         <= "0000";
+      dmem_valid_r     <= '0';
+      dmem_addr_r      <= (others => '0');
+      dmem_wdata_r     <= (others => '0');
+      dmem_we_r        <= '0';
+      dmem_be_r        <= "0000";
       inst_r           <= (others => '0');
       next_pc_r        <= (others => '0');
-      alu_zero_r       <= '0';
-      alu_carry_r      <= '0';
-      alu_sign_r       <= '0';
+
       -- synthesis translate_off
       pending_report_r <= INST_UNKNOWN;
       -- synthesis translate_on
-    elsif rising_edge(clk_i) then
+
+      elsif rising_edge(clk_i) then
       
       -- Default Bus Outputs
       imem_valid_r      <= '0';
       dmem_valid_r      <= '0';
 
-
       case state_r is
+
         -- 1. Fetch Request
         when S_FETCH_REQ =>
           imem_valid_r     <= '1';
@@ -324,43 +328,47 @@ begin
         when S_FETCH_WAIT =>
           imem_valid_r <= '1';
           if inst_tgt_i.ready = '1' then
-            inst_r <= inst_tgt_i.inst;
+            inst_r       <= inst_tgt_i.inst;
+            state_r      <= S_DECODE;
+            imem_valid_r <= '0';
+
             -- synthesis translate_off
             pending_report_r.pc   <= to_bitvector(pc_r);
             pending_report_r.inst <= to_bitvector(inst_tgt_i.inst);
             -- synthesis translate_on
-            state_r <= S_DECODE;
-            imem_valid_r <= '0';
-          end if;
+
+            end if;
 
         -- 3. Decode & Execute (Behavioral)
         when S_DECODE =>
           -- synthesis translate_off
           pending_report_r.inst_type <= dec_inst_type;
-          pending_report_r.rd    <= to_integer(unsigned(dec_rd_addr));
-          pending_report_r.rs1   <= to_integer(unsigned(dec_rs1_addr));
-          pending_report_r.rs2   <= to_integer(unsigned(dec_rs2_addr));
-          pending_report_r.imm_i <= to_bitvector(dec_imm_i);
-          pending_report_r.imm_s <= to_bitvector(dec_imm_s);
-          pending_report_r.imm_b <= to_bitvector(dec_imm_b);
-          pending_report_r.imm_u <= to_bitvector(dec_imm_u);
-          pending_report_r.imm_j <= to_bitvector(dec_imm_j);
-          pending_report_r.op1   <= to_bitvector(src_a_val);
-          pending_report_r.op2   <= to_bitvector(src_b_val);
+          pending_report_r.rd        <= to_integer(unsigned(dec_rd_addr));
+          pending_report_r.rs1       <= to_integer(unsigned(dec_rs1_addr));
+          pending_report_r.rs2       <= to_integer(unsigned(dec_rs2_addr));
+          pending_report_r.imm_i     <= to_bitvector(dec_imm_i);
+          pending_report_r.imm_s     <= to_bitvector(dec_imm_s);
+          pending_report_r.imm_b     <= to_bitvector(dec_imm_b);
+          pending_report_r.imm_u     <= to_bitvector(dec_imm_u);
+          pending_report_r.imm_j     <= to_bitvector(dec_imm_j);
+          pending_report_r.op1       <= to_bitvector(src_a_val);
+          pending_report_r.op2       <= to_bitvector(src_b_val);
           -- synthesis translate_on
 
           dmem_we_r  <= dec_dmem_we;
-          alu_res_r <= alu_res;
+          alu_res_r  <= alu_res;
 
-          if dec_pc_sel = PC_SEL_JUMP then
-            alu_res_r <= next_pc_r; -- Link address
-            next_pc_r <= alu_res;                         -- Target address
-            state_r   <= S_BRANCH_DECISION;
+          if    dec_pc_sel = PC_SEL_JUMP 
+          then
+            alu_res_r  <= next_pc_r; -- Link address
+            next_pc_r  <= alu_res;   -- Target address
+           end if;
 
-          elsif dec_pc_sel = PC_SEL_BRANCH then
+          if    dec_is_branch = '1'
+          then
             state_r <= S_BRANCH_DECISION;
-
-          elsif dec_dmem_req = '1' then
+          elsif dec_dmem_req = '1' 
+          then
             dmem_addr_r <= alu_res;
             -- synthesis translate_off
             pending_report_r.mem_addr <= to_bitvector(alu_res);
@@ -378,21 +386,16 @@ begin
           else
              state_r   <= S_WRITEBACK;
           end if;
-
-          -- Update Flags from ALU (Combinatorial inputs valid for this state)
-          alu_zero_r  <= alu_zero;
-          alu_sign_r  <= alu_sign;
-          alu_carry_r <= alu_carry;
           
         -- 3.b Branch Decision
         when S_BRANCH_DECISION =>
            if dec_pc_sel = PC_SEL_BRANCH
            then
-              if (((alu_zero_r  and dec_branch_use_flag_zero  ) or
-                   (alu_carry_r and dec_branch_use_flag_carry ) or
-                   (alu_sign_r  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)
+              if (((alu_zero  and dec_branch_use_flag_zero  ) or
+                   (alu_carry and dec_branch_use_flag_carry ) or
+                   (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)
               then
-                next_pc_r <= alu_res;
+                next_pc_r <= alu_res_r;
               end if;
            end if;
            state_r <= S_WRITEBACK;
@@ -413,7 +416,11 @@ begin
 
         -- 5. Writeback
         when S_WRITEBACK =>
-          -- synthesis translate_off
+          state_r <= S_FETCH_REQ;
+          pc_r    <= next_pc_r(31 downto 2) & "00"; -- Ensure PC stays word-aligned
+
+
+        -- synthesis translate_off
           -- Use variables to capture current signal states for accurate logging
           v_report           := pending_report_r;
           v_report.res       := to_bitvector(alu_res_r);
@@ -424,8 +431,6 @@ begin
           end if;
           -- synthesis translate_on
           
-          pc_r    <= next_pc_r(31 downto 2) & "00"; -- Ensure PC stays word-aligned
-          state_r <= S_FETCH_REQ;
 
       end case;
     end if;
