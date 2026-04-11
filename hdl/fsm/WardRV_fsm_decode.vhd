@@ -10,33 +10,35 @@ use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm_decode is
   port (
-    inst_i            : in  std_logic_vector(31 downto 0);
-    -- Immediates
-    imm_i_o           : out std_logic_vector(31 downto 0);
-    imm_s_o           : out std_logic_vector(31 downto 0);
-    imm_b_o           : out std_logic_vector(31 downto 0);
-    imm_u_o           : out std_logic_vector(31 downto 0);
-    imm_j_o           : out std_logic_vector(31 downto 0);
+    inst_i              : in  std_logic_vector(31 downto 0);
+    -- Immediates  
+    imm_i_o             : out std_logic_vector(31 downto 0);
+    imm_s_o             : out std_logic_vector(31 downto 0);
+    imm_b_o             : out std_logic_vector(31 downto 0);
+    imm_u_o             : out std_logic_vector(31 downto 0);
+    imm_j_o             : out std_logic_vector(31 downto 0);
     -- Register File Control
-    rd_addr_o         : out std_logic_vector(4 downto 0);
-    rs1_addr_o        : out std_logic_vector(4 downto 0);
-    rs2_addr_o        : out std_logic_vector(4 downto 0);
-    rd_we_o           : out std_logic;
-    rs1_re_o          : out std_logic;
-    rs2_re_o          : out std_logic;
-    -- ALU Control
-    alu_op_o          : out alu_op_t;
-    alu_src_a_sel_o   : out std_logic; -- 0: RS1, 1: PC
-    alu_src_b_sel_o   : out std_logic_vector(2 downto 0); -- 0:RS2, 1:ImmI, 2:ImmS, 3:ImmU, 4:ImmJ
-    -- Memory Control
-    mem_req_o         : out std_logic;
-    mem_we_o          : out std_logic;
+    rd_addr_o           : out std_logic_vector(4 downto 0);
+    rs1_addr_o          : out std_logic_vector(4 downto 0);
+    rs2_addr_o          : out std_logic_vector(4 downto 0);
+    rd_we_o             : out std_logic;
+    rs1_re_o            : out std_logic;
+    rs2_re_o            : out std_logic;
+    -- ALU Control  
+    alu_op_o            : out alu_op_t;
+    alu_src_a_sel_o     : out std_logic; -- 0: RS1, 1: PC
+    alu_src_b_sel_o     : out std_logic_vector(2 downto 0); -- 0:RS2, 1:ImmI, 2:ImmS, 3:ImmU, 4:ImmJ
+    -- Memory Control  
+    mem_req_o           : out std_logic;
+    mem_we_o            : out std_logic;
+    mem_be_o            : out std_logic_vector(3 downto 0);
+    mem_data_unsigned_o : out std_logic; -- 0 for signed (LB, LH), 1 for unsigned (LBU, LHU)
     -- Control Flow
-    is_branch_o       : out std_logic;
-    pc_sel_o          : out std_logic_vector(1 downto 0);
+    is_branch_o         : out std_logic;
+    pc_sel_o            : out std_logic_vector(1 downto 0);
     -- Instruction Metadata (for logging/FSM)
-    funct3_o          : out bit_vector(2 downto 0);
-    inst_type_o       : out inst_type_t
+    funct3_o            : out bit_vector(2 downto 0);
+    inst_type_o         : out inst_type_t
   );
 end entity WardRV_fsm_decode;
 
@@ -64,17 +66,19 @@ begin
   process(all)
   begin
     -- Default assignments
-    rd_we_o         <= '0';
-    rs1_re_o        <= '0';
-    rs2_re_o        <= '0';
-    alu_op_o        <= ALU_ADD;
-    alu_src_a_sel_o <= ALU_SRC_A_RS1; 
-    alu_src_b_sel_o <= ALU_SRC_B_RS2;
-    mem_req_o       <= '0'; 
-    mem_we_o        <= '0';
-    is_branch_o     <= '0';
-    pc_sel_o        <= PC_SEL_NEXT;
-    inst_type_o     <= I_UNKNOWN;
+    rd_we_o             <= '0';
+    rs1_re_o            <= '0';
+    rs2_re_o            <= '0';
+    alu_op_o            <= ALU_ADD;
+    alu_src_a_sel_o     <= ALU_SRC_A_RS1; 
+    alu_src_b_sel_o     <= ALU_SRC_B_RS2;
+    mem_req_o           <= '0'; 
+    mem_we_o            <= '0';
+    mem_be_o            <= (others => '0');
+    mem_data_unsigned_o <= '0';
+    is_branch_o         <= '0';
+    pc_sel_o            <= PC_SEL_NEXT;
+    inst_type_o         <= I_UNKNOWN;
 
     case opcode is
       when OPC_LUI =>
@@ -88,27 +92,44 @@ begin
       when OPC_BRANCH =>
         rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1'; pc_sel_o <= PC_SEL_BRANCH;
         case funct3 is
-          when F3_BEQ => inst_type_o <= I_BEQ; when F3_BNE => inst_type_o <= I_BNE;
-          when F3_BLT => inst_type_o <= I_BLT; when F3_BGE => inst_type_o <= I_BGE;
-          when F3_BLTU=> inst_type_o <= I_BLTU;when F3_BGEU=> inst_type_o <= I_BGEU;
+          when F3_BEQ => inst_type_o <= I_BEQ; 
+          when F3_BNE => inst_type_o <= I_BNE;
+          when F3_BLT => inst_type_o <= I_BLT; 
+          when F3_BGE => inst_type_o <= I_BGE;
+          when F3_BLTU=> inst_type_o <= I_BLTU;
+          when F3_BGEU=> inst_type_o <= I_BGEU;
           when others => null;
         end case;
       when OPC_LOAD =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; mem_req_o <= '1';
+        rd_we_o         <= '1'; 
+        rs1_re_o        <= '1'; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_I; 
+        mem_req_o       <= '1';
+
         case funct3 is
-          when F3_LB => inst_type_o <= I_LB; when F3_LH => inst_type_o <= I_LH;
-          when F3_LW => inst_type_o <= I_LW; when F3_LBU=> inst_type_o <= I_LBU;
-          when F3_LHU=> inst_type_o <= I_LHU;
+          when F3_LB => inst_type_o <= I_LB;  mem_be_o <= "0001";
+          when F3_LH => inst_type_o <= I_LH;  mem_be_o <= "0011";
+          when F3_LW => inst_type_o <= I_LW;  mem_be_o <= "1111";
+          when F3_LBU=> inst_type_o <= I_LBU; mem_be_o <= "0001"; mem_data_unsigned_o <= '1';
+          when F3_LHU=> inst_type_o <= I_LHU; mem_be_o <= "0011"; mem_data_unsigned_o <= '1';
           when others => null;
         end case;
       when OPC_STORE =>
-        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_S; mem_req_o <= '1'; mem_we_o <= '1';
+        rs1_re_o        <= '1'; 
+        rs2_re_o        <= '1'; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_S; 
+        mem_req_o       <= '1'; 
+        mem_we_o        <= '1';
         case funct3 is
-          when F3_SB => inst_type_o <= I_SB; when F3_SH => inst_type_o <= I_SH;
-          when F3_SW => inst_type_o <= I_SW; when others => null;
+          when F3_SB => inst_type_o <= I_SB; mem_be_o <= "0001"; 
+          when F3_SH => inst_type_o <= I_SH; mem_be_o <= "0011";
+          when F3_SW => inst_type_o <= I_SW; mem_be_o <= "1111";
+          when others => null;
         end case;
       when OPC_OP_IMM =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
+        rd_we_o         <= '1'; 
+        rs1_re_o        <= '1'; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
         case funct3 is
           when F3_ADD  => alu_op_o <= ALU_ADD;  inst_type_o <= I_ADDI;
           when F3_SLT  => alu_op_o <= ALU_SLT;  inst_type_o <= I_SLTI;

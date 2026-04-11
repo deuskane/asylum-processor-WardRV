@@ -56,108 +56,121 @@ architecture behavioural of WardRV_fsm is
                    S_MEM_REQ, 
                    S_MEM_WAIT, 
                    S_WRITEBACK);
-  signal state_r             : state_t;
+  signal state_r                : state_t;
 
   -- CPU State
-  signal pc_r                : std_logic_vector(31 downto 0);
-  signal next_pc_r           : std_logic_vector(31 downto 0);
+  signal pc_r                   : std_logic_vector(31 downto 0);
+  signal next_pc_r              : std_logic_vector(31 downto 0);
 
   -- Current Instruction
-  signal inst_r              : std_logic_vector(31 downto 0);
+  signal inst_r                 : std_logic_vector(31 downto 0);
 
-  signal imem_valid_r         : std_logic;
+  signal imem_valid_r           : std_logic;
 
   -- Internal
-  signal dmem_valid_r         : std_logic;
-  signal dmem_addr_r          : std_logic_vector(31 downto 0);
-  signal dmem_wdata_r         : std_logic_vector(31 downto 0);
-  signal dmem_we_r            : std_logic;
-  signal dmem_be_r            : std_logic_vector(3 downto 0);
+  signal dmem_valid_r           : std_logic;
+  signal dmem_addr_r            : std_logic_vector(31 downto 0);
+  signal dmem_wdata_r           : std_logic_vector(31 downto 0);
+  signal dmem_we_r              : std_logic;
+  signal dmem_be_r              : std_logic_vector(3 downto 0);
 
   -- ALU Status (for Branch Decision)
-  signal alu_res_r           : std_logic_vector(31 downto 0);
-  signal alu_zero_r          : std_logic;
-  signal alu_sign_r          : std_logic;
-  signal alu_carry_r         : std_logic;
+  signal alu_res_r              : std_logic_vector(31 downto 0);
+  signal alu_zero_r             : std_logic;
+  signal alu_sign_r             : std_logic;
+  signal alu_carry_r            : std_logic;
 
   -- ALU Interconnect
-  signal alu_src_a           : std_logic_vector(31 downto 0);
-  signal alu_src_b           : std_logic_vector(31 downto 0);
-  signal alu_op              : alu_op_t;
-  signal alu_res             : std_logic_vector(31 downto 0);
-  signal alu_carry           : std_logic;
-  signal alu_zero            : std_logic;
-  signal alu_sign            : std_logic;
+  signal alu_src_a              : std_logic_vector(31 downto 0);
+  signal alu_src_b              : std_logic_vector(31 downto 0);
+  signal alu_op                 : alu_op_t;
+  signal alu_res                : std_logic_vector(31 downto 0);
+  signal alu_carry              : std_logic;
+  signal alu_zero               : std_logic;
+  signal alu_sign               : std_logic;
 
   -- Report structure for logging
-  signal pending_report_r    : inst_t;
+  signal pending_report_r       : inst_t;
 
   -- Signals from Decoder
-  signal dec_imm_i           : std_logic_vector(31 downto 0);
-  signal dec_imm_s           : std_logic_vector(31 downto 0);
-  signal dec_imm_b           : std_logic_vector(31 downto 0);
-  signal dec_imm_u           : std_logic_vector(31 downto 0);
-  signal dec_imm_j           : std_logic_vector(31 downto 0);
-  signal dec_rd_addr         : std_logic_vector(4 downto 0);
-  signal dec_rs1_addr        : std_logic_vector(4 downto 0);
-  signal dec_rs2_addr        : std_logic_vector(4 downto 0);
-  signal dec_rd_we           : std_logic;
-  signal dec_rs1_re          : std_logic;
-  signal dec_rs2_re          : std_logic;
-  signal dec_alu_op          : alu_op_t;
-  signal dec_alu_src_a_sel   : std_logic;
-  signal dec_alu_src_b_sel   : std_logic_vector(2 downto 0);
-  signal dec_dmem_req         : std_logic;
-  signal dec_dmem_we          : std_logic;
-  signal dec_is_branch       : std_logic;
-  signal dec_pc_sel          : std_logic_vector(1 downto 0);
-  signal dec_funct3          : bit_vector(2 downto 0);
-  signal dec_inst_type       : inst_type_t;
-  
-  signal src_a_val           : std_logic_vector(31 downto 0);
-  signal src_b_val           : std_logic_vector(31 downto 0);
-  signal load_data_formatted : std_logic_vector(31 downto 0);
-  signal regfile_we          : std_logic;
+  signal dec_imm_i              : std_logic_vector(31 downto 0);
+  signal dec_imm_s              : std_logic_vector(31 downto 0);
+  signal dec_imm_b              : std_logic_vector(31 downto 0);
+  signal dec_imm_u              : std_logic_vector(31 downto 0);
+  signal dec_imm_j              : std_logic_vector(31 downto 0);
+  signal dec_rd_addr            : std_logic_vector(4 downto 0);
+  signal dec_rs1_addr           : std_logic_vector(4 downto 0);
+  signal dec_rs2_addr           : std_logic_vector(4 downto 0);
+  signal dec_rd_we              : std_logic;
+  signal dec_rs1_re             : std_logic;
+  signal dec_rs2_re             : std_logic;
+  signal dec_alu_op             : alu_op_t;
+  signal dec_alu_src_a_sel      : std_logic;
+  signal dec_alu_src_b_sel      : std_logic_vector(2 downto 0);
+  signal dec_dmem_req           : std_logic;
+  signal dec_dmem_we            : std_logic;
+  signal dec_dmem_be            : std_logic_vector(3 downto 0);
+  signal dec_dmem_data_unsigned : std_logic;
+  signal dec_is_branch          : std_logic;
+  signal dec_pc_sel             : std_logic_vector(1 downto 0);
+  signal dec_funct3             : bit_vector(2 downto 0);
+  signal dec_inst_type          : inst_type_t;
+     
+  signal src_a_val              : std_logic_vector(31 downto 0);
+  signal src_b_val              : std_logic_vector(31 downto 0);
+  signal load_data_formatted    : std_logic_vector(31 downto 0);
+  signal regfile_we             : std_logic;
  
 begin
 
+  --------------------------------------------------------------------
   -- Fetch Request and Wait
+  --------------------------------------------------------------------
   inst_ini_o.valid <= imem_valid_r;
   inst_ini_o.addr  <= pc_r;
 
+  --------------------------------------------------------------------
   -- Decoder Instance
-  u_decode : entity work.WardRV_fsm_decode
+  --------------------------------------------------------------------
+  inst_decode : entity work.WardRV_fsm_decode
   port map (
-    inst_i            => inst_r,
-    imm_i_o           => dec_imm_i,
-    imm_s_o           => dec_imm_s,
-    imm_b_o           => dec_imm_b,
-    imm_u_o           => dec_imm_u,
-    imm_j_o           => dec_imm_j,
-    rd_addr_o         => dec_rd_addr,
-    rs1_addr_o        => dec_rs1_addr,
-    rs2_addr_o        => dec_rs2_addr,
-    rd_we_o           => dec_rd_we,
-    rs1_re_o          => dec_rs1_re,
-    rs2_re_o          => dec_rs2_re,
-    alu_op_o          => dec_alu_op,
-    alu_src_a_sel_o   => dec_alu_src_a_sel,
-    alu_src_b_sel_o   => dec_alu_src_b_sel,
-    mem_req_o         => dec_dmem_req,
-    mem_we_o          => dec_dmem_we,
-    is_branch_o       => dec_is_branch,
-    pc_sel_o          => dec_pc_sel,
-    funct3_o          => dec_funct3,
-    inst_type_o       => dec_inst_type
+    inst_i              => inst_r,
+    imm_i_o             => dec_imm_i,
+    imm_s_o             => dec_imm_s,
+    imm_b_o             => dec_imm_b,
+    imm_u_o             => dec_imm_u,
+    imm_j_o             => dec_imm_j,
+    rd_addr_o           => dec_rd_addr,
+    rs1_addr_o          => dec_rs1_addr,
+    rs2_addr_o          => dec_rs2_addr,
+    rd_we_o             => dec_rd_we,
+    rs1_re_o            => dec_rs1_re,
+    rs2_re_o            => dec_rs2_re,
+    alu_op_o            => dec_alu_op,
+    alu_src_a_sel_o     => dec_alu_src_a_sel,
+    alu_src_b_sel_o     => dec_alu_src_b_sel,
+    mem_req_o           => dec_dmem_req,
+    mem_we_o            => dec_dmem_we,
+    mem_be_o            => dec_dmem_be,
+    mem_data_unsigned_o => dec_dmem_data_unsigned,
+    is_branch_o         => dec_is_branch,
+    pc_sel_o            => dec_pc_sel,
+    funct3_o            => dec_funct3,
+    inst_type_o         => dec_inst_type
   );
 
+  --------------------------------------------------------------------
   -- Register File Instance
+  --------------------------------------------------------------------
+
+  -- Write Enable Logic: 
+  -- Only write back for instructions that write registers, and never write to x0
   regfile_we <= '1' when state_r   = S_WRITEBACK and 
                          dec_rd_we = '1'         and 
                          unsigned(dec_rd_addr) /= 0 
                 else '0';
 
-  u_regfile : entity work.WardRV_fsm_regfile
+  inst_regfile : entity work.WardRV_fsm_regfile
   port map (
     clk_i       => clk_i,
     arst_b_i    => arst_b_i,
@@ -172,8 +185,10 @@ begin
     rd_we_i     => regfile_we
   );
 
+  --------------------------------------------------------------------
   -- ALU Instance
-  u_alu : entity work.WardRV_fsm_alu
+  --------------------------------------------------------------------
+  inst_alu : entity work.WardRV_fsm_alu
   port map (
     src_a_i => alu_src_a,
     src_b_i => alu_src_b,
@@ -184,17 +199,25 @@ begin
     sign_o  => alu_sign
   );
 
+  --------------------------------------------------------------------
+  -- Memory
   -- Load Data Formatting (Combinatorial)
+  --------------------------------------------------------------------
+  
   process(all)
     variable v_shamt : integer;
     variable v_rdata : std_logic_vector(31 downto 0);
   begin
+    -- Take the relevant byte/half-word from the 32-bit read data
+    -- Use shamt to shift the relevant data to the LSBs.
     v_shamt := to_integer(unsigned(dmem_addr_r(1 downto 0))) * 8;
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
+
+    -- Apply sign or zero extension based on instruction type
     case dec_funct3 is
-      when F3_LB  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(7 downto 0)), 32));
+      when F3_LB  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32));
       when F3_LH  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32));
-      when F3_LBU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
+      when F3_LBU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
       when F3_LHU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
       when others => load_data_formatted <= sbi_tgt_i.rdata;
     end case;
