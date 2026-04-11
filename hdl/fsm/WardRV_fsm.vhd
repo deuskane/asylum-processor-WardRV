@@ -112,6 +112,10 @@ architecture behavioural of WardRV_fsm is
   signal dec_dmem_be            : std_logic_vector(3 downto 0);
   signal dec_dmem_data_unsigned : std_logic;
   signal dec_is_branch          : std_logic;
+  signal dec_branch_use_flag_zero   : std_logic;
+  signal dec_branch_use_flag_carry  : std_logic;
+  signal dec_branch_use_flag_sign   : std_logic;
+  signal dec_branch_flag_is_set     : std_logic;
   signal dec_pc_sel             : std_logic_vector(1 downto 0);
   signal dec_funct3             : bit_vector(2 downto 0);
   signal dec_inst_type          : inst_type_t;
@@ -154,6 +158,10 @@ begin
     mem_be_o            => dec_dmem_be,
     mem_data_unsigned_o => dec_dmem_data_unsigned,
     is_branch_o         => dec_is_branch,
+    branch_use_flag_zero_o   => dec_branch_use_flag_zero,
+    branch_use_flag_carry_o  => dec_branch_use_flag_carry,
+    branch_use_flag_sign_o   => dec_branch_use_flag_sign,
+    branch_flag_is_set_o     => dec_branch_flag_is_set,
     pc_sel_o            => dec_pc_sel,
     funct3_o            => dec_funct3,
     inst_type_o         => dec_inst_type

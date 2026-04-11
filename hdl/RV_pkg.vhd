@@ -38,6 +38,7 @@ package RV_pkg is
 
   -- RV32I Funct3
   constant F3_ADD_SUB   : bit_vector(2 downto 0) := "000";
+  constant F3_ADD       : bit_vector(2 downto 0) := "000";
   constant F3_SLL       : bit_vector(2 downto 0) := "001";
   constant F3_SLT       : bit_vector(2 downto 0) := "010";
   constant F3_SLTU      : bit_vector(2 downto 0) := "011";
@@ -45,7 +46,6 @@ package RV_pkg is
   constant F3_SRL_SRA   : bit_vector(2 downto 0) := "101";
   constant F3_OR        : bit_vector(2 downto 0) := "110";
   constant F3_AND       : bit_vector(2 downto 0) := "111";
-  constant F3_ADD       : bit_vector(2 downto 0) := "000";
   
   -- RV32I Funct7
   constant F7_DEFAULT   : bit_vector(6 downto 0) := "0000000";

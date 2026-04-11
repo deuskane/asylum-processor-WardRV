@@ -34,11 +34,15 @@ entity WardRV_fsm_decode is
     mem_be_o            : out std_logic_vector(3 downto 0);
     mem_data_unsigned_o : out std_logic; -- 0 for signed (LB, LH), 1 for unsigned (LBU, LHU)
     -- Control Flow
-    is_branch_o         : out std_logic;
-    pc_sel_o            : out std_logic_vector(1 downto 0);
+    is_branch_o              : out std_logic;
+    branch_use_flag_zero_o   : out std_logic;
+    branch_use_flag_carry_o  : out std_logic;
+    branch_use_flag_sign_o   : out std_logic;
+    branch_flag_is_set_o     : out std_logic;
+    pc_sel_o                 : out std_logic_vector(1 downto 0);
     -- Instruction Metadata (for logging/FSM)
-    funct3_o            : out bit_vector(2 downto 0);
-    inst_type_o         : out inst_type_t
+    funct3_o                 : out bit_vector(2 downto 0);
+    inst_type_o              : out inst_type_t
   );
 end entity WardRV_fsm_decode;
 
@@ -77,6 +81,10 @@ begin
     mem_be_o            <= (others => '0');
     mem_data_unsigned_o <= '0';
     is_branch_o         <= '0';
+    branch_use_flag_zero_o   <= '0';
+    branch_use_flag_carry_o  <= '0';
+    branch_use_flag_sign_o   <= '0';
+    branch_flag_is_set_o     <= '0';
     pc_sel_o            <= PC_SEL_NEXT;
     inst_type_o         <= I_UNKNOWN;
 
@@ -92,12 +100,12 @@ begin
       when OPC_BRANCH =>
         rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1'; pc_sel_o <= PC_SEL_BRANCH;
         case funct3 is
-          when F3_BEQ => inst_type_o <= I_BEQ; 
-          when F3_BNE => inst_type_o <= I_BNE;
-          when F3_BLT => inst_type_o <= I_BLT; 
-          when F3_BGE => inst_type_o <= I_BGE;
-          when F3_BLTU=> inst_type_o <= I_BLTU;
-          when F3_BGEU=> inst_type_o <= I_BGEU;
+          when F3_BEQ => inst_type_o <= I_BEQ;  branch_use_flag_zero_o  <= '1'; branch_flag_is_set_o <= '1';
+          when F3_BNE => inst_type_o <= I_BNE;  branch_use_flag_zero_o  <= '1';
+          when F3_BLT => inst_type_o <= I_BLT;  branch_use_flag_sign_o  <= '1'; branch_flag_is_set_o <= '1';
+          when F3_BGE => inst_type_o <= I_BGE;  branch_use_flag_sign_o  <= '1';
+          when F3_BLTU=> inst_type_o <= I_BLTU; branch_use_flag_carry_o <= '1'; branch_flag_is_set_o <= '1';
+          when F3_BGEU=> inst_type_o <= I_BGEU; branch_use_flag_carry_o <= '1';
           when others => null;
         end case;
       when OPC_LOAD =>
