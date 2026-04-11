@@ -13,6 +13,7 @@ package WardRV_decode_pkg is
   constant ALU_SRC_B_IMM_S : std_logic_vector(2 downto 0) := "010";
   constant ALU_SRC_B_IMM_U : std_logic_vector(2 downto 0) := "011";
   constant ALU_SRC_B_IMM_J : std_logic_vector(2 downto 0) := "100";
+  constant ALU_SRC_B_IMM_B : std_logic_vector(2 downto 0) := "101";
 
   -- PC Source Selection
   constant PC_SEL_NEXT     : std_logic_vector(1 downto 0) := "00"; -- PC + 4

@@ -88,22 +88,57 @@ begin
 
     case opcode is
       when OPC_LUI =>
-        rd_we_o <= '1'; alu_op_o <= ALU_OR; alu_src_b_sel_o <= ALU_SRC_B_IMM_U; inst_type_o <= I_LUI;
+        rd_we_o         <= '1'; 
+        alu_op_o        <= ALU_OR; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_U; 
+        inst_type_o     <= I_LUI;
       when OPC_AUIPC =>
-        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_U; inst_type_o <= I_AUIPC;
+        rd_we_o         <= '1';
+        alu_src_a_sel_o <= ALU_SRC_A_PC;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_U;
+        inst_type_o     <= I_AUIPC;
       when OPC_JAL =>
-        rd_we_o <= '1'; alu_src_a_sel_o <= ALU_SRC_A_PC; alu_src_b_sel_o <= ALU_SRC_B_IMM_J; is_branch_o <= '1'; pc_sel_o <= PC_SEL_JUMP; inst_type_o <= I_JAL;
+        rd_we_o         <= '1';
+        alu_src_a_sel_o <= ALU_SRC_A_PC;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_J;
+        pc_sel_o        <= PC_SEL_JUMP;
+        inst_type_o     <= I_JAL;
       when OPC_JALR =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; alu_src_b_sel_o <= ALU_SRC_B_IMM_I; is_branch_o <= '1'; pc_sel_o <= PC_SEL_JUMP; inst_type_o <= I_JALR;
+        rd_we_o         <= '1';
+        rs1_re_o        <= '1';
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
+        pc_sel_o        <= PC_SEL_JUMP;
+        inst_type_o     <= I_JALR;
       when OPC_BRANCH =>
-        rs1_re_o <= '1'; rs2_re_o <= '1'; alu_op_o <= ALU_SUB; is_branch_o <= '1'; pc_sel_o <= PC_SEL_BRANCH;
+        rs1_re_o        <= '1';
+        rs2_re_o        <= '1';
+        alu_src_a_sel_o <= ALU_SRC_A_PC;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM_B;
+        alu_op_o        <= ALU_ADD;
+        is_branch_o     <= '1';
+        pc_sel_o        <= PC_SEL_BRANCH;
         case funct3 is
-          when F3_BEQ => inst_type_o <= I_BEQ;  branch_use_flag_zero_o  <= '1'; branch_flag_is_set_o <= '1';
-          when F3_BNE => inst_type_o <= I_BNE;  branch_use_flag_zero_o  <= '1';
-          when F3_BLT => inst_type_o <= I_BLT;  branch_use_flag_sign_o  <= '1'; branch_flag_is_set_o <= '1';
-          when F3_BGE => inst_type_o <= I_BGE;  branch_use_flag_sign_o  <= '1';
-          when F3_BLTU=> inst_type_o <= I_BLTU; branch_use_flag_carry_o <= '1'; branch_flag_is_set_o <= '1';
-          when F3_BGEU=> inst_type_o <= I_BGEU; branch_use_flag_carry_o <= '1';
+          when F3_BEQ =>
+            inst_type_o            <= I_BEQ;
+            branch_use_flag_zero_o <= '1';
+            branch_flag_is_set_o   <= '1';
+          when F3_BNE =>
+            inst_type_o            <= I_BNE;
+            branch_use_flag_zero_o <= '1';
+          when F3_BLT =>
+            inst_type_o            <= I_BLT;
+            branch_use_flag_sign_o <= '1';
+            branch_flag_is_set_o   <= '1';
+          when F3_BGE =>
+            inst_type_o            <= I_BGE;
+            branch_use_flag_sign_o <= '1';
+          when F3_BLTU=>
+            inst_type_o             <= I_BLTU;
+            branch_use_flag_carry_o <= '1';
+            branch_flag_is_set_o    <= '1';
+          when F3_BGEU=>
+            inst_type_o             <= I_BGEU;
+            branch_use_flag_carry_o <= '1';
           when others => null;
         end case;
       when OPC_LOAD =>
@@ -113,11 +148,23 @@ begin
         mem_req_o       <= '1';
 
         case funct3 is
-          when F3_LB => inst_type_o <= I_LB;  mem_be_o <= "0001";
-          when F3_LH => inst_type_o <= I_LH;  mem_be_o <= "0011";
-          when F3_LW => inst_type_o <= I_LW;  mem_be_o <= "1111";
-          when F3_LBU=> inst_type_o <= I_LBU; mem_be_o <= "0001"; mem_data_unsigned_o <= '1';
-          when F3_LHU=> inst_type_o <= I_LHU; mem_be_o <= "0011"; mem_data_unsigned_o <= '1';
+          when F3_LB =>
+            inst_type_o         <= I_LB;
+            mem_be_o            <= "0001";
+          when F3_LH =>
+            inst_type_o         <= I_LH;
+            mem_be_o            <= "0011";
+          when F3_LW =>
+            inst_type_o         <= I_LW;
+            mem_be_o            <= "1111";
+          when F3_LBU=>
+            inst_type_o         <= I_LBU;
+            mem_be_o            <= "0001";
+            mem_data_unsigned_o <= '1';
+          when F3_LHU=>
+            inst_type_o         <= I_LHU;
+            mem_be_o            <= "0011";
+            mem_data_unsigned_o <= '1';
           when others => null;
         end case;
       when OPC_STORE =>
@@ -127,9 +174,15 @@ begin
         mem_req_o       <= '1'; 
         mem_we_o        <= '1';
         case funct3 is
-          when F3_SB => inst_type_o <= I_SB; mem_be_o <= "0001"; 
-          when F3_SH => inst_type_o <= I_SH; mem_be_o <= "0011";
-          when F3_SW => inst_type_o <= I_SW; mem_be_o <= "1111";
+          when F3_SB =>
+            inst_type_o <= I_SB;
+            mem_be_o    <= "0001";
+          when F3_SH =>
+            inst_type_o <= I_SH;
+            mem_be_o    <= "0011";
+          when F3_SW =>
+            inst_type_o <= I_SW;
+            mem_be_o    <= "1111";
           when others => null;
         end case;
       when OPC_OP_IMM =>
@@ -137,37 +190,82 @@ begin
         rs1_re_o        <= '1'; 
         alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
         case funct3 is
-          when F3_ADD  => alu_op_o <= ALU_ADD;  inst_type_o <= I_ADDI;
-          when F3_SLT  => alu_op_o <= ALU_SLT;  inst_type_o <= I_SLTI;
-          when F3_SLTU => alu_op_o <= ALU_SLTU; inst_type_o <= I_SLTIU;
-          when F3_XOR  => alu_op_o <= ALU_XOR;  inst_type_o <= I_XORI;
-          when F3_OR   => alu_op_o <= ALU_OR;   inst_type_o <= I_ORI;
-          when F3_AND  => alu_op_o <= ALU_AND;  inst_type_o <= I_ANDI;
-          when F3_SLL  => alu_op_o <= ALU_SLL;  inst_type_o <= I_SLLI;
+          when F3_ADD  =>
+            alu_op_o    <= ALU_ADD;
+            inst_type_o <= I_ADDI;
+          when F3_SLT  =>
+            alu_op_o    <= ALU_SLT;
+            inst_type_o <= I_SLTI;
+          when F3_SLTU =>
+            alu_op_o    <= ALU_SLTU;
+            inst_type_o <= I_SLTIU;
+          when F3_XOR  =>
+            alu_op_o    <= ALU_XOR;
+            inst_type_o <= I_XORI;
+          when F3_OR   =>
+            alu_op_o    <= ALU_OR;
+            inst_type_o <= I_ORI;
+          when F3_AND  =>
+            alu_op_o    <= ALU_AND;
+            inst_type_o <= I_ANDI;
+          when F3_SLL  =>
+            alu_op_o    <= ALU_SLL;
+            inst_type_o <= I_SLLI;
           when F3_SRL_SRA => 
-            if funct7(5) = '1' then alu_op_o <= ALU_SRA; inst_type_o <= I_SRAI;
-            else                    alu_op_o <= ALU_SRL; inst_type_o <= I_SRLI; end if;
+            if funct7(5) = '1' then
+              alu_op_o    <= ALU_SRA;
+              inst_type_o <= I_SRAI;
+            else
+              alu_op_o    <= ALU_SRL;
+              inst_type_o <= I_SRLI;
+            end if;
           when others => null;
         end case;
       when OPC_OP =>
-        rd_we_o <= '1'; rs1_re_o <= '1'; rs2_re_o <= '1';
+        rd_we_o  <= '1';
+        rs1_re_o <= '1';
+        rs2_re_o <= '1';
         case funct3 is
           when F3_ADD => 
-            if funct7(5) = '1' then alu_op_o <= ALU_SUB; inst_type_o <= I_SUB;
-            else                    alu_op_o <= ALU_ADD; inst_type_o <= I_ADD; end if;
-          when F3_SLL => alu_op_o <= ALU_SLL; inst_type_o <= I_SLL;
-          when F3_SLT => alu_op_o <= ALU_SLT; inst_type_o <= I_SLT;
-          when F3_SLTU=> alu_op_o <= ALU_SLTU;inst_type_o <= I_SLTU;
-          when F3_XOR => alu_op_o <= ALU_XOR; inst_type_o <= I_XOR;
+            if funct7(5) = '1' then
+              alu_op_o    <= ALU_SUB;
+              inst_type_o <= I_SUB;
+            else
+              alu_op_o    <= ALU_ADD;
+              inst_type_o <= I_ADD;
+            end if;
+          when F3_SLL =>
+            alu_op_o    <= ALU_SLL;
+            inst_type_o <= I_SLL;
+          when F3_SLT =>
+            alu_op_o    <= ALU_SLT;
+            inst_type_o <= I_SLT;
+          when F3_SLTU=>
+            alu_op_o    <= ALU_SLTU;
+            inst_type_o <= I_SLTU;
+          when F3_XOR =>
+            alu_op_o    <= ALU_XOR;
+            inst_type_o <= I_XOR;
           when F3_SRL_SRA => 
-            if funct7(5) = '1' then alu_op_o <= ALU_SRA; inst_type_o <= I_SRA;
-            else                    alu_op_o <= ALU_SRL; inst_type_o <= I_SRL; end if;
-          when F3_OR  => alu_op_o <= ALU_OR;  inst_type_o <= I_OR;
-          when F3_AND => alu_op_o <= ALU_AND; inst_type_o <= I_AND;
+            if funct7(5) = '1' then
+              alu_op_o    <= ALU_SRA;
+              inst_type_o <= I_SRA;
+            else
+              alu_op_o    <= ALU_SRL;
+              inst_type_o <= I_SRL;
+            end if;
+          when F3_OR  =>
+            alu_op_o    <= ALU_OR;
+            inst_type_o <= I_OR;
+          when F3_AND =>
+            alu_op_o    <= ALU_AND;
+            inst_type_o <= I_AND;
           when others => null;
         end case;
       when OPC_SYSTEM =>
-        rd_we_o <= '1'; alu_op_o <= ALU_OR; inst_type_o <= I_UNKNOWN;
+        rd_we_o     <= '1';
+        alu_op_o    <= ALU_OR;
+        inst_type_o <= I_UNKNOWN;
       when others =>
         inst_type_o <= I_UNKNOWN;
     end case;
