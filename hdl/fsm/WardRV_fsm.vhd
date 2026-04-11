@@ -214,12 +214,12 @@ begin
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
 
     -- Apply sign or zero extension based on instruction type
-    case dec_funct3 is
-      when F3_LB  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32));
-      when F3_LH  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32));
-      when F3_LBU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
-      when F3_LHU => load_data_formatted <= std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-      when others => load_data_formatted <= sbi_tgt_i.rdata;
+    case dec_dmem_be is
+      when "0001"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '1' else 
+                                             std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
+      when "0011"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '1' else 
+                                             std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
+      when others  => load_data_formatted <= sbi_tgt_i.rdata;
     end case;
   end process;
 
@@ -342,17 +342,12 @@ begin
             pending_report_r.mem_addr <= to_bitvector(alu_res);
             -- synthesis translate_on
             if dec_dmem_we = '1' then
-              dmem_wdata_r <= std_logic_vector(shift_left(unsigned(src_b_val), to_integer(unsigned(alu_res(1 downto 0))) * 8));
+              dmem_wdata_r <= std_logic_vector(shift_left(unsigned(src_b_val)  , to_integer(unsigned(alu_res(1 downto 0))) * 8));
+              v_be         := std_logic_vector(shift_left(unsigned(dec_dmem_be), to_integer(unsigned(alu_res(1 downto 0)))));
+              dmem_be_r    <= v_be;
               -- synthesis translate_off
-              case dec_funct3 is
-                when F3_SB  => v_be := std_logic_vector(shift_left(unsigned'("0001"), to_integer(unsigned(alu_res(1 downto 0)))));
-                when F3_SH  => v_be := std_logic_vector(shift_left(unsigned'("0011"), to_integer(unsigned(alu_res(1 downto 0)))));
-                when F3_SW  => v_be := "1111";
-                when others => v_be := "0000";
-              end case;
               pending_report_r.mem_be <= to_bitvector(v_be);
               -- synthesis translate_on
-              dmem_be_r <= v_be;
             end if;
             state_r <= S_MEM_REQ;
 
