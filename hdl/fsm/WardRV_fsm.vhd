@@ -116,6 +116,8 @@ architecture behavioural of WardRV_fsm is
   signal dec_pc_sel                 : std_logic_vector(1 downto 0);
   signal dec_inst_type              : inst_type_t;
      
+  signal alu_src_a_sel              : std_logic;
+  signal alu_src_b_sel              : std_logic_vector(2 downto 0);
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
   signal load_data_formatted        : std_logic_vector(31 downto 0);
@@ -195,50 +197,44 @@ begin
   -- The source operands and operation are determined by the current state and decoded instruction fields.
   process(all)
   begin
-    alu_src_a <= (others => '0');
-    alu_src_b <= (others => '0');
-    alu_op    <= ALU_ADD;
 
     case state_r is
       -- Fetch: ALU computes PC + 4 for next instruction
       when S_FETCH_REQ =>
-        alu_src_a <= pc_r;
-        alu_src_b <= x"00000004";
-
-      -- Decode/Execute: ALU sources and operation determined by instruction type
-      when S_DECODE =>
-        -- Source A selection
-        if dec_alu_src_a_sel = ALU_SRC_A_PC then alu_src_a <= pc_r;
-        else                                     alu_src_a <= src_a_val;
-        end if;
-
-        -- Source B selection
-        case dec_alu_src_b_sel is
-          when ALU_SRC_B_RS2   => alu_src_b <= src_b_val;
-          when ALU_SRC_B_IMM_I => alu_src_b <= dec_imm_i;
-          when ALU_SRC_B_IMM_S => alu_src_b <= dec_imm_s;
-          when ALU_SRC_B_IMM_U => alu_src_b <= dec_imm_u;
-          when ALU_SRC_B_IMM_J => alu_src_b <= dec_imm_j;
-          when ALU_SRC_B_IMM_B => alu_src_b <= dec_imm_b;
-          when others          => alu_src_b <= (others => '0');
-
-        end case;
-
-        alu_op <= dec_alu_op;
+        alu_op        <= ALU_ADD;
+        alu_src_a_sel <= ALU_SRC_A_PC;
+        alu_src_b_sel <= ALU_SRC_B_IMM_4;
 
       -- Branch Decision: ALU compute branch destination
       when S_BRANCH_DECISION =>
-        alu_op    <= ALU_SUB;
-        alu_src_a <= src_a_val;
-        alu_src_b <= src_b_val;
+        alu_op        <= ALU_SUB;
+        alu_src_a_sel <= ALU_SRC_A_RS1;
+        alu_src_b_sel <= ALU_SRC_B_RS2;
       
-      when others => null;
+      -- Decode/Execute: ALU sources and operation determined by instruction type
+      when others => 
+      --when S_DECODE =>
+        alu_op        <= dec_alu_op;
+        alu_src_a_sel <= dec_alu_src_a_sel;
+        alu_src_b_sel <= dec_alu_src_b_sel;
+
     end case;
   end process;
 
   --------------------------------------------------------------------
   -- ALU Instance
   --------------------------------------------------------------------
+  alu_src_a <= pc_r          when alu_src_a_sel = ALU_SRC_A_PC    else 
+               src_a_val;  --when alu_src_a_sel = ALU_SRC_A_RS1
+
+  alu_src_b <= dec_imm_i     when alu_src_b_sel = ALU_SRC_B_IMM_I else 
+               dec_imm_s     when alu_src_b_sel = ALU_SRC_B_IMM_S else
+               dec_imm_u     when alu_src_b_sel = ALU_SRC_B_IMM_U else
+               dec_imm_j     when alu_src_b_sel = ALU_SRC_B_IMM_J else
+               dec_imm_b     when alu_src_b_sel = ALU_SRC_B_IMM_B else
+               x"00000004"   when alu_src_b_sel = ALU_SRC_B_IMM_4 else
+               src_b_val;  --when alu_src_b_sel = ALU_SRC_B_RS2 
+               
   inst_alu : entity work.WardRV_fsm_alu
   port map (
     src_a_i => alu_src_a,

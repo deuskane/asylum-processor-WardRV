@@ -14,10 +14,16 @@ package WardRV_decode_pkg is
   constant ALU_SRC_B_IMM_U : std_logic_vector(2 downto 0) := "011";
   constant ALU_SRC_B_IMM_J : std_logic_vector(2 downto 0) := "100";
   constant ALU_SRC_B_IMM_B : std_logic_vector(2 downto 0) := "101";
+  constant ALU_SRC_B_IMM_4 : std_logic_vector(2 downto 0) := "110";
 
   -- PC Source Selection
   constant PC_SEL_NEXT     : std_logic_vector(1 downto 0) := "00"; -- PC + 4
   constant PC_SEL_BRANCH   : std_logic_vector(1 downto 0) := "10"; -- Branchements
   constant PC_SEL_JUMP     : std_logic_vector(1 downto 0) := "11"; -- JAL, JALR
   
+  -- RD Source Selection (for writeback)
+  constant RD_SRC_ALU      : std_logic_vector(1 downto 0) := "00";
+  constant RD_SRC_MEM      : std_logic_vector(1 downto 0) := "01";
+  constant RD_SRC_PC_PLUS4 : std_logic_vector(1 downto 0) := "10";
+
 end package;
