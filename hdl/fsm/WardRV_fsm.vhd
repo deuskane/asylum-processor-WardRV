@@ -71,10 +71,13 @@ architecture behavioural of WardRV_fsm is
 
   -- Internal
   signal dmem_valid_r               : std_logic;
-  signal dmem_addr_r                : std_logic_vector(31 downto 0);
-  signal dmem_wdata_r               : std_logic_vector(31 downto 0);
-  signal dmem_we_r                  : std_logic;
-  signal dmem_be_r                  : std_logic_vector(3 downto 0);
+  signal dmem_ready                 : std_logic;
+  signal dmem_addr                  : std_logic_vector(31 downto 0);
+  signal dmem_wdata                 : std_logic_vector(31 downto 0);
+  signal dmem_rdata                 : std_logic_vector(31 downto 0);
+  signal dmem_rdata_r               : std_logic_vector(31 downto 0);
+  signal dmem_we                    : std_logic;
+  signal dmem_be                    : std_logic_vector(3 downto 0);
 
   -- ALU Status (for Branch Decision)
   signal alu_res_r                  : std_logic_vector(31 downto 0);
@@ -123,7 +126,6 @@ architecture behavioural of WardRV_fsm is
   signal alu_src_b_sel              : alu_src_b_sel_t;
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
-  signal load_data_formatted        : std_logic_vector(31 downto 0);
   signal regfile_rd_we              : std_logic;
   signal regfile_rd_wdata           : std_logic_vector(31 downto 0);
 begin
@@ -174,14 +176,14 @@ begin
 
   -- Write Enable Logic: 
   -- Only write back for instructions that write registers, and never write to x0
-  regfile_rd_we <= '1' when state_r   = S_WRITEBACK and 
-                         dec_rd_we = '1' else
-                   '0';
+  regfile_rd_we    <= '1' when state_r   = S_WRITEBACK and 
+                               dec_rd_we = '1' else
+                      '0';
 
-  regfile_rd_wdata <= alu_res_r ;--         when dec_rd_src = RD_SRC_ALU else
-                      --mem_rdata_r        when dec_rd_src = RD_SRC_MEM else
-                      --pc_seq_r        ;--when dec_rd_src = RD_SRC_PC_PLUS4;
-
+  regfile_rd_wdata <= dmem_rdata_r when dec_rd_src = RD_SRC_MEM      else
+                      pc_seq_r     when dec_rd_src = RD_SRC_PC_PLUS4 else
+                      alu_res_r; --when dec_rd_src = RD_SRC_ALU      else
+                      
   inst_regfile : entity work.WardRV_fsm_regfile
   port map (
     clk_i       => clk_i,
@@ -259,11 +261,17 @@ begin
   --
   -- Data Bus Output Assignments
   --------------------------------------------------------------------
+  dmem_ready      <= sbi_tgt_i.ready;
+  dmem_addr       <= alu_res_r;
+  dmem_be         <= std_logic_vector(shift_left(unsigned(dec_dmem_be), to_integer(unsigned(dmem_addr(1 downto 0)))));
+  dmem_wdata      <= std_logic_vector(shift_left(unsigned(src_b_val)  , to_integer(unsigned(dmem_addr(1 downto 0))) * 8));
+  dmem_we         <= dec_dmem_we;
+
   sbi_ini_o.valid <= dmem_valid_r;
-  sbi_ini_o.addr  <= dmem_addr_r;
-  sbi_ini_o.wdata <= dmem_wdata_r;
-  sbi_ini_o.we    <= dmem_we_r;
-  sbi_ini_o.be    <= dmem_be_r;
+  sbi_ini_o.addr  <= dmem_addr   ;
+  sbi_ini_o.wdata <= dmem_wdata  ;
+  sbi_ini_o.we    <= dmem_we     ;
+  sbi_ini_o.be    <= dmem_be     ;
 
   --------------------------------------------------------------------
   -- Memory
@@ -276,17 +284,31 @@ begin
   begin
     -- Take the relevant byte/half-word from the 32-bit read data
     -- Use shamt to shift the relevant data to the LSBs.
-    v_shamt := to_integer(unsigned(dmem_addr_r(1 downto 0))) * 8;
+    v_shamt := to_integer(unsigned(dmem_addr(1 downto 0))) * 8;
     v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
 
     -- Apply sign or zero extension based on instruction type
     case dec_dmem_be is
-      when "0001"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
-                                             std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
-      when "0011"  => load_data_formatted <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
-                                             std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-      when others  => load_data_formatted <= sbi_tgt_i.rdata;
+      when "0001"  => dmem_rdata <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
+                                    std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
+      when "0011"  => dmem_rdata <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
+                                    std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
+      when others  => dmem_rdata <= v_rdata; -- Word access, no formatting needed
     end case;
+  end process;
+
+  process(clk_i, arst_b_i)
+  begin
+    if arst_b_i = '0' 
+    then
+        dmem_rdata_r <= (others => '0');
+    elsif rising_edge(clk_i) 
+    then
+        if dmem_valid_r = '1' and dmem_ready = '1' 
+        then
+            dmem_rdata_r <= dmem_rdata;
+        end if;
+    end if; 
   end process;
 
   --------------------------------------------------------------------
@@ -294,7 +316,6 @@ begin
   --------------------------------------------------------------------
 
   process(clk_i, arst_b_i)
-    variable v_be     : std_logic_vector(3 downto 0);
     variable v_npc    : std_logic_vector(31 downto 0);
     variable v_report : inst_t;
   begin
@@ -304,10 +325,8 @@ begin
       pc_seq_r         <= (others => '0');
       imem_valid_r     <= '0';
       dmem_valid_r     <= '0';
-      dmem_addr_r      <= (others => '0');
-      dmem_wdata_r     <= (others => '0');
-      dmem_we_r        <= '0';
-      dmem_be_r        <= "0000";
+
+      alu_res_r        <= (others => '0');
       inst_r           <= (others => '0');
       next_pc_r        <= (others => '0');
 
@@ -360,12 +379,10 @@ begin
           pending_report_r.op2       <= to_bitvector(src_b_val);
           -- synthesis translate_on
 
-          dmem_we_r  <= dec_dmem_we;
           alu_res_r  <= alu_res;
 
           if    dec_pc_sel = PC_SEL_JUMP 
           then
-            alu_res_r  <= pc_seq_r; -- Link address
             next_pc_r  <= alu_res;  -- Target address
            end if;
 
@@ -374,18 +391,11 @@ begin
             state_r <= S_BRANCH_DECISION;
           elsif dec_dmem_req = '1' 
           then
-            dmem_addr_r <= alu_res;
             -- synthesis translate_off
-            pending_report_r.mem_addr <= to_bitvector(alu_res);
-            -- synthesis translate_on
-            if dec_dmem_we = '1' then
-              dmem_wdata_r <= std_logic_vector(shift_left(unsigned(src_b_val)  , to_integer(unsigned(alu_res(1 downto 0))) * 8));
-              v_be         := std_logic_vector(shift_left(unsigned(dec_dmem_be), to_integer(unsigned(alu_res(1 downto 0)))));
-              dmem_be_r    <= v_be;
-              -- synthesis translate_off
-              pending_report_r.mem_be <= to_bitvector(v_be);
+            pending_report_r.mem_addr <= to_bitvector(dmem_addr);
+            pending_report_r.mem_be   <= to_bitvector(dmem_be  );
               -- synthesis translate_on
-            end if;
+
             state_r <= S_MEM_REQ;
 
           else
@@ -410,13 +420,10 @@ begin
         -- 4. Memory Access
         when S_MEM_REQ | S_MEM_WAIT =>
           dmem_valid_r <= '1';
-          if sbi_tgt_i.ready = '1' then
-             if dmem_we_r = '0' then
-               alu_res_r <= load_data_formatted;
-               -- synthesis translate_off
-               pending_report_r.mem_rdata <= to_bitvector(load_data_formatted);
-               -- synthesis translate_on
-             end if;
+          if dmem_ready = '1' then
+             -- synthesis translate_off
+             pending_report_r.mem_rdata <= to_bitvector(dmem_rdata);
+             -- synthesis translate_on
              state_r <= S_WRITEBACK;
           else state_r <= S_MEM_WAIT;
           end if;
@@ -424,7 +431,7 @@ begin
         -- 5. Writeback
         when S_WRITEBACK =>
           state_r <= S_FETCH_REQ;
-          v_npc   := pc_seq_r(31 downto 2) & "00" when dec_pc_sel = PC_SEL_NEXT else
+          v_npc   := pc_seq_r (31 downto 2) & "00" when dec_pc_sel = PC_SEL_NEXT else
                      next_pc_r(31 downto 2) & "00"; -- Ensure PC stays word-aligned
           pc_r    <= v_npc;
 
@@ -434,7 +441,8 @@ begin
           v_report.res       := to_bitvector(alu_res_r);
           v_report.npc       := to_bitvector(v_npc);
           
-          if VERBOSE then
+          if VERBOSE 
+          then
             print_inst(v_report, "exec_fsm.log");
           end if;
           -- synthesis translate_on
