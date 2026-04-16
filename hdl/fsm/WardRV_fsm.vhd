@@ -59,7 +59,9 @@ architecture behavioural of WardRV_fsm is
   signal state_r                    : state_t;
 
   -- CPU State
+  signal pc_r_next                  : std_logic_vector(31 downto 0);
   signal pc_r                       : std_logic_vector(31 downto 0);
+  signal pc_seq_r                   : std_logic_vector(31 downto 0); -- PC + 4
   signal next_pc_r                  : std_logic_vector(31 downto 0);
 
   -- Current Instruction
@@ -99,11 +101,12 @@ architecture behavioural of WardRV_fsm is
   signal dec_rs1_addr               : std_logic_vector(4 downto 0);
   signal dec_rs2_addr               : std_logic_vector(4 downto 0);
   signal dec_rd_we                  : std_logic;
+  signal dec_rd_src                 : rd_src_t;
   signal dec_rs1_re                 : std_logic;
   signal dec_rs2_re                 : std_logic;
   signal dec_alu_op                 : alu_op_t;
-  signal dec_alu_src_a_sel          : std_logic;
-  signal dec_alu_src_b_sel          : std_logic_vector(2 downto 0);
+  signal dec_alu_src_a_sel          : alu_src_a_sel_t;
+  signal dec_alu_src_b_sel          : alu_src_b_sel_t;
   signal dec_dmem_req               : std_logic;
   signal dec_dmem_we                : std_logic;
   signal dec_dmem_be                : std_logic_vector(3 downto 0);
@@ -116,13 +119,13 @@ architecture behavioural of WardRV_fsm is
   signal dec_pc_sel                 : std_logic_vector(1 downto 0);
   signal dec_inst_type              : inst_type_t;
      
-  signal alu_src_a_sel              : std_logic;
-  signal alu_src_b_sel              : std_logic_vector(2 downto 0);
+  signal alu_src_a_sel              : alu_src_a_sel_t;
+  signal alu_src_b_sel              : alu_src_b_sel_t;
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
   signal load_data_formatted        : std_logic_vector(31 downto 0);
-  signal regfile_we                 : std_logic;
- 
+  signal regfile_rd_we              : std_logic;
+  signal regfile_rd_wdata           : std_logic_vector(31 downto 0);
 begin
 
   --------------------------------------------------------------------
@@ -146,6 +149,7 @@ begin
     rs1_addr_o               => dec_rs1_addr,
     rs2_addr_o               => dec_rs2_addr,
     rd_we_o                  => dec_rd_we,
+    rd_src_o                 => dec_rd_src,
     rs1_re_o                 => dec_rs1_re,
     rs2_re_o                 => dec_rs2_re,
     alu_op_o                 => dec_alu_op,
@@ -170,9 +174,13 @@ begin
 
   -- Write Enable Logic: 
   -- Only write back for instructions that write registers, and never write to x0
-  regfile_we <= '1' when state_r   = S_WRITEBACK and 
-                         dec_rd_we = '1' 
-                else '0';
+  regfile_rd_we <= '1' when state_r   = S_WRITEBACK and 
+                         dec_rd_we = '1' else
+                   '0';
+
+  regfile_rd_wdata <= alu_res_r ;--         when dec_rd_src = RD_SRC_ALU else
+                      --mem_rdata_r        when dec_rd_src = RD_SRC_MEM else
+                      --pc_seq_r        ;--when dec_rd_src = RD_SRC_PC_PLUS4;
 
   inst_regfile : entity work.WardRV_fsm_regfile
   port map (
@@ -185,8 +193,8 @@ begin
     rs2_re_i    => dec_rs2_re,
     rs2_rdata_o => src_b_val,
     rd_addr_i   => dec_rd_addr,
-    rd_wdata_i  => alu_res_r,
-    rd_we_i     => regfile_we
+    rd_wdata_i  => regfile_rd_wdata,
+    rd_we_i     => regfile_rd_we
   );
 
   --------------------------------------------------------------------
@@ -246,7 +254,6 @@ begin
     sign_o  => alu_sign
   );
 
-
   --------------------------------------------------------------------
   -- Memory
   --
@@ -288,11 +295,13 @@ begin
 
   process(clk_i, arst_b_i)
     variable v_be     : std_logic_vector(3 downto 0);
+    variable v_npc    : std_logic_vector(31 downto 0);
     variable v_report : inst_t;
   begin
     if arst_b_i = '0' then
       state_r          <= S_FETCH_REQ;
       pc_r             <= RESET_ADDR;
+      pc_seq_r         <= (others => '0');
       imem_valid_r     <= '0';
       dmem_valid_r     <= '0';
       dmem_addr_r      <= (others => '0');
@@ -317,7 +326,7 @@ begin
         -- 1. Fetch Request
         when S_FETCH_REQ =>
           imem_valid_r     <= '1';
-          next_pc_r        <= alu_res; -- PC + 4 from ALU
+          pc_seq_r         <= alu_res; -- PC + 4 from ALU
           state_r          <= S_FETCH_WAIT;
 
         -- 2. Fetch Wait
@@ -356,8 +365,8 @@ begin
 
           if    dec_pc_sel = PC_SEL_JUMP 
           then
-            alu_res_r  <= next_pc_r; -- Link address
-            next_pc_r  <= alu_res;   -- Target address
+            alu_res_r  <= pc_seq_r; -- Link address
+            next_pc_r  <= alu_res;  -- Target address
            end if;
 
           if    dec_is_branch = '1'
@@ -392,6 +401,8 @@ begin
                    (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)
               then
                 next_pc_r <= alu_res_r;
+              else
+                next_pc_r <= pc_seq_r; -- Not taken, go to next instruction
               end if;
            end if;
            state_r <= S_WRITEBACK;
@@ -413,14 +424,15 @@ begin
         -- 5. Writeback
         when S_WRITEBACK =>
           state_r <= S_FETCH_REQ;
-          pc_r    <= next_pc_r(31 downto 2) & "00"; -- Ensure PC stays word-aligned
-
+          v_npc   := pc_seq_r(31 downto 2) & "00" when dec_pc_sel = PC_SEL_NEXT else
+                     next_pc_r(31 downto 2) & "00"; -- Ensure PC stays word-aligned
+          pc_r    <= v_npc;
 
         -- synthesis translate_off
           -- Use variables to capture current signal states for accurate logging
           v_report           := pending_report_r;
           v_report.res       := to_bitvector(alu_res_r);
-          v_report.npc       := to_bitvector(next_pc_r);
+          v_report.npc       := to_bitvector(v_npc);
           
           if VERBOSE then
             print_inst(v_report, "exec_fsm.log");

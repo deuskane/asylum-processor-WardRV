@@ -10,36 +10,39 @@ use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm_decode is
   port (
-    inst_i              : in  std_logic_vector(31 downto 0);
-    -- Immediates  
-    imm_i_o             : out std_logic_vector(31 downto 0);
-    imm_s_o             : out std_logic_vector(31 downto 0);
-    imm_b_o             : out std_logic_vector(31 downto 0);
-    imm_u_o             : out std_logic_vector(31 downto 0);
-    imm_j_o             : out std_logic_vector(31 downto 0);
+    inst_i                   : in  std_logic_vector(31 downto 0);
+    -- Immediates       
+    imm_i_o                  : out std_logic_vector(31 downto 0);
+    imm_s_o                  : out std_logic_vector(31 downto 0);
+    imm_b_o                  : out std_logic_vector(31 downto 0);
+    imm_u_o                  : out std_logic_vector(31 downto 0);
+    imm_j_o                  : out std_logic_vector(31 downto 0);
     -- Register File Control
-    rd_addr_o           : out std_logic_vector(4 downto 0);
-    rs1_addr_o          : out std_logic_vector(4 downto 0);
-    rs2_addr_o          : out std_logic_vector(4 downto 0);
-    rd_we_o             : out std_logic;
-    rs1_re_o            : out std_logic;
-    rs2_re_o            : out std_logic;
-    -- ALU Control  
-    alu_op_o            : out alu_op_t;
-    alu_src_a_sel_o     : out std_logic; -- 0: RS1, 1: PC
-    alu_src_b_sel_o     : out std_logic_vector(2 downto 0); -- 0:RS2, 1:ImmI, 2:ImmS, 3:ImmU, 4:ImmJ
-    -- Memory Control  
-    mem_req_o           : out std_logic;
-    mem_we_o            : out std_logic;
-    mem_be_o            : out std_logic_vector(3 downto 0);
-    mem_data_unsigned_o : out std_logic; -- 0 for signed (LB, LH), 1 for unsigned (LBU, LHU)
+    rd_addr_o                : out std_logic_vector(4 downto 0);
+    rs1_addr_o               : out std_logic_vector(4 downto 0);
+    rs2_addr_o               : out std_logic_vector(4 downto 0);
+
+    rd_src_o                 : out rd_src_t;
+    rd_we_o                  : out std_logic;
+    rs1_re_o                 : out std_logic;
+    rs2_re_o                 : out std_logic;
+    -- ALU Control       
+    alu_op_o                 : out alu_op_t;
+    alu_src_a_sel_o          : out alu_src_a_sel_t; -- 0: RS1, 1: PC
+    alu_src_b_sel_o          : out alu_src_b_sel_t; -- 0:RS2, 1:ImmI, 2:ImmS, 3:ImmU, 4:ImmJ
+    -- Memory Control       
+    mem_req_o                : out std_logic;
+    mem_we_o                 : out std_logic;
+    mem_be_o                 : out std_logic_vector(3 downto 0);
+    mem_data_unsigned_o      : out std_logic; -- 0 for signed (LB, LH), 1 for unsigned (LBU, LHU)
     -- Control Flow
     is_branch_o              : out std_logic;
     branch_use_flag_zero_o   : out std_logic;
     branch_use_flag_carry_o  : out std_logic;
     branch_use_flag_sign_o   : out std_logic;
     branch_flag_is_set_o     : out std_logic;
-    pc_sel_o                 : out std_logic_vector(1 downto 0);
+    pc_sel_o                 : out pc_sel_t;
+
     -- Instruction Metadata (for logging/FSM)
     inst_type_o              : out inst_type_t
   );
@@ -68,6 +71,7 @@ begin
   process(all)
   begin
     -- Default assignments
+    rd_src_o                 <= RD_SRC_ALU;
     rd_we_o                  <= '0';
     rs1_re_o                 <= '0';
     rs2_re_o                 <= '0';
@@ -99,12 +103,14 @@ begin
         inst_type_o     <= I_AUIPC;
       when OPC_JAL =>
         rd_we_o         <= '1';
+        rd_src_o        <= RD_SRC_PC_PLUS4;
         alu_src_a_sel_o <= ALU_SRC_A_PC;
         alu_src_b_sel_o <= ALU_SRC_B_IMM_J;
         pc_sel_o        <= PC_SEL_JUMP;
         inst_type_o     <= I_JAL;
       when OPC_JALR =>
         rd_we_o         <= '1';
+        rd_src_o        <= RD_SRC_PC_PLUS4;
         rs1_re_o        <= '1';
         alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
         pc_sel_o        <= PC_SEL_JUMP;
@@ -143,6 +149,7 @@ begin
         end case;
       when OPC_LOAD =>
         rd_we_o         <= '1'; 
+        rd_src_o        <= RD_SRC_MEM;
         rs1_re_o        <= '1'; 
         alu_src_b_sel_o <= ALU_SRC_B_IMM_I; 
         mem_req_o       <= '1';
