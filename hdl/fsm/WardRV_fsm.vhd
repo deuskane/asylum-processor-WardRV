@@ -61,21 +61,26 @@ architecture behavioural of WardRV_fsm is
 
   -- CPU State
   signal pc_r_next                  : std_logic_vector(31 downto 0);
+  signal pc_r_we                    : std_logic;
   signal pc_r                       : std_logic_vector(31 downto 0);
+  signal pc_seq_r_we                : std_logic;
   signal pc_seq_r                   : std_logic_vector(31 downto 0); -- PC + 4
 
   signal branch_taken               : std_logic;
+  signal branch_taken_r_we          : std_logic;
   signal branch_taken_r             : std_logic;
 
   -- Current Instruction
   signal inst_r                     : std_logic_vector(31 downto 0);
 
+  signal imem_valid                 : std_logic;
   signal imem_valid_r               : std_logic;
   signal imem_ready                 : std_logic;
   signal imem_addr                  : std_logic_vector(31 downto 0);
   signal imem_rdata                 : std_logic_vector(31 downto 0);
 
   -- Internal
+  signal dmem_valid                 : std_logic;
   signal dmem_valid_r               : std_logic;
   signal dmem_ready                 : std_logic;
   signal dmem_addr                  : std_logic_vector(31 downto 0);
@@ -86,6 +91,7 @@ architecture behavioural of WardRV_fsm is
   signal dmem_be                    : std_logic_vector(3 downto 0);
 
   -- ALU Status (for Branch Decision)
+  signal alu_res_r_we               : std_logic;
   signal alu_res_r                  : std_logic_vector(31 downto 0);
 
   -- ALU Interconnect
@@ -132,50 +138,10 @@ architecture behavioural of WardRV_fsm is
   signal alu_src_b_sel              : alu_src_b_sel_t;
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
+  signal regfile_we                 : std_logic;
   signal regfile_rd_we              : std_logic;
   signal regfile_rd_wdata           : std_logic_vector(31 downto 0);
 begin
-
-  --------------------------------------------------------------------
-  -- Program Counter Logic
-  --------------------------------------------------------------------
-
-  branch_taken <= '1' when(((alu_zero  and dec_branch_use_flag_zero  ) or
-                               (alu_carry and dec_branch_use_flag_carry ) or
-                               (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
-                   else '0';
-
-  pc_r_next    <= alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
-                                                     (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
-                  pc_seq_r; -- Ensure PC stays word-aligned
-
-  process(clk_i, arst_b_i)
-  begin
-    if arst_b_i = '0' then
-      pc_seq_r       <= (others => '0');
-      pc_r           <= RESET_ADDR;
-      branch_taken_r <= '0';
-    elsif rising_edge(clk_i)
-    then
-      if (state_r = S_FETCH_REQ)
-      then
-        pc_seq_r <= alu_res; -- PC + 4 computed by ALU
-      end if;
-
-      if (state_r = S_BRANCH_DECISION)
-      then
-        branch_taken_r <= branch_taken;
-      end if;
-
-
-      if (state_r = S_WRITEBACK)
-      then
-        pc_r <= pc_r_next;
-      end if;
-
-    end if;
-  end process;
-
 
   --------------------------------------------------------------------
   -- Fetch Request and Wait
@@ -195,8 +161,7 @@ begin
       
     elsif rising_edge(clk_i)
     then
-      imem_valid_r     <= '1' when (state_r_next = S_FETCH_REQ ) or 
-                                   (state_r_next = S_FETCH_WAIT) else '0';
+      imem_valid_r     <= imem_valid;
 
       if (imem_valid_r = '1') and (imem_ready = '1')
       then
@@ -246,9 +211,7 @@ begin
 
   -- Write Enable Logic: 
   -- Only write back for instructions that write registers, and never write to x0
-  regfile_rd_we    <= '1' when state_r   = S_WRITEBACK and 
-                               dec_rd_we = '1' else
-                      '0';
+  regfile_rd_we    <= dec_rd_we and regfile_we;
 
   regfile_rd_wdata <= dmem_rdata_r when dec_rd_src = RD_SRC_MEM      else
                       pc_seq_r     when dec_rd_src = RD_SRC_PC_PLUS4 else
@@ -332,7 +295,7 @@ begin
       alu_res_r <= (others => '0');
       elsif rising_edge(clk_i)
     then
-      if (state_r = S_DECODE) 
+      if (alu_res_r_we = '1')
       then
         alu_res_r <= alu_res;
       end if;
@@ -350,12 +313,7 @@ begin
       dmem_valid_r     <= '0';
     elsif rising_edge(clk_i)
     then
-      if (state_r_next = S_MEM_REQ ) or 
-         (state_r_next = S_MEM_WAIT) then
-        dmem_valid_r <= '1';
-      else
-        dmem_valid_r <= '0';
-      end if;
+      dmem_valid_r <= dmem_valid; -- Default assignment from control signal
     end if;
   end process;
 
@@ -410,8 +368,59 @@ begin
   end process;
 
   --------------------------------------------------------------------
+  -- Program Counter Logic
+  --------------------------------------------------------------------
+
+  branch_taken <= '1' when(((alu_zero  and dec_branch_use_flag_zero  ) or
+                            (alu_carry and dec_branch_use_flag_carry ) or
+                            (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
+                   else '0';
+
+  pc_r_next    <= alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
+                                                     (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
+                  pc_seq_r; -- Ensure PC stays word-aligned
+
+  process(clk_i, arst_b_i)
+  begin
+    if arst_b_i = '0' then
+      pc_seq_r       <= (others => '0');
+      pc_r           <= RESET_ADDR;
+      branch_taken_r <= '0';
+    elsif rising_edge(clk_i)
+    then
+      if (pc_seq_r_we = '1')
+      then
+        pc_seq_r <= alu_res; -- PC + 4 computed by ALU
+      end if;
+
+      if (branch_taken_r_we = '1')
+      then
+        branch_taken_r <= branch_taken;
+      end if;
+
+      if (pc_r_we = '1')
+      then
+        pc_r <= pc_r_next;
+      end if;
+
+    end if;
+  end process;
+
+
+  --------------------------------------------------------------------
   -- FSM
   --------------------------------------------------------------------
+  imem_valid         <= '1' when (state_r_next = S_FETCH_REQ ) or 
+                                 (state_r_next = S_FETCH_WAIT) else '0';
+  dmem_valid         <= '1' when (state_r_next = S_MEM_REQ   ) or 
+                                 (state_r_next = S_MEM_WAIT  ) else '0';
+  regfile_we         <= '1' when state_r = S_WRITEBACK         else '0';
+  alu_res_r_we       <= '1' when state_r = S_DECODE            else '0';
+  pc_seq_r_we        <= '1' when state_r = S_FETCH_REQ         else '0';
+  branch_taken_r_we  <= '1' when state_r = S_BRANCH_DECISION   else '0';
+  pc_r_we            <= '1' when state_r = S_WRITEBACK         else '0';
+
+
   process(all)
   begin
     state_r_next <= state_r;
@@ -465,7 +474,7 @@ begin
   -- synthesis translate_off
 
   --------------------------------------------------------------------
-  -- 
+  -- Reporting Process (for logging executed instructions)
   --------------------------------------------------------------------
 
   process(clk_i, arst_b_i)
