@@ -49,12 +49,11 @@ end entity WardRV_fsm;
 architecture behavioural of WardRV_fsm is
 
   -- State Machine
-  type state_t is (S_FETCH_REQ, 
-                   S_FETCH_WAIT,
+  type state_t is (S_FETCH, 
                    S_DECODE, 
+                   S_EXECUTE,
                    S_BRANCH_DECISION, 
-                   S_MEM_REQ, 
-                   S_MEM_WAIT, 
+                   S_MEMORY, 
                    S_WRITEBACK);
   signal state_r                    : state_t;
   signal state_r_next               : state_t;
@@ -243,7 +242,7 @@ begin
 
     case state_r is
       -- Fetch: ALU computes PC + 4 for next instruction
-      when S_FETCH_REQ =>
+      when S_FETCH =>
         alu_op        <= ALU_ADD;
         alu_src_a_sel <= ALU_SRC_A_PC;
         alu_src_b_sel <= ALU_SRC_B_IMM_4;
@@ -406,39 +405,35 @@ begin
     end if;
   end process;
 
-
   --------------------------------------------------------------------
   -- FSM
   --------------------------------------------------------------------
-  imem_valid         <= '1' when (state_r_next = S_FETCH_REQ ) or 
-                                 (state_r_next = S_FETCH_WAIT) else '0';
-  dmem_valid         <= '1' when (state_r_next = S_MEM_REQ   ) or 
-                                 (state_r_next = S_MEM_WAIT  ) else '0';
-  regfile_we         <= '1' when state_r = S_WRITEBACK         else '0';
-  alu_res_r_we       <= '1' when state_r = S_DECODE            else '0';
-  pc_seq_r_we        <= '1' when state_r = S_FETCH_REQ         else '0';
-  branch_taken_r_we  <= '1' when state_r = S_BRANCH_DECISION   else '0';
-  pc_r_we            <= '1' when state_r = S_WRITEBACK         else '0';
-
+  imem_valid         <= '1' when state_r_next = S_FETCH             else '0';
+  dmem_valid         <= '1' when state_r_next = S_MEMORY            else '0';
+  regfile_we         <= '1' when state_r      = S_WRITEBACK         else '0';
+  alu_res_r_we       <= '1' when state_r      = S_EXECUTE           else '0';
+  pc_seq_r_we        <= '1' when state_r      = S_FETCH             else '0';
+  branch_taken_r_we  <= '1' when state_r      = S_BRANCH_DECISION   else '0';
+  pc_r_we            <= '1' when state_r      = S_WRITEBACK         else '0';
 
   process(all)
   begin
     state_r_next <= state_r;
 
     case state_r is
-      when S_FETCH_REQ =>
-        state_r_next <= S_FETCH_WAIT;
-
-      when S_FETCH_WAIT =>
+      when S_FETCH =>
         if imem_ready = '1' then
           state_r_next <= S_DECODE;
         end if;
 
       when S_DECODE =>
+        state_r_next <= S_EXECUTE;
+
+      when S_EXECUTE =>
           if dec_is_branch = '1' then
               state_r_next <= S_BRANCH_DECISION;
           elsif dec_dmem_req = '1' then
-              state_r_next <= S_MEM_REQ;
+              state_r_next <= S_MEMORY;
           else
               state_r_next <= S_WRITEBACK;
           end if;
@@ -446,14 +441,13 @@ begin
       when S_BRANCH_DECISION =>
 
         state_r_next <= S_WRITEBACK;
-      when S_MEM_REQ =>
-        state_r_next <= S_MEM_WAIT;
-      when S_MEM_WAIT =>
+
+      when S_MEMORY =>
         if dmem_ready = '1' then
           state_r_next <= S_WRITEBACK;
         end if;
       when S_WRITEBACK =>
-        state_r_next <= S_FETCH_REQ;
+        state_r_next <= S_FETCH;
       when others =>
     end case;
   end process;
@@ -461,7 +455,7 @@ begin
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' then
-      state_r          <= S_FETCH_REQ;
+      state_r          <= S_FETCH;
 
       elsif rising_edge(clk_i) then
 
@@ -486,7 +480,7 @@ begin
       elsif rising_edge(clk_i) then
         case state_r is
 
-          when S_FETCH_WAIT =>
+          when S_FETCH =>
             pending_report_r.pc   <= to_bitvector(imem_addr);
             pending_report_r.inst <= to_bitvector(imem_rdata);
 
@@ -500,10 +494,12 @@ begin
             pending_report_r.imm_b     <= to_bitvector(dec_imm_b);
             pending_report_r.imm_u     <= to_bitvector(dec_imm_u);
             pending_report_r.imm_j     <= to_bitvector(dec_imm_j);
+            
+          when S_EXECUTE =>
             pending_report_r.op1       <= to_bitvector(src_a_val);
             pending_report_r.op2       <= to_bitvector(src_b_val);
 
-        when S_MEM_WAIT =>
+        when S_MEMORY =>
             pending_report_r.mem_addr <= to_bitvector(dmem_addr);
             pending_report_r.mem_be   <= to_bitvector(dmem_be  );             
             pending_report_r.mem_rdata <= to_bitvector(dmem_rdata);
