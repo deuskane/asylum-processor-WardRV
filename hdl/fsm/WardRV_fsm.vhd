@@ -6,7 +6,12 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: 
--------------------------------------------------------------------------------
+-- This module implements the main control logic for the WardRV processor.
+-- It uses a multi-cycle Finite State Machine (FSM) approach to minimize area 
+-- by sharing a single ALU across different execution phases (Fetch, Exec, Mem).
+-- The FSM orchestrates the data flow, ensuring that each instruction progresses
+-- through the necessary stages (Fetch, Decode, Execute, Memory, Writeback)
+-- using shared hardware resources efficiently.
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------
 -- Revisions  :
@@ -48,13 +53,17 @@ end entity WardRV_fsm;
 
 architecture behavioural of WardRV_fsm is
 
-  -- State Machine
+  constant C_IMM_4 : std_logic_vector(31 downto 0) := (2 => '1', others => '0');
+
+  -- FSM states representing the standard RISC-V instruction cycle phases.
+  -- This multi-cycle design explicitly separates these phases into distinct states.
   type state_t is (S_FETCH, 
                    S_DECODE, 
                    S_EXECUTE,
                    S_BRANCH_DECISION, 
                    S_MEMORY, 
                    S_WRITEBACK);
+                   
   signal state_r                    : state_t;
   signal state_r_next               : state_t;
 
@@ -73,27 +82,23 @@ architecture behavioural of WardRV_fsm is
   signal inst_r                     : std_logic_vector(31 downto 0);
 
   signal imem_valid                 : std_logic;
-  signal imem_valid_r               : std_logic;
   signal imem_ready                 : std_logic;
   signal imem_addr                  : std_logic_vector(31 downto 0);
   signal imem_rdata                 : std_logic_vector(31 downto 0);
 
   -- Internal
   signal dmem_valid                 : std_logic;
-  signal dmem_valid_r               : std_logic;
   signal dmem_ready                 : std_logic;
+  signal dmem_be                    : std_logic_vector(3 downto 0);
   signal dmem_addr                  : std_logic_vector(31 downto 0);
-  signal dmem_wdata                 : std_logic_vector(31 downto 0);
   signal dmem_rdata                 : std_logic_vector(31 downto 0);
   signal dmem_rdata_r               : std_logic_vector(31 downto 0);
-  signal dmem_we                    : std_logic;
-  signal dmem_be                    : std_logic_vector(3 downto 0);
 
-  -- ALU Status (for Branch Decision)
+  -- Intermediate register for ALU result to be used across FSM cycles.
   signal alu_res_r_we               : std_logic;
   signal alu_res_r                  : std_logic_vector(31 downto 0);
 
-  -- ALU Interconnect
+  -- ALU operation and flag signals. These control the ALU's function and capture its status.
   signal alu_src_a                  : std_logic_vector(31 downto 0);
   signal alu_src_b                  : std_logic_vector(31 downto 0);
   signal alu_op                     : alu_op_t;
@@ -105,7 +110,7 @@ architecture behavioural of WardRV_fsm is
   -- Report structure for logging
   signal pending_report_r           : inst_t;
 
-  -- Signals from Decoder
+  -- Control signals decoded from the current instruction
   signal dec_imm_i                  : std_logic_vector(31 downto 0);
   signal dec_imm_s                  : std_logic_vector(31 downto 0);
   signal dec_imm_b                  : std_logic_vector(31 downto 0);
@@ -133,45 +138,43 @@ architecture behavioural of WardRV_fsm is
   signal dec_pc_sel                 : std_logic_vector(1 downto 0);
   signal dec_inst_type              : inst_type_t;
      
+  -- Mux selection signals for ALU inputs, determined by the FSM state or decoder.
   signal alu_src_a_sel              : alu_src_a_sel_t;
   signal alu_src_b_sel              : alu_src_b_sel_t;
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
-  signal regfile_we                 : std_logic;
-  signal regfile_rd_we              : std_logic;
-  signal regfile_rd_wdata           : std_logic_vector(31 downto 0);
+  signal regfile_we                 : std_logic; -- Global RF write enable from FSM
+  signal regfile_rd_we              : std_logic; -- Combined RF write enable
+  signal regfile_rd_wdata           : std_logic_vector(31 downto 0); -- Data to write back
+
 begin
 
   --------------------------------------------------------------------
-  -- Fetch Request and Wait
+  -- Instruction Fetch Module
+  -- Encapsulates the complexity of the instruction bus handshake.
   --------------------------------------------------------------------
-  inst_ini_o.valid <= imem_valid_r;
-  inst_ini_o.addr  <= imem_addr;
+  inst_fetch : entity work.WardRV_fsm_fetch
+  port map (
+    clk_i        => clk_i,
+    arst_b_i     => arst_b_i,
+    
+    -- Control/Status
+    imem_valid_i => imem_valid,
+    pc_i         => pc_r,
+    imem_ready_o => imem_ready,
+    inst_r_o     => inst_r,
 
-  imem_ready       <= inst_tgt_i.ready;
-  imem_rdata       <= inst_tgt_i.inst;
-  imem_addr        <= pc_r;
+    -- Physical Interface
+    inst_ini_o   => inst_ini_o,
+    inst_tgt_i   => inst_tgt_i
+  );
 
-  process(clk_i, arst_b_i)
-  begin
-    if arst_b_i = '0' then
-      imem_valid_r     <= '0';
-      inst_r           <= (others => '0');
-      
-    elsif rising_edge(clk_i)
-    then
-      imem_valid_r     <= imem_valid;
-
-      if (imem_valid_r = '1') and (imem_ready = '1')
-      then
-        inst_r       <= imem_rdata;
-      end if;
-      
-    end if;
-  end process;
+  imem_addr <= pc_r;
   
   --------------------------------------------------------------------
   -- Decoder Instance
+  -- This is a purely combinatorial block that interprets the fetched instruction
+  -- and generates all necessary control signals and immediate values for the datapath.
   --------------------------------------------------------------------
   inst_decode : entity work.WardRV_fsm_decode
   port map (
@@ -208,10 +211,12 @@ begin
   -- Register File Instance
   --------------------------------------------------------------------
 
-  -- Write Enable Logic: 
-  -- Only write back for instructions that write registers, and never write to x0
+  -- We only perform a Write Back to the Register File if the FSM is in the 
+  -- WRITEBACK state AND the instruction actually targets a destination register.
   regfile_rd_we    <= dec_rd_we and regfile_we;
 
+  -- Writeback data multiplexer: 
+  -- selects between the ALU result, memory data or the link address (PC+4).
   regfile_rd_wdata <= dmem_rdata_r when dec_rd_src = RD_SRC_MEM      else
                       pc_seq_r     when dec_rd_src = RD_SRC_PC_PLUS4 else
                       alu_res_r; --when dec_rd_src = RD_SRC_ALU      else
@@ -234,9 +239,10 @@ begin
   --------------------------------------------------------------------
   -- ALU Control Process (Combinatorial)
   --------------------------------------------------------------------
-
-  -- ALU is used for PC increment, address calculation, and branch target calculation
-  -- The source operands and operation are determined by the current state and decoded instruction fields.
+  -- This combinatorial process determines the ALU's operation and input sources
+  -- for the current FSM state. This is crucial for sharing the single ALU
+  -- across different instruction phases (PC increment, address calculation,
+  -- branch comparison, and general arithmetic/logic operations).
   process(all)
   begin
 
@@ -247,15 +253,15 @@ begin
         alu_src_a_sel <= ALU_SRC_A_PC;
         alu_src_b_sel <= ALU_SRC_B_IMM_4;
 
-      -- Branch Decision: ALU compute branch destination
+      -- Branch Decision: ALU is used as a comparator (subtracting RS1 and RS2)
       when S_BRANCH_DECISION =>
         alu_op        <= ALU_SUB;
         alu_src_a_sel <= ALU_SRC_A_RS1;
         alu_src_b_sel <= ALU_SRC_B_RS2;
       
-      -- Decode/Execute: ALU sources and operation determined by instruction type
+      -- Normal Execution (S_DECODE, S_EXECUTE, S_MEMORY, S_WRITEBACK): ALU sources and operation determined by instruction type
       when others => 
-      --when S_DECODE =>
+      --when S_EXECUTE =>
         alu_op        <= dec_alu_op;
         alu_src_a_sel <= dec_alu_src_a_sel;
         alu_src_b_sel <= dec_alu_src_b_sel;
@@ -265,6 +271,7 @@ begin
 
   --------------------------------------------------------------------
   -- ALU Instance
+  -- Connects selected sources to the ALU component.
   --------------------------------------------------------------------
   alu_src_a <= pc_r          when alu_src_a_sel = ALU_SRC_A_PC    else 
                src_a_val;  --when alu_src_a_sel = ALU_SRC_A_RS1
@@ -274,7 +281,7 @@ begin
                dec_imm_u     when alu_src_b_sel = ALU_SRC_B_IMM_U else
                dec_imm_j     when alu_src_b_sel = ALU_SRC_B_IMM_J else
                dec_imm_b     when alu_src_b_sel = ALU_SRC_B_IMM_B else
-               x"00000004"   when alu_src_b_sel = ALU_SRC_B_IMM_4 else
+               C_IMM_4       when alu_src_b_sel = ALU_SRC_B_IMM_4 else
                src_b_val;  --when alu_src_b_sel = ALU_SRC_B_RS2 
                
   inst_alu : entity work.WardRV_fsm_alu
@@ -288,6 +295,10 @@ begin
     sign_o  => alu_sign
   );
 
+  -- The ALU result is buffered in `alu_res_r` to maintain its value
+  -- across multiple FSM cycles. For example, a memory address calculated
+  -- in S_EXECUTE needs to be held until S_MEMORY, and a jump target
+  -- until S_WRITEBACK.
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' then
@@ -300,84 +311,52 @@ begin
       end if;
     end if;
   end process;  
+  -- Note: alu_res_r_we is asserted only in S_EXECUTE, as other ALU uses
+  -- (like PC+4 in S_FETCH) are immediately consumed or registered elsewhere (e.g., pc_seq_r).
 
   --------------------------------------------------------------------
   -- Memory
-  --
-  -- Data Bus Output Assignments
+  -- This section handles the data memory interface (DMEM) for loads and stores.
   --------------------------------------------------------------------
-  process(clk_i, arst_b_i)
-  begin
-    if arst_b_i = '0' then
-      dmem_valid_r     <= '0';
-    elsif rising_edge(clk_i)
-    then
-      dmem_valid_r <= dmem_valid; -- Default assignment from control signal
-    end if;
-  end process;
-
-  dmem_ready      <= sbi_tgt_i.ready;
-  dmem_addr       <= alu_res_r;
-  dmem_be         <= std_logic_vector(shift_left(unsigned(dec_dmem_be), to_integer(unsigned(dmem_addr(1 downto 0)))));
-  dmem_wdata      <= std_logic_vector(shift_left(unsigned(src_b_val)  , to_integer(unsigned(dmem_addr(1 downto 0))) * 8));
-  dmem_we         <= dec_dmem_we;
-
-  sbi_ini_o.valid <= dmem_valid_r;
-  sbi_ini_o.addr  <= dmem_addr   ;
-  sbi_ini_o.wdata <= dmem_wdata  ;
-  sbi_ini_o.we    <= dmem_we     ;
-  sbi_ini_o.be    <= dmem_be     ;
-
   --------------------------------------------------------------------
-  -- Memory
-  --
-  -- Load Data Formatting (Combinatorial)
-  --------------------------------------------------------------------
-  process(all)
-    variable v_shamt : integer;
-    variable v_rdata : std_logic_vector(31 downto 0);
-  begin
-    -- Take the relevant byte/half-word from the 32-bit read data
-    -- Use shamt to shift the relevant data to the LSBs.
-    v_shamt := to_integer(unsigned(dmem_addr(1 downto 0))) * 8;
-    v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
-
-    -- Apply sign or zero extension based on instruction type
-    case dec_dmem_be is
-      when "0001"  => dmem_rdata <= std_logic_vector(resize(  signed(v_rdata( 7 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
-                                    std_logic_vector(resize(unsigned(v_rdata( 7 downto 0)), 32));
-      when "0011"  => dmem_rdata <= std_logic_vector(resize(  signed(v_rdata(15 downto 0)), 32)) when dec_dmem_data_unsigned = '0' else 
-                                    std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
-      when others  => dmem_rdata <= v_rdata; -- Word access, no formatting needed
-    end case;
-  end process;
-
-  process(clk_i, arst_b_i)
-  begin
-    if arst_b_i = '0' 
-    then
-        dmem_rdata_r <= (others => '0');
-    elsif rising_edge(clk_i) 
-    then
-        if dmem_valid_r = '1' and dmem_ready = '1' 
-        then
-            dmem_rdata_r <= dmem_rdata;
-        end if;
-    end if; 
-  end process;
+  dmem_inst : entity work.WardRV_fsm_memory
+  port map (
+    clk_i               => clk_i,
+    arst_b_i            => arst_b_i,
+    
+    dmem_valid_i        => dmem_valid,
+    addr_i              => alu_res_r,
+    wdata_i             => src_b_val,
+    we_i                => dec_dmem_we,
+    be_i                => dec_dmem_be,
+    data_unsigned_i     => dec_dmem_data_unsigned,
+    
+    dmem_ready_o        => dmem_ready,
+    dmem_addr_o         => dmem_addr,
+    dmem_be_o           => dmem_be,
+    dmem_rdata_o        => dmem_rdata,
+    dmem_rdata_r_o      => dmem_rdata_r,
+    
+    sbi_ini_o           => sbi_ini_o,
+    sbi_tgt_i           => sbi_tgt_i
+  );
 
   --------------------------------------------------------------------
   -- Program Counter Logic
+  -- This section manages the Program Counter (PC) updates, including
+  -- sequential execution, branches, and jumps.
   --------------------------------------------------------------------
 
+  -- Evaluate if a branch should be taken based on ALU flags (zero, carry, sign)
+  -- and the decoded branch condition from the instruction.
   branch_taken <= '1' when(((alu_zero  and dec_branch_use_flag_zero  ) or
                             (alu_carry and dec_branch_use_flag_carry ) or
                             (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
                    else '0';
-
+  -- Next PC Mux: Sequential (+4), Branch target, or Jump target
   pc_r_next    <= alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
                                                      (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
-                  pc_seq_r; -- Ensure PC stays word-aligned
+                  pc_seq_r; -- pc_seq_r is already PC+4
 
   process(clk_i, arst_b_i)
   begin
@@ -406,7 +385,9 @@ begin
   end process;
 
   --------------------------------------------------------------------
-  -- FSM
+  -- FSM Control Path
+  -- This section defines the FSM's outputs (control signals) and state
+  -- transition logic, acting as the "orchestrator" of the processor.
   --------------------------------------------------------------------
   imem_valid         <= '1' when state_r_next = S_FETCH             else '0';
   dmem_valid         <= '1' when state_r_next = S_MEMORY            else '0';
@@ -416,11 +397,14 @@ begin
   branch_taken_r_we  <= '1' when state_r      = S_BRANCH_DECISION   else '0';
   pc_r_we            <= '1' when state_r      = S_WRITEBACK         else '0';
 
+  -- State Transition Logic: Defines how the FSM moves from one state to another.
+  -- Each state's transition depends on the instruction type and external ready signals.
   process(all)
   begin
     state_r_next <= state_r;
 
     case state_r is
+      -- S_FETCH: Request instruction from memory. Transition to S_DECODE when memory is ready.
       when S_FETCH =>
         if imem_ready = '1' then
           state_r_next <= S_DECODE;
@@ -428,8 +412,11 @@ begin
 
       when S_DECODE =>
         state_r_next <= S_EXECUTE;
+        -- S_DECODE is a single-cycle combinatorial state where the instruction
+        -- is interpreted and control signals are generated.
 
       when S_EXECUTE =>
+          -- Fork the execution flow based on instruction requirements
           if dec_is_branch = '1' then
               state_r_next <= S_BRANCH_DECISION;
           elsif dec_dmem_req = '1' then
@@ -438,14 +425,17 @@ begin
               state_r_next <= S_WRITEBACK;
           end if;
 
+      -- S_BRANCH_DECISION: Evaluate branch condition. Always transitions to S_WRITEBACK.
       when S_BRANCH_DECISION =>
-
         state_r_next <= S_WRITEBACK;
 
+      -- S_MEMORY: Request data from memory (load/store). Wait for memory ready.
       when S_MEMORY =>
         if dmem_ready = '1' then
           state_r_next <= S_WRITEBACK;
         end if;
+
+      -- S_WRITEBACK: Write result to register file and update PC. Always transitions back to S_FETCH.
       when S_WRITEBACK =>
         state_r_next <= S_FETCH;
       when others =>
@@ -468,9 +458,10 @@ begin
   -- synthesis translate_off
 
   --------------------------------------------------------------------
-  -- Reporting Process (for logging executed instructions)
+  -- Simulation-Only Reporting Process
+  -- This block accumulates instruction data throughout the cycles 
+  -- and prints a summary during Writeback.
   --------------------------------------------------------------------
-
   process(clk_i, arst_b_i)
     variable v_report : inst_t;
   begin
@@ -494,17 +485,17 @@ begin
             pending_report_r.imm_b     <= to_bitvector(dec_imm_b);
             pending_report_r.imm_u     <= to_bitvector(dec_imm_u);
             pending_report_r.imm_j     <= to_bitvector(dec_imm_j);
-            
+
           when S_EXECUTE =>
             pending_report_r.op1       <= to_bitvector(src_a_val);
             pending_report_r.op2       <= to_bitvector(src_b_val);
 
-        when S_MEMORY =>
-            pending_report_r.mem_addr <= to_bitvector(dmem_addr);
-            pending_report_r.mem_be   <= to_bitvector(dmem_be  );             
+          when S_MEMORY =>
+            pending_report_r.mem_addr  <= to_bitvector(dmem_addr);
+            pending_report_r.mem_be    <= to_bitvector(dmem_be  );             
             pending_report_r.mem_rdata <= to_bitvector(dmem_rdata);
 
-        when S_WRITEBACK =>
+          when S_WRITEBACK =>
 
             v_report           := pending_report_r;
             v_report.res       := to_bitvector(regfile_rd_wdata);
