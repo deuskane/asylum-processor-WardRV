@@ -34,8 +34,8 @@ filesets:
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
 
-      - hdl/debug/WardRV_debug_pkg.vhd
-      - hdl/debug/WardRV_debug.vhd
+      #- hdl/debug/WardRV_debug_pkg.vhd
+      #- hdl/debug/WardRV_debug.vhd
 
       - hdl/fsm/WardRV_decode_pkg.vhd
       - hdl/fsm/WardRV_fsm_fetch.vhd
@@ -45,13 +45,13 @@ filesets:
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm.vhd
 
-      - hdl/tiny/WardRV_tiny_decode.vhd
-      - hdl/tiny/WardRV_tiny_execute.vhd
-      - hdl/tiny/WardRV_tiny_lsu_8b.vhd
-      - hdl/tiny/WardRV_tiny_lsu.vhd
-      - hdl/tiny/WardRV_tiny_pc.vhd
-      - hdl/tiny/WardRV_tiny_pkg.vhd
-      - hdl/tiny/WardRV_tiny.vhd
+      #- hdl/tiny/WardRV_tiny_decode.vhd
+      #- hdl/tiny/WardRV_tiny_execute.vhd
+      #- hdl/tiny/WardRV_tiny_lsu_8b.vhd
+      #- hdl/tiny/WardRV_tiny_lsu.vhd
+      #- hdl/tiny/WardRV_tiny_pc.vhd
+      #- hdl/tiny/WardRV_tiny_pkg.vhd
+      #- hdl/tiny/WardRV_tiny.vhd
 
     file_type    : vhdlSource-2008
     logical_name : asylum

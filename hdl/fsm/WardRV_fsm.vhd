@@ -47,7 +47,7 @@ entity WardRV_fsm is
 
     -- Data Interface
     sbi_ini_o  : out sbi_ini_t;
-    sbi_tgt_i  : in  sbi_tgt_t
+    sbi_tgt_i  : in  sbi_tgt_t;
   );
 end entity WardRV_fsm;
 
@@ -91,8 +91,8 @@ architecture behavioural of WardRV_fsm is
   signal dmem_ready                 : std_logic;
   signal dmem_be                    : std_logic_vector(3 downto 0);
   signal dmem_addr                  : std_logic_vector(31 downto 0);
-  signal dmem_rdata                 : std_logic_vector(31 downto 0);
   signal dmem_rdata_r               : std_logic_vector(31 downto 0);
+  signal sbi_ini                    : sbi_ini_t;
 
   -- Intermediate register for ALU result to be used across FSM cycles.
   signal alu_res_r_we               : std_logic;
@@ -332,14 +332,13 @@ begin
     data_unsigned_i     => dec_dmem_data_unsigned,
     
     dmem_ready_o        => dmem_ready,
-    dmem_addr_o         => dmem_addr,
-    dmem_be_o           => dmem_be,
-    dmem_rdata_o        => dmem_rdata,
     dmem_rdata_r_o      => dmem_rdata_r,
     
-    sbi_ini_o           => sbi_ini_o,
+    sbi_ini_o           => sbi_ini,
     sbi_tgt_i           => sbi_tgt_i
   );
+
+  sbi_ini_o <= sbi_ini;
 
   --------------------------------------------------------------------
   -- Program Counter Logic
@@ -466,38 +465,29 @@ begin
     variable v_report : inst_t;
   begin
     if arst_b_i = '0' then
-      pending_report_r <= INST_UNKNOWN;
 
       elsif rising_edge(clk_i) then
         case state_r is
 
-          when S_FETCH =>
-            pending_report_r.pc   <= to_bitvector(imem_addr);
-            pending_report_r.inst <= to_bitvector(imem_rdata);
-
-          when S_DECODE =>
-            pending_report_r.inst_type <= dec_inst_type;
-            pending_report_r.rd        <= to_integer(unsigned(dec_rd_addr));
-            pending_report_r.rs1       <= to_integer(unsigned(dec_rs1_addr));
-            pending_report_r.rs2       <= to_integer(unsigned(dec_rs2_addr));
-            pending_report_r.imm_i     <= to_bitvector(dec_imm_i);
-            pending_report_r.imm_s     <= to_bitvector(dec_imm_s);
-            pending_report_r.imm_b     <= to_bitvector(dec_imm_b);
-            pending_report_r.imm_u     <= to_bitvector(dec_imm_u);
-            pending_report_r.imm_j     <= to_bitvector(dec_imm_j);
-
-          when S_EXECUTE =>
-            pending_report_r.op1       <= to_bitvector(src_a_val);
-            pending_report_r.op2       <= to_bitvector(src_b_val);
-
-          when S_MEMORY =>
-            pending_report_r.mem_addr  <= to_bitvector(dmem_addr);
-            pending_report_r.mem_be    <= to_bitvector(dmem_be  );             
-            pending_report_r.mem_rdata <= to_bitvector(dmem_rdata);
-
           when S_WRITEBACK =>
 
-            v_report           := pending_report_r;
+            v_report           := INST_UNKNOWN;
+            v_report.pc        := to_bitvector(imem_addr);
+            v_report.inst      := to_bitvector(imem_rdata);
+            v_report.inst_type := dec_inst_type;
+            v_report.rd        := to_integer(unsigned(dec_rd_addr));
+            v_report.rs1       := to_integer(unsigned(dec_rs1_addr));
+            v_report.rs2       := to_integer(unsigned(dec_rs2_addr));
+            v_report.imm_i     := to_bitvector(dec_imm_i);
+            v_report.imm_s     := to_bitvector(dec_imm_s);
+            v_report.imm_b     := to_bitvector(dec_imm_b);
+            v_report.imm_u     := to_bitvector(dec_imm_u);
+            v_report.imm_j     := to_bitvector(dec_imm_j);
+            v_report.op1       := to_bitvector(src_a_val);
+            v_report.op2       := to_bitvector(src_b_val);
+            v_report.mem_addr  := to_bitvector(sbi_ini.addr   );
+            v_report.mem_be    := to_bitvector(sbi_ini.be     );             
+            v_report.mem_rdata := to_bitvector(dmem_rdata_r);
             v_report.res       := to_bitvector(regfile_rd_wdata);
             v_report.npc       := to_bitvector(pc_r_next);
           

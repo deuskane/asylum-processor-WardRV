@@ -30,9 +30,6 @@ entity WardRV_fsm_memory is
 
     -- Status/Data back to FSM and Register File
     dmem_ready_o        : out std_logic;
-    dmem_addr_o         : out std_logic_vector(31 downto 0); -- Aligned address
-    dmem_be_o           : out std_logic_vector(3 downto 0);  -- Aligned byte enables
-    dmem_rdata_o        : out std_logic_vector(31 downto 0); -- Combinatorial formatted data
     dmem_rdata_r_o      : out std_logic_vector(31 downto 0); -- Registered data for Writeback
 
     -- Physical Data Memory Interface (SBI Bus)
@@ -42,10 +39,10 @@ entity WardRV_fsm_memory is
 end entity WardRV_fsm_memory;
 
 architecture behavioural of WardRV_fsm_memory is
-  signal dmem_valid_r    : std_logic;
-  signal dmem_be_aligned : std_logic_vector(3 downto 0);
-  signal dmem_wdata_sh   : std_logic_vector(31 downto 0);
-  signal formatted_rdata : std_logic_vector(31 downto 0);
+  signal dmem_valid_r       : std_logic;
+  signal dmem_be_aligned    : std_logic_vector(3 downto 0);
+  signal dmem_wdata_aligned : std_logic_vector(31 downto 0);
+  signal dmem_rdata_aligned : std_logic_vector(31 downto 0);
 begin
 
   -- Memory request valid signal (introduces a one-cycle delay for the bus handshake)
@@ -60,19 +57,17 @@ begin
 
   -- Alignment logic: Calculate Byte Enables and shift Write Data based on address LSBs
   -- Junior note: In RISC-V, sub-word accesses must be shifted to their correct byte lane.
-  dmem_be_aligned  <= std_logic_vector(shift_left(unsigned(be_i), to_integer(unsigned(addr_i(1 downto 0)))));
-  dmem_wdata_sh    <= std_logic_vector(shift_left(unsigned(wdata_i), to_integer(unsigned(addr_i(1 downto 0))) * 8));
+  dmem_be_aligned     <= std_logic_vector(shift_left(unsigned(be_i   ), to_integer(unsigned(addr_i(1 downto 0)))));
+  dmem_wdata_aligned  <= std_logic_vector(shift_left(unsigned(wdata_i), to_integer(unsigned(addr_i(1 downto 0))) * 8));
 
   -- SBI Output Assignment
-  sbi_ini_o.valid <= dmem_valid_r;
-  sbi_ini_o.addr  <= addr_i;
-  sbi_ini_o.wdata <= dmem_wdata_sh;
-  sbi_ini_o.we    <= we_i;
-  sbi_ini_o.be    <= dmem_be_aligned;
+  sbi_ini_o.valid <= dmem_valid_r      ;
+  sbi_ini_o.addr  <= addr_i            ;
+  sbi_ini_o.wdata <= dmem_wdata_aligned;
+  sbi_ini_o.we    <= we_i              ;
+  sbi_ini_o.be    <= dmem_be_aligned   ;
 
   dmem_ready_o    <= sbi_tgt_i.ready;
-  dmem_addr_o     <= addr_i;
-  dmem_be_o       <= dmem_be_aligned;
 
   --------------------------------------------------------------------
   -- Load Data Formatting (Combinatorial)
@@ -87,17 +82,15 @@ begin
 
     case be_i is
       when "0001"  => -- Byte access
-        formatted_rdata <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32)) when data_unsigned_i = '0' else 
+        dmem_rdata_aligned <= std_logic_vector(resize(signed(v_rdata(7 downto 0)), 32)) when data_unsigned_i = '0' else 
                            std_logic_vector(resize(unsigned(v_rdata(7 downto 0)), 32));
       when "0011"  => -- Half-word access
-        formatted_rdata <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32)) when data_unsigned_i = '0' else 
+        dmem_rdata_aligned <= std_logic_vector(resize(signed(v_rdata(15 downto 0)), 32)) when data_unsigned_i = '0' else 
                            std_logic_vector(resize(unsigned(v_rdata(15 downto 0)), 32));
       when others  => -- Word access
-        formatted_rdata <= v_rdata;
+        dmem_rdata_aligned <= v_rdata;
     end case;
   end process;
-
-  dmem_rdata_o <= formatted_rdata;
 
   -- Latch the formatted read data for the Writeback stage
   process(clk_i, arst_b_i)
@@ -106,7 +99,7 @@ begin
       dmem_rdata_r_o <= (others => '0');
     elsif rising_edge(clk_i) then
       if dmem_valid_r = '1' and sbi_tgt_i.ready = '1' then
-        dmem_rdata_r_o <= formatted_rdata;
+        dmem_rdata_r_o <= dmem_rdata_aligned;
       end if;
     end if; 
   end process;
