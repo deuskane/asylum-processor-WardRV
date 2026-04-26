@@ -78,6 +78,12 @@ package RV_pkg is
   constant F3_CSRRSI    : bit_vector(2 downto 0) := "110";
   constant F3_CSRRCI    : bit_vector(2 downto 0) := "111";
 
+  -- RV32I System Instructions (Funct12)
+  constant F12_ECALL    : bit_vector(11 downto 0) := "000000000000";
+  constant F12_EBREAK   : bit_vector(11 downto 0) := "000000000001";
+  constant F12_MRET     : bit_vector(11 downto 0) := "001100000010";
+  constant F12_WFI      : bit_vector(11 downto 0) := "000100000101";
+
   -- ===========================================================================
   -- RISC-V Compressed Opcodes (RV32C)
   -- ===========================================================================
@@ -122,5 +128,17 @@ package RV_pkg is
   constant F3_MIN       : bit_vector(2 downto 0) := "100";
   constant F3_MINU      : bit_vector(2 downto 0) := "101";
   constant F7_MINMAX    : bit_vector(6 downto 0) := "0000101";
+
+  -- ===========================================================================
+  -- RISC-V CSR Addresses (Machine Level)
+  -- ===========================================================================
+  constant CSR_MSTATUS  : bit_vector(11 downto 0) := x"300";
+  constant CSR_MISA     : bit_vector(11 downto 0) := x"301";
+  constant CSR_MIE      : bit_vector(11 downto 0) := x"304";
+  constant CSR_MTVEC    : bit_vector(11 downto 0) := x"305";
+  constant CSR_MEPC     : bit_vector(11 downto 0) := x"341";
+  constant CSR_MCAUSE   : bit_vector(11 downto 0) := x"342";
+  constant CSR_MTVAL    : bit_vector(11 downto 0) := x"343";
+  constant CSR_MIP      : bit_vector(11 downto 0) := x"344";
 
 end RV_pkg;
