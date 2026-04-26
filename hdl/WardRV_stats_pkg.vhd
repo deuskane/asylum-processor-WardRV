@@ -55,6 +55,13 @@ package WardRV_stats_pkg is
     I_SW,
     I_XOR,
     I_XORI,
+    I_CSRRW,
+    I_CSRRS,
+    I_CSRRC,
+    I_CSRRWI,
+    I_CSRRSI,
+    I_CSRRCI,
+    I_MRET,
     I_UNKNOWN,
     I_TOTAL
   );
@@ -159,6 +166,14 @@ package body WardRV_stats_pkg is
     I_SW          => "SW      ",
     I_XOR         => "XOR     ",
     I_XORI        => "XORI    ",
+    I_CSRRW       => "CSRRW   ",
+    I_CSRRS       => "CSRRS   ",
+    I_CSRRC       => "CSRRC   ",
+    I_CSRRWI      => "CSRRWI  ",
+    I_CSRRSI      => "CSRRSI  ",
+    I_CSRRCI      => "CSRRCI  ",
+    I_MRET        => "MRET    ",
+    
     I_UNKNOWN     => "UNKNOWN ",
     I_TOTAL       => "Total   "
   );
@@ -196,6 +211,10 @@ package body WardRV_stats_pkg is
              write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", " & integer'image(to_integer(signed(r.imm_i))) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.imm_i) & ") = 0x" & to_hstring(r.res));
          when I_ADD | I_SUB | I_SLL | I_SLT | I_SLTU | I_XOR | I_SRL | I_SRA | I_OR | I_AND =>
              write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", R" & integer'image(r.rs1) & ", R" & integer'image(r.rs2) & " (0x" & to_hstring(r.op1) & ", 0x" & to_hstring(r.op2) & ") = 0x" & to_hstring(r.res));
+         when I_CSRRW | I_CSRRS | I_CSRRC | I_CSRRWI | I_CSRRSI | I_CSRRCI =>
+             write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type) & " R" & integer'image(r.rd) & ", CSR=0x" & to_hstring(r.inst(31 downto 20)) & " = 0x" & to_hstring(r.res));
+         when I_MRET =>
+             write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type));
          when others =>
              write(l, "PC=0x" & to_hstring(r.pc) & " NPC=0x" & to_hstring(r.npc) & " : " & INST_NAMES(r.inst_type));
        end case;

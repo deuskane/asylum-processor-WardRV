@@ -47,7 +47,7 @@ entity WardRV_fsm is
 
     -- Data Interface
     sbi_ini_o  : out sbi_ini_t;
-    sbi_tgt_i  : in  sbi_tgt_t;
+    sbi_tgt_i  : in  sbi_tgt_t
   );
 end entity WardRV_fsm;
 

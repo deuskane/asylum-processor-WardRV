@@ -17,6 +17,8 @@ entity WardRV_fsm_decode is
     imm_b_o                  : out std_logic_vector(31 downto 0);
     imm_u_o                  : out std_logic_vector(31 downto 0);
     imm_j_o                  : out std_logic_vector(31 downto 0);
+    imm_csr_o                : out std_logic_vector(31 downto 0);
+
     -- Register File Control
     rd_addr_o                : out std_logic_vector(4 downto 0);
     rs1_addr_o               : out std_logic_vector(4 downto 0);
@@ -43,6 +45,11 @@ entity WardRV_fsm_decode is
     branch_flag_is_set_o     : out std_logic;
     pc_sel_o                 : out pc_sel_t;
 
+    -- CSR Control
+    csr_we_o                 : out std_logic;
+    csr_re_o                 : out std_logic;
+    csr_addr_o               : out std_logic_vector(11 downto 0);
+
     -- Instruction Metadata (for logging/FSM)
     inst_type_o              : out inst_type_t
   );
@@ -53,6 +60,10 @@ architecture behavioural of WardRV_fsm_decode is
   alias opcode   : bit_vector(6 downto 0) is inst_bv(6 downto 0);
   alias funct3   : bit_vector(2 downto 0) is inst_bv(14 downto 12);
   alias funct7   : bit_vector(6 downto 0) is inst_bv(31 downto 25);
+  alias rd_addr  : std_logic_vector(4 downto 0) is inst_i(11 downto 7);
+  alias rs1_addr : std_logic_vector(4 downto 0) is inst_i(19 downto 15);
+  alias rs2_addr : std_logic_vector(4 downto 0) is inst_i(24 downto 20);
+
 begin
   inst_bv    <= to_bitvector(inst_i);
   
@@ -62,11 +73,12 @@ begin
   imm_b_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(7) & inst_i(30 downto 25) & inst_i(11 downto 8) & '0')), 32));
   imm_u_o    <= inst_i(31 downto 12) & x"000";
   imm_j_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(19 downto 12) & inst_i(20) & inst_i(30 downto 21) & '0')), 32));
+  imm_csr_o  <= std_logic_vector(resize(unsigned(inst_i(19 downto 15)), 32));
 
   -- Register Addresses
-  rd_addr_o  <= inst_i(11 downto 7);
-  rs1_addr_o <= inst_i(19 downto 15);
-  rs2_addr_o <= inst_i(24 downto 20);
+  rd_addr_o  <= rd_addr ;
+  rs1_addr_o <= rs1_addr;
+  rs2_addr_o <= rs2_addr;
 
   process(all)
   begin
@@ -270,9 +282,58 @@ begin
           when others => null;
         end case;
       when OPC_SYSTEM =>
-        rd_we_o     <= '1';
-        alu_op_o    <= ALU_OR;
-        inst_type_o <= I_UNKNOWN;
+        case funct3 is
+          when F3_PRIV =>
+            case inst_bv(31 downto 20) is
+              when F12_MRET =>
+                inst_type_o <= I_MRET;
+              when others =>
+                inst_type_o <= I_UNKNOWN;
+            end case;
+          when F3_CSRRW =>
+            rd_we_o        <= '1';
+            rs1_re_o       <= '1';
+            rd_src_o       <= RD_SRC_CSR;
+            csr_we_o       <= '1';
+            csr_re_o       <= '0' when rd_addr = "00000" else '1';
+            inst_type_o    <= I_CSRRW;
+
+          when F3_CSRRS | F3_CSRRC =>
+            rd_we_o        <= '1';
+            rs1_re_o       <= '1';
+            rd_src_o       <= RD_SRC_CSR;
+            csr_we_o       <= '0' when rs1_addr = "00000" else '1';
+            csr_re_o       <= '1';
+
+            case funct3 is
+              when F3_CSRRS => inst_type_o <= I_CSRRS;
+              when F3_CSRRC => inst_type_o <= I_CSRRC;
+              when others   => null;
+            end case;
+
+          when F3_CSRRWI =>
+            rd_we_o         <= '1';
+            rd_src_o        <= RD_SRC_CSR;
+            alu_src_a_sel_o <= ALU_SRC_B_IMM_CSR;
+            csr_we_o        <= '1';
+            csr_re_o        <= '0' when rd_addr = "00000" else '1';
+            inst_type_o     <= I_CSRRW;
+
+          when F3_CSRRSI | F3_CSRRCI =>
+            rd_we_o         <= '1';
+            alu_src_a_sel_o <= ALU_SRC_B_IMM_CSR;
+            rd_src_o        <= RD_SRC_CSR;
+            csr_we_o        <= '0' when rs1_addr = "00000" else '1';
+            csr_re_o        <= '1';
+
+            case funct3 is
+              when F3_CSRRSI => inst_type_o <= I_CSRRSI;
+              when F3_CSRRCI => inst_type_o <= I_CSRRCI;
+              when others   => null;
+            end case;
+
+          when others => null;
+        end case;
       when others =>
         inst_type_o <= I_UNKNOWN;
     end case;
