@@ -5,9 +5,10 @@ package WardRV_decode_pkg is
 
   -- ALU Source A Selection
   --type alu_src_a_sel_t is (ALU_SRC_A_RS1, ALU_SRC_A_PC);
-  subtype alu_src_a_sel_t is std_logic_vector(0 downto 0);
-  constant ALU_SRC_A_RS1   : std_logic_vector(0 downto 0):= "0";
-  constant ALU_SRC_A_PC    : std_logic_vector(0 downto 0):= "1";
+  subtype alu_src_a_sel_t is std_logic_vector(1 downto 0);
+  constant ALU_SRC_A_RS1     : std_logic_vector(1 downto 0):= "00";
+  constant ALU_SRC_A_PC      : std_logic_vector(1 downto 0):= "01";
+  constant ALU_SRC_A_IMM_CSR : std_logic_vector(1 downto 0):= "10";
 
   -- ALU Source B Selection
   --type alu_src_b_sel_t is (ALU_SRC_B_RS2, ALU_SRC_B_IMM_I, ALU_SRC_B_IMM_S, ALU_SRC_B_IMM_U, ALU_SRC_B_IMM_J, ALU_SRC_B_IMM_B, ALU_SRC_B_IMM_4);
@@ -19,7 +20,7 @@ package WardRV_decode_pkg is
   constant ALU_SRC_B_IMM_J   : std_logic_vector(2 downto 0) := "100";
   constant ALU_SRC_B_IMM_B   : std_logic_vector(2 downto 0) := "101";
   constant ALU_SRC_B_IMM_4   : std_logic_vector(2 downto 0) := "110"; 
-  constant ALU_SRC_B_IMM_CSR : std_logic_vector(2 downto 0) := "111";
+  constant ALU_SRC_B_CSR     : std_logic_vector(2 downto 0) := "111";
 
 
   -- PC Source Selection

@@ -101,6 +101,8 @@ begin
     branch_flag_is_set_o     <= '0';
     pc_sel_o                 <= PC_SEL_NEXT;
     inst_type_o              <= I_UNKNOWN;
+    csr_we_o                 <= '0';
+    csr_re_o                 <= '0';
 
     case opcode is
       when OPC_LUI =>
@@ -291,46 +293,67 @@ begin
                 inst_type_o <= I_UNKNOWN;
             end case;
           when F3_CSRRW =>
-            rd_we_o        <= '1';
-            rs1_re_o       <= '1';
-            rd_src_o       <= RD_SRC_CSR;
-            csr_we_o       <= '1';
-            csr_re_o       <= '0' when rd_addr = "00000" else '1';
-            inst_type_o    <= I_CSRRW;
-
-          when F3_CSRRS | F3_CSRRC =>
-            rd_we_o        <= '1';
-            rs1_re_o       <= '1';
-            rd_src_o       <= RD_SRC_CSR;
-            csr_we_o       <= '0' when rs1_addr = "00000" else '1';
-            csr_re_o       <= '1';
-
-            case funct3 is
-              when F3_CSRRS => inst_type_o <= I_CSRRS;
-              when F3_CSRRC => inst_type_o <= I_CSRRC;
-              when others   => null;
-            end case;
-
-          when F3_CSRRWI =>
             rd_we_o         <= '1';
             rd_src_o        <= RD_SRC_CSR;
-            alu_src_a_sel_o <= ALU_SRC_B_IMM_CSR;
+            rs1_re_o        <= '1';
+            alu_src_a_sel_o <= ALU_SRC_A_RS1;
+            alu_src_b_sel_o <= ALU_SRC_B_RS2; -- will be 0
+            alu_op_o        <= ALU_OR;
             csr_we_o        <= '1';
             csr_re_o        <= '0' when rd_addr = "00000" else '1';
             inst_type_o     <= I_CSRRW;
 
-          when F3_CSRRSI | F3_CSRRCI =>
+          when F3_CSRRS =>
             rd_we_o         <= '1';
-            alu_src_a_sel_o <= ALU_SRC_B_IMM_CSR;
             rd_src_o        <= RD_SRC_CSR;
+            rs1_re_o        <= '1';
+            alu_src_a_sel_o <= ALU_SRC_A_RS1;
+            alu_src_b_sel_o <= ALU_SRC_B_CSR;
+            alu_op_o        <= ALU_OR;
             csr_we_o        <= '0' when rs1_addr = "00000" else '1';
             csr_re_o        <= '1';
+            inst_type_o     <= I_CSRRS;
 
-            case funct3 is
-              when F3_CSRRSI => inst_type_o <= I_CSRRSI;
-              when F3_CSRRCI => inst_type_o <= I_CSRRCI;
-              when others   => null;
-            end case;
+          when F3_CSRRC =>
+            rd_we_o         <= '1';
+            rd_src_o        <= RD_SRC_CSR;
+            rs1_re_o        <= '1';
+            alu_src_a_sel_o <= ALU_SRC_A_RS1;
+            alu_src_b_sel_o <= ALU_SRC_B_CSR;
+            alu_op_o        <= ALU_AND;
+            csr_we_o        <= '0' when rs1_addr = "00000" else '1';
+            csr_re_o        <= '1';
+            inst_type_o     <= I_CSRRC;
+
+          when F3_CSRRWI =>
+            rd_we_o         <= '1';
+            rd_src_o        <= RD_SRC_CSR;
+            alu_src_a_sel_o <= ALU_SRC_A_IMM_CSR;
+            alu_src_b_sel_o <= ALU_SRC_B_RS2; -- will be 0
+            alu_op_o        <= ALU_OR;
+            csr_we_o        <= '1';
+            csr_re_o        <= '0' when rd_addr = "00000" else '1';
+            inst_type_o     <= I_CSRRWI;
+
+          when F3_CSRRSI =>
+            rd_we_o         <= '1';
+            rd_src_o        <= RD_SRC_CSR;
+            alu_src_a_sel_o <= ALU_SRC_A_IMM_CSR;
+            alu_src_b_sel_o <= ALU_SRC_B_CSR;
+            alu_op_o        <= ALU_OR;
+            csr_we_o        <= '0' when rs1_addr = "00000" else '1';
+            csr_re_o        <= '1';
+            inst_type_o     <= I_CSRRSI;
+
+          when F3_CSRRCI =>
+            rd_we_o         <= '1';
+            rd_src_o        <= RD_SRC_CSR;
+            alu_src_a_sel_o <= ALU_SRC_A_IMM_CSR;
+            alu_src_b_sel_o <= ALU_SRC_B_CSR;
+            alu_op_o        <= ALU_AND;
+            csr_we_o        <= '0' when rs1_addr = "00000" else '1';
+            csr_re_o        <= '1';
+            inst_type_o     <= I_CSRRCI;
 
           when others => null;
         end case;

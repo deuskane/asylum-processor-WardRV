@@ -52,7 +52,6 @@ entity WardRV_fsm is
 end entity WardRV_fsm;
 
 architecture behavioural of WardRV_fsm is
-
   constant C_IMM_4 : std_logic_vector(31 downto 0) := (2 => '1', others => '0');
 
   -- FSM states representing the standard RISC-V instruction cycle phases.
