@@ -1,3 +1,21 @@
+-------------------------------------------------------------------------------
+-- Title      : WardRV
+-- Project    : 
+-------------------------------------------------------------------------------
+-- File       : WardRV_decode_pkg.vhd
+-- Author     : Mathieu Rosiere
+-------------------------------------------------------------------------------
+-- Description: 
+-- This package defines the types and constants used for instruction decoding 
+-- and FSM control signals throughout the processor.
+-------------------------------------------------------------------------------
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-02-01  1.0      mrosiere Created
+-------------------------------------------------------------------------------
+
 library ieee;
 use     ieee.std_logic_1164.all;
 
@@ -27,6 +45,7 @@ package WardRV_decode_pkg is
   --type pc_sel_t is (PC_SEL_NEXT, PC_SEL_BRANCH, PC_SEL_JUMP);
   subtype  pc_sel_t is std_logic_vector(1 downto 0);
   constant PC_SEL_NEXT     : std_logic_vector(1 downto 0) := "00"; -- PC + 4
+  constant PC_SEL_XEPC     : std_logic_vector(1 downto 0) := "01"; -- EPC
   constant PC_SEL_BRANCH   : std_logic_vector(1 downto 0) := "10"; -- Branchements
   constant PC_SEL_JUMP     : std_logic_vector(1 downto 0) := "11"; -- JAL, JALR
   

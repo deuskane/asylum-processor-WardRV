@@ -7,7 +7,12 @@
 -- It manages the alignment of memory accesses (Byte, Half-word, Word) for both
 -- read and write operations, and handles sign extension for load instructions.
 -------------------------------------------------------------------------------
-
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-04-06  1.0      mrosiere Created
+-------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;

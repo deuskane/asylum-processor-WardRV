@@ -1,3 +1,22 @@
+-------------------------------------------------------------------------------
+-- Title      : WardRV
+-- Project    : 
+-------------------------------------------------------------------------------
+-- File       : WardRV_fsm_decode.vhd
+-- Author     : Mathieu Rosiere
+-------------------------------------------------------------------------------
+-- Description: 
+-- This module implements the instruction decoder for the multi-cycle FSM unit.
+-- It extracts opcodes, register addresses, and immediate values, and 
+-- generates the control signals for the datapath and ALU.
+-------------------------------------------------------------------------------
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-04-06  1.0      mrosiere Created
+-------------------------------------------------------------------------------
+
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
@@ -103,6 +122,7 @@ begin
     inst_type_o              <= I_UNKNOWN;
     csr_we_o                 <= '0';
     csr_re_o                 <= '0';
+    csr_addr_o               <= inst_i(31 downto 20); -- Adresse CSR par défaut
 
     case opcode is
       when OPC_LUI =>
@@ -288,6 +308,11 @@ begin
           when F3_PRIV =>
             case inst_bv(31 downto 20) is
               when F12_MRET =>
+
+                csr_re_o        <= '1';
+                csr_addr_o      <= X"341"; -- MEPC
+                pc_sel_o        <= PC_SEL_XEPC;
+
                 inst_type_o <= I_MRET;
               when others =>
                 inst_type_o <= I_UNKNOWN;

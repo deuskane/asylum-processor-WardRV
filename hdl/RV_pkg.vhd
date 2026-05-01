@@ -136,6 +136,7 @@ package RV_pkg is
   constant CSR_MISA     : bit_vector(11 downto 0) := x"301";
   constant CSR_MIE      : bit_vector(11 downto 0) := x"304";
   constant CSR_MTVEC    : bit_vector(11 downto 0) := x"305";
+  constant CSR_MSCRATCH : bit_vector(11 downto 0) := x"340";
   constant CSR_MEPC     : bit_vector(11 downto 0) := x"341";
   constant CSR_MCAUSE   : bit_vector(11 downto 0) := x"342";
   constant CSR_MTVAL    : bit_vector(11 downto 0) := x"343";

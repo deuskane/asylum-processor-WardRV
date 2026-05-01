@@ -1,0 +1,123 @@
+-------------------------------------------------------------------------------
+-- Title      : WardRV
+-- Project    : 
+-------------------------------------------------------------------------------
+-- File       : WardRV_fsm_csr.vhd
+-- Author     : Mathieu Rosiere
+-------------------------------------------------------------------------------
+-- Description: 
+-- This module implements the Control and Status Registers (CSR) for the 
+-- WardRV processor, handling traps, interrupts, and performance counters.
+-------------------------------------------------------------------------------
+-- Copyright (c) 2026
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-04-10  1.0      mrosiere Created
+-------------------------------------------------------------------------------
+
+library ieee;
+use     ieee.std_logic_1164.all;
+use     ieee.numeric_std.all;
+
+library asylum;
+use     asylum.RV_pkg.all;
+use     asylum.WardRV_decode_pkg.all;
+
+entity WardRV_fsm_csr is
+  port (
+    clk_i               : in  std_logic;
+    rst_ni              : in  std_logic;
+
+    -- Interface avec le Décodeur / Pipeline
+    csr_addr_i          : in  std_logic_vector(11 downto 0);
+    csr_we_i            : in  std_logic;
+    csr_re_i            : in  std_logic;
+    csr_wdata_i         : in  std_logic_vector(31 downto 0);
+    csr_rdata_o         : out std_logic_vector(31 downto 0);
+
+    -- Gestion des Traps (Exceptions/Interruptions)
+    trap_i              : in  std_logic;
+    trap_cause_i        : in  std_logic_vector(31 downto 0);
+    trap_pc_i           : in  std_logic_vector(31 downto 0);
+    trap_mtval_i        : in  std_logic_vector(31 downto 0);
+
+    -- Instruction MRET
+    mret_i              : in  std_logic;
+
+    -- Sorties vers le Pipeline
+    mepc_o              : out std_logic_vector(31 downto 0);
+    mtvec_o             : out std_logic_vector(31 downto 0);
+    mstatus_mie_o       : out std_logic
+
+  );
+end entity WardRV_fsm_csr;
+
+architecture behavioural of WardRV_fsm_csr is
+
+  -- Stockage des registres (Subset Machine Mode)
+  signal mstatus_q  : std_logic_vector(31 downto 0);
+  signal mtvec_q    : std_logic_vector(31 downto 0);
+  signal mepc_q     : std_logic_vector(31 downto 0);
+  signal mcause_q   : std_logic_vector(31 downto 0);
+  signal mtval_q    : std_logic_vector(31 downto 0);
+  signal mscratch_q : std_logic_vector(31 downto 0);
+
+
+begin
+
+  -- Logique de Lecture
+  process(all)
+  begin
+    csr_rdata_o <= (others => '0');
+    case csr_addr_i is
+      when CSR_MSTATUS  => csr_rdata_o <= mstatus_q;
+      when CSR_MTVEC    => csr_rdata_o <= mtvec_q;
+      when CSR_MSCRATCH => csr_rdata_o <= mscratch_q;
+      when CSR_MEPC     => csr_rdata_o <= mepc_q;
+      when CSR_MCAUSE   => csr_rdata_o <= mcause_q;
+      when CSR_MTVAL    => csr_rdata_o <= mtval_q;
+      when others        => csr_rdata_o <= (others => '0');
+    end case;
+  end process;
+
+  -- Logique d'Écriture et Mise à jour
+  process(clk_i, rst_ni)
+  begin
+    if rst_ni = '0' then
+      mstatus_q  <= x"00001800"; -- MPP = 11 (Machine mode) par défaut
+      mtvec_q    <= (others => '0');
+      mepc_q     <= (others => '0');
+      mcause_q   <= (others => '0');
+      mtval_q    <= (others => '0');
+      mscratch_q <= (others => '0');
+    elsif rising_edge(clk_i) then
+
+      if trap_i = '1' then
+        mstatus_q(7) <= mstatus_q(3); -- MPIE <= MIE
+        mstatus_q(3) <= '0';          -- MIE  <= 0
+        mepc_q       <= trap_pc_i;
+        mcause_q     <= trap_cause_i;
+        mtval_q      <= trap_mtval_i;
+      elsif mret_i = '1' then
+        mstatus_q(3) <= mstatus_q(7); -- MIE  <= MPIE
+        mstatus_q(7) <= '1';          -- MPIE <= 1
+      elsif csr_we_i = '1' then
+        case csr_addr_i is
+          when CSR_MSTATUS  => mstatus_q  <= csr_wdata_i;
+          when CSR_MTVEC    => mtvec_q    <= csr_wdata_i;
+          when CSR_MSCRATCH => mscratch_q <= csr_wdata_i;
+          when CSR_MEPC     => mepc_q     <= csr_wdata_i;
+          when CSR_MCAUSE   => mcause_q   <= csr_wdata_i;
+          when CSR_MTVAL    => mtval_q    <= csr_wdata_i;
+          when others        => null;
+        end case;
+      end if;
+    end if;
+  end process;
+
+  mepc_o        <= mepc_q;
+  mtvec_o       <= mtvec_q;
+  mstatus_mie_o <= mstatus_q(3);
+
+end architecture behavioural;
