@@ -27,7 +27,7 @@ use     asylum.WardRV_decode_pkg.all;
 entity WardRV_fsm_csr is
   port (
     clk_i               : in  std_logic;
-    rst_ni              : in  std_logic;
+    arst_b_i            : in  std_logic;
 
     -- Interface avec le Décodeur / Pipeline
     csr_addr_i          : in  std_logic_vector(11 downto 0);
@@ -43,12 +43,12 @@ entity WardRV_fsm_csr is
     trap_mtval_i        : in  std_logic_vector(31 downto 0);
 
     -- Instruction MRET
-    mret_i              : in  std_logic;
+    inst_is_mret_i      : in  std_logic;
 
     -- Sorties vers le Pipeline
-    mepc_o              : out std_logic_vector(31 downto 0);
-    mtvec_o             : out std_logic_vector(31 downto 0);
-    mstatus_mie_o       : out std_logic
+    csr_mepc_o          : out std_logic_vector(31 downto 0);
+    csr_mtvec_o         : out std_logic_vector(31 downto 0);
+    csr_mstatus_mie_o   : out std_logic
 
   );
 end entity WardRV_fsm_csr;
@@ -82,9 +82,9 @@ begin
   end process;
 
   -- Logique d'Écriture et Mise à jour
-  process(clk_i, rst_ni)
+  process(clk_i, arst_b_i)
   begin
-    if rst_ni = '0' then
+    if arst_b_i = '0' then
       mstatus_q  <= x"00001800"; -- MPP = 11 (Machine mode) par défaut
       mtvec_q    <= (others => '0');
       mepc_q     <= (others => '0');
@@ -99,7 +99,7 @@ begin
         mepc_q       <= trap_pc_i;
         mcause_q     <= trap_cause_i;
         mtval_q      <= trap_mtval_i;
-      elsif mret_i = '1' then
+      elsif inst_is_mret_i = '1' then
         mstatus_q(3) <= mstatus_q(7); -- MIE  <= MPIE
         mstatus_q(7) <= '1';          -- MPIE <= 1
       elsif csr_we_i = '1' then
@@ -116,8 +116,8 @@ begin
     end if;
   end process;
 
-  mepc_o        <= mepc_q;
-  mtvec_o       <= mtvec_q;
-  mstatus_mie_o <= mstatus_q(3);
+  csr_mepc_o        <= mepc_q;
+  csr_mtvec_o       <= mtvec_q;
+  csr_mstatus_mie_o <= mstatus_q(3);
 
 end architecture behavioural;

@@ -310,7 +310,7 @@ begin
               when F12_MRET =>
 
                 csr_re_o        <= '1';
-                csr_addr_o      <= X"341"; -- MEPC
+                csr_addr_o      <= CSR_MEPC;
                 pc_sel_o        <= PC_SEL_XEPC;
 
                 inst_type_o <= I_MRET;

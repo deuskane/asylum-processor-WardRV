@@ -132,14 +132,14 @@ package RV_pkg is
   -- ===========================================================================
   -- RISC-V CSR Addresses (Machine Level)
   -- ===========================================================================
-  constant CSR_MSTATUS  : bit_vector(11 downto 0) := x"300";
-  constant CSR_MISA     : bit_vector(11 downto 0) := x"301";
-  constant CSR_MIE      : bit_vector(11 downto 0) := x"304";
-  constant CSR_MTVEC    : bit_vector(11 downto 0) := x"305";
-  constant CSR_MSCRATCH : bit_vector(11 downto 0) := x"340";
-  constant CSR_MEPC     : bit_vector(11 downto 0) := x"341";
-  constant CSR_MCAUSE   : bit_vector(11 downto 0) := x"342";
-  constant CSR_MTVAL    : bit_vector(11 downto 0) := x"343";
-  constant CSR_MIP      : bit_vector(11 downto 0) := x"344";
+  constant CSR_MSTATUS  : std_logic_vector(11 downto 0) := x"300";
+  constant CSR_MISA     : std_logic_vector(11 downto 0) := x"301";
+  constant CSR_MIE      : std_logic_vector(11 downto 0) := x"304";
+  constant CSR_MTVEC    : std_logic_vector(11 downto 0) := x"305";
+  constant CSR_MSCRATCH : std_logic_vector(11 downto 0) := x"340";
+  constant CSR_MEPC     : std_logic_vector(11 downto 0) := x"341";
+  constant CSR_MCAUSE   : std_logic_vector(11 downto 0) := x"342";
+  constant CSR_MTVAL    : std_logic_vector(11 downto 0) := x"343";
+  constant CSR_MIP      : std_logic_vector(11 downto 0) := x"344";
 
 end RV_pkg;

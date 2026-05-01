@@ -43,6 +43,7 @@ filesets:
       - hdl/fsm/WardRV_fsm_decode.vhd
       - hdl/fsm/WardRV_fsm_regfile.vhd
       - hdl/fsm/WardRV_fsm_memory.vhd
+      - hdl/fsm/WardRV_fsm_csr.vhd
       - hdl/fsm/WardRV_fsm.vhd
 
       #- hdl/tiny/WardRV_tiny_decode.vhd

@@ -115,6 +115,7 @@ architecture behavioural of WardRV_fsm is
   signal dec_imm_b                  : std_logic_vector(31 downto 0);
   signal dec_imm_u                  : std_logic_vector(31 downto 0);
   signal dec_imm_j                  : std_logic_vector(31 downto 0);
+  signal dec_imm_csr                : std_logic_vector(31 downto 0);
   signal dec_rd_addr                : std_logic_vector(4 downto 0);
   signal dec_rs1_addr               : std_logic_vector(4 downto 0);
   signal dec_rs2_addr               : std_logic_vector(4 downto 0);
@@ -135,8 +136,24 @@ architecture behavioural of WardRV_fsm is
   signal dec_branch_use_flag_sign   : std_logic;
   signal dec_branch_flag_is_set     : std_logic;
   signal dec_pc_sel                 : std_logic_vector(1 downto 0);
+  signal dec_csr_we                 : std_logic;
+  signal dec_csr_re                 : std_logic;
+  signal dec_csr_addr               : std_logic_vector(11 downto 0);
   signal dec_inst_type              : inst_type_t;
      
+  -- CSR Signals
+  signal csr_rdata                  : std_logic_vector(31 downto 0);
+  signal csr_mepc                   : std_logic_vector(31 downto 0);
+  signal csr_mtvec                  : std_logic_vector(31 downto 0);
+  signal csr_mstatus_mie            : std_logic;
+  signal inst_is_mret                       : std_logic;
+
+  -- Trap Handling (Stubs for now)
+  signal trap                       : std_logic := '0';
+  signal trap_cause                 : std_logic_vector(31 downto 0) := (others => '0');
+  signal trap_pc                    : std_logic_vector(31 downto 0) := (others => '0');
+  signal trap_mtval                 : std_logic_vector(31 downto 0) := (others => '0');
+
   -- Mux selection signals for ALU inputs, determined by the FSM state or decoder.
   signal alu_src_a_sel              : alu_src_a_sel_t;
   signal alu_src_b_sel              : alu_src_b_sel_t;
@@ -183,6 +200,7 @@ begin
     imm_b_o                  => dec_imm_b,
     imm_u_o                  => dec_imm_u,
     imm_j_o                  => dec_imm_j,
+    imm_csr_o                => dec_imm_csr,
     rd_addr_o                => dec_rd_addr,
     rs1_addr_o               => dec_rs1_addr,
     rs2_addr_o               => dec_rs2_addr,
@@ -203,7 +221,34 @@ begin
     branch_use_flag_sign_o   => dec_branch_use_flag_sign,
     branch_flag_is_set_o     => dec_branch_flag_is_set,
     pc_sel_o                 => dec_pc_sel,
+    csr_we_o                 => dec_csr_we,
+    csr_re_o                 => dec_csr_re,
+    csr_addr_o               => dec_csr_addr,
     inst_type_o              => dec_inst_type
+  );
+
+  --------------------------------------------------------------------
+  -- CSR Instance
+  --------------------------------------------------------------------
+  inst_is_mret <= '1' when dec_inst_type = I_MRET else '0';
+
+  csr_inst : entity work.WardRV_fsm_csr
+  port map (
+    clk_i               => clk_i,
+    arst_b_i            => arst_b_i,
+    csr_addr_i          => dec_csr_addr,
+    csr_we_i            => dec_csr_we and regfile_we, -- Write back during WB state
+    csr_re_i            => dec_csr_re,
+    csr_wdata_i         => alu_res_r,
+    csr_rdata_o         => csr_rdata,
+    trap_i              => trap,
+    trap_cause_i        => trap_cause,
+    trap_pc_i           => trap_pc,
+    trap_mtval_i        => trap_mtval,
+    inst_is_mret_i      => inst_is_mret,
+    csr_mepc_o          => csr_mepc,
+    csr_mtvec_o         => csr_mtvec,
+    csr_mstatus_mie_o   => csr_mstatus_mie
   );
 
   --------------------------------------------------------------------
@@ -218,6 +263,7 @@ begin
   -- selects between the ALU result, memory data or the link address (PC+4).
   regfile_rd_wdata <= dmem_rdata_r when dec_rd_src = RD_SRC_MEM      else
                       pc_seq_r     when dec_rd_src = RD_SRC_PC_PLUS4 else
+                      csr_rdata    when dec_rd_src = RD_SRC_CSR      else
                       alu_res_r; --when dec_rd_src = RD_SRC_ALU      else
                       
   inst_regfile : entity work.WardRV_fsm_regfile
@@ -273,6 +319,7 @@ begin
   -- Connects selected sources to the ALU component.
   --------------------------------------------------------------------
   alu_src_a <= pc_r          when alu_src_a_sel = ALU_SRC_A_PC    else 
+               dec_imm_csr   when alu_src_a_sel = ALU_SRC_A_IMM_CSR else
                src_a_val;  --when alu_src_a_sel = ALU_SRC_A_RS1
 
   alu_src_b <= dec_imm_i     when alu_src_b_sel = ALU_SRC_B_IMM_I else 
@@ -281,6 +328,7 @@ begin
                dec_imm_j     when alu_src_b_sel = ALU_SRC_B_IMM_J else
                dec_imm_b     when alu_src_b_sel = ALU_SRC_B_IMM_B else
                C_IMM_4       when alu_src_b_sel = ALU_SRC_B_IMM_4 else
+               csr_rdata     when alu_src_b_sel = ALU_SRC_B_CSR     else
                src_b_val;  --when alu_src_b_sel = ALU_SRC_B_RS2 
                
   inst_alu : entity work.WardRV_fsm_alu
@@ -352,7 +400,8 @@ begin
                             (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
                    else '0';
   -- Next PC Mux: Sequential (+4), Branch target, or Jump target
-  pc_r_next    <= alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
+  pc_r_next    <= csr_rdata                     when (dec_pc_sel = PC_SEL_XEPC) else
+                  alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
                                                      (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
                   pc_seq_r; -- pc_seq_r is already PC+4
 
