@@ -70,6 +70,7 @@ entity WardRV_fsm_decode is
     csr_addr_o               : out std_logic_vector(11 downto 0);
 
     -- Instruction Metadata (for logging/FSM)
+    inst_is_mret_o           : out std_logic;
     inst_type_o              : out inst_type_t
   );
 end entity WardRV_fsm_decode;
@@ -124,6 +125,7 @@ begin
     csr_re_o                 <= '0';
     csr_addr_o               <= inst_i(31 downto 20); -- Adresse CSR par défaut
 
+    inst_is_mret_o           <= '0';
     case opcode is
       when OPC_LUI =>
         rd_we_o         <= '1'; 
@@ -312,6 +314,7 @@ begin
                 csr_re_o        <= '1';
                 csr_addr_o      <= CSR_MEPC;
                 pc_sel_o        <= PC_SEL_XEPC;
+                inst_is_mret_o  <= '1';
 
                 inst_type_o <= I_MRET;
               when others =>

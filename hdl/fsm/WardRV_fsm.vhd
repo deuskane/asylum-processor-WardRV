@@ -34,6 +34,7 @@ use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm is
   generic (
+    HARTID     : std_logic_vector(31 downto 0) := (others => '0');
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
     VERBOSE    : boolean                       := true
   );
@@ -140,13 +141,13 @@ architecture behavioural of WardRV_fsm is
   signal dec_csr_re                 : std_logic;
   signal dec_csr_addr               : std_logic_vector(11 downto 0);
   signal dec_inst_type              : inst_type_t;
+  signal dec_inst_is_mret           : std_logic;
      
   -- CSR Signals
   signal csr_rdata                  : std_logic_vector(31 downto 0);
   signal csr_mepc                   : std_logic_vector(31 downto 0);
   signal csr_mtvec                  : std_logic_vector(31 downto 0);
   signal csr_mstatus_mie            : std_logic;
-  signal inst_is_mret                       : std_logic;
 
   -- Trap Handling (Stubs for now)
   signal trap                       : std_logic := '0';
@@ -224,15 +225,18 @@ begin
     csr_we_o                 => dec_csr_we,
     csr_re_o                 => dec_csr_re,
     csr_addr_o               => dec_csr_addr,
+    inst_is_mret_o           => dec_inst_is_mret,
     inst_type_o              => dec_inst_type
   );
 
   --------------------------------------------------------------------
   -- CSR Instance
   --------------------------------------------------------------------
-  inst_is_mret <= '1' when dec_inst_type = I_MRET else '0';
 
   csr_inst : entity work.WardRV_fsm_csr
+  generic map (
+    HARTID              => HARTID
+  )
   port map (
     clk_i               => clk_i,
     arst_b_i            => arst_b_i,
@@ -245,7 +249,7 @@ begin
     trap_cause_i        => trap_cause,
     trap_pc_i           => trap_pc,
     trap_mtval_i        => trap_mtval,
-    inst_is_mret_i      => inst_is_mret,
+    inst_is_mret_i      => dec_inst_is_mret,
     csr_mepc_o          => csr_mepc,
     csr_mtvec_o         => csr_mtvec,
     csr_mstatus_mie_o   => csr_mstatus_mie

@@ -25,6 +25,9 @@ use     asylum.RV_pkg.all;
 use     asylum.WardRV_decode_pkg.all;
 
 entity WardRV_fsm_csr is
+  generic (
+    HARTID     : std_logic_vector(31 downto 0) := (others => '0')
+  );
   port (
     clk_i               : in  std_logic;
     arst_b_i            : in  std_logic;
@@ -56,13 +59,13 @@ end entity WardRV_fsm_csr;
 architecture behavioural of WardRV_fsm_csr is
 
   -- Stockage des registres (Subset Machine Mode)
+  signal mhartid_q  : std_logic_vector(31 downto 0) := HARTID;
   signal mstatus_q  : std_logic_vector(31 downto 0);
   signal mtvec_q    : std_logic_vector(31 downto 0);
   signal mepc_q     : std_logic_vector(31 downto 0);
   signal mcause_q   : std_logic_vector(31 downto 0);
   signal mtval_q    : std_logic_vector(31 downto 0);
   signal mscratch_q : std_logic_vector(31 downto 0);
-
 
 begin
 
@@ -71,13 +74,14 @@ begin
   begin
     csr_rdata_o <= (others => '0');
     case csr_addr_i is
-      when CSR_MSTATUS  => csr_rdata_o <= mstatus_q;
-      when CSR_MTVEC    => csr_rdata_o <= mtvec_q;
+      when CSR_MHARTID  => csr_rdata_o <= mhartid_q ;
+      when CSR_MSTATUS  => csr_rdata_o <= mstatus_q ;
+      when CSR_MTVEC    => csr_rdata_o <= mtvec_q   ;
       when CSR_MSCRATCH => csr_rdata_o <= mscratch_q;
-      when CSR_MEPC     => csr_rdata_o <= mepc_q;
-      when CSR_MCAUSE   => csr_rdata_o <= mcause_q;
-      when CSR_MTVAL    => csr_rdata_o <= mtval_q;
-      when others        => csr_rdata_o <= (others => '0');
+      when CSR_MEPC     => csr_rdata_o <= mepc_q    ;
+      when CSR_MCAUSE   => csr_rdata_o <= mcause_q  ;
+      when CSR_MTVAL    => csr_rdata_o <= mtval_q   ;
+      when others       => csr_rdata_o <= (others => '0');
     end case;
   end process;
 

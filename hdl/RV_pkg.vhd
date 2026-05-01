@@ -132,14 +132,21 @@ package RV_pkg is
   -- ===========================================================================
   -- RISC-V CSR Addresses (Machine Level)
   -- ===========================================================================
-  constant CSR_MSTATUS  : std_logic_vector(11 downto 0) := x"300";
-  constant CSR_MISA     : std_logic_vector(11 downto 0) := x"301";
-  constant CSR_MIE      : std_logic_vector(11 downto 0) := x"304";
-  constant CSR_MTVEC    : std_logic_vector(11 downto 0) := x"305";
-  constant CSR_MSCRATCH : std_logic_vector(11 downto 0) := x"340";
-  constant CSR_MEPC     : std_logic_vector(11 downto 0) := x"341";
-  constant CSR_MCAUSE   : std_logic_vector(11 downto 0) := x"342";
-  constant CSR_MTVAL    : std_logic_vector(11 downto 0) := x"343";
-  constant CSR_MIP      : std_logic_vector(11 downto 0) := x"344";
+
+  -- Machine Information Registers
+  constant CSR_MVENDORID  : std_logic_vector(11 downto 0) := x"F11";
+  constant CSR_MARCHID    : std_logic_vector(11 downto 0) := x"F12";
+  constant CSR_MIMPID     : std_logic_vector(11 downto 0) := x"F13";
+  constant CSR_MHARTID    : std_logic_vector(11 downto 0) := x"F14";
+  constant CSR_MCONFIGPTR : std_logic_vector(11 downto 0) := x"F15";
+  constant CSR_MSTATUS    : std_logic_vector(11 downto 0) := x"300";
+  constant CSR_MISA       : std_logic_vector(11 downto 0) := x"301";
+  constant CSR_MIE        : std_logic_vector(11 downto 0) := x"304";
+  constant CSR_MTVEC      : std_logic_vector(11 downto 0) := x"305";
+  constant CSR_MSCRATCH   : std_logic_vector(11 downto 0) := x"340";
+  constant CSR_MEPC       : std_logic_vector(11 downto 0) := x"341";
+  constant CSR_MCAUSE     : std_logic_vector(11 downto 0) := x"342";
+  constant CSR_MTVAL      : std_logic_vector(11 downto 0) := x"343";
+  constant CSR_MIP        : std_logic_vector(11 downto 0) := x"344";
 
 end RV_pkg;
