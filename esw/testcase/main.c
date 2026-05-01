@@ -347,6 +347,12 @@ jump_target:                      // Target for the jump
     asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(s_signed), "r"(shamt));
     check(res, 0xF0000000);  // Verify SRA (Shift Right Arithmetic)
 
+    // Test CSR read (mhartid)
+    asm volatile ("csrr %0, mhartid" : "=r"(res));
+    check(res, 0x900DC0DE);
+
+    
+
     return 0;    
 }
 

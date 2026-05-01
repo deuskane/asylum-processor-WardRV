@@ -22,7 +22,7 @@ ASM          = $(BUILD_DIR)/main.s
 # -----------------------------------------------------------------------------
 # Flags
 # -----------------------------------------------------------------------------
-CFLAGS       = -march=rv32i        # Architecture de base RISC-V 32-bit entier
+CFLAGS       = -march=rv32i_zicsr  # Architecture de base RISC-V 32-bit entier
 CFLAGS      += -mabi=ilp32         # ABI standard 32-bit (int, long, pointeurs sont 32-bit)
 CFLAGS      += -O2                 # Optimisation de niveau 2 pour la performance
 CFLAGS      += -ffreestanding      # Environnement sans OS (pas de bibliothèque standard complète)

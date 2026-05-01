@@ -83,6 +83,7 @@ begin
   g_FSM : if MODEL = "FSM" generate
     dut : entity asylum.WardRV_fsm
       generic map (
+        HARTID     => C_HARTID,
         RESET_ADDR => C_FIRMWARE_ADDR,
         VERBOSE    => true
       )

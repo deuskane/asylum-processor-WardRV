@@ -30,6 +30,7 @@ package tb_WardRV_pkg is
   constant C_SIGNATURE_END_ADDR : std_logic_vector(31 downto 0) := x"80203000";
   constant C_MEM_SIZE           : integer := to_integer(unsigned(C_SIGNATURE_END_ADDR) - unsigned(C_FIRMWARE_ADDR));
   constant C_TOHOST_DATA_OK     : std_logic_vector(31 downto 0) := x"00000001";
+  constant C_HARTID             : std_logic_vector(31 downto 0) := x"900DC0DE";
 
   -- Memory Type
   type ram_t is array (0 to C_MEM_SIZE-1) of character;
