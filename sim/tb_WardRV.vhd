@@ -67,6 +67,7 @@ begin
   g_ISS : if MODEL = "ISS" generate
     dut : entity asylum.WardRV_iss
       generic map (
+        HARTID     => C_HARTID,
         RESET_ADDR => C_FIRMWARE_ADDR,
         VERBOSE    => true
       )

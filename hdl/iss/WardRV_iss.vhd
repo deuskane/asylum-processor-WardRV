@@ -25,6 +25,7 @@ use     asylum.WardRV_iss_pkg.all;
 entity WardRV_iss is
   generic (
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
+    HARTID     : std_logic_vector(31 downto 0) := (others => '0');
     VERBOSE    : boolean                       := false
   );
   port (
@@ -83,6 +84,7 @@ begin
         if arst_b_i = '0' 
         then
             iss.reset(RESET_ADDR);
+            iss.cfg(HARTID);
             iss.set_verbose(VERBOSE);
             state <= S_FETCH;
         elsif rising_edge(clk_i) 

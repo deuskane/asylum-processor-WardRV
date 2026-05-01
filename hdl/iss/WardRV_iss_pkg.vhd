@@ -35,6 +35,11 @@ package WardRV_iss_pkg is
       start_pc : in std_logic_vector(IMEM_ADDR_WIDTH-1 downto 0)
     );
 
+    -- Configuration
+    procedure cfg(
+      mhartid : in std_logic_vector(31 downto 0)
+    );
+
     -- Accessors
     impure function get_pc return std_logic_vector;
     impure function get_reg(r : integer) return std_logic_vector;
@@ -77,6 +82,7 @@ package body WardRV_iss_pkg is
     
     variable pc_r                  : bit_vector(IMEM_ADDR_WIDTH-1 downto 0);
     variable regs_r                : regfile_t;
+    variable mhartid_r             : bit_vector(31 downto 0) := (others => '0');
     variable verbose_r             : boolean := false;
     variable debug_r               : boolean := false;
 
@@ -99,12 +105,20 @@ package body WardRV_iss_pkg is
     begin
       pc_r            := to_bitvector(start_pc);
       regs_r          := (others => (others => '0'));
+      mhartid_r       := (others => '0');
       stats_inst.reset;
       pending_npc     := (others => '0');
       pending_rd      := (others => '0');
       pending_res     := (others => '0');
       pending_load_funct3   := (others => '0');
       pending_load_byte_off := 0;
+    end procedure;
+
+    procedure cfg(
+      mhartid : in std_logic_vector(31 downto 0)
+    ) is
+    begin
+      mhartid_r := to_bitvector(mhartid);
     end procedure;
 
     impure function get_pc return std_logic_vector is
@@ -402,18 +416,27 @@ package body WardRV_iss_pkg is
           -- ECALL, EBREAK, CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI
           case funct3 is
             when F3_PRIV =>
-              -- ECALL, EBREAK
+              -- ECALL, EBREAK, MRET
               v_inst_type := I_UNKNOWN;
-              if funct12 = x"000" then
+              if funct12 = F12_ECALL then
                 -- ECALL - Environment Call
                 v_inst_type := I_UNKNOWN;
-              elsif funct12 = x"001" then
+              elsif funct12 = F12_EBREAK then
                 -- EBREAK - Environment Breakpoint
+                v_inst_type := I_UNKNOWN;
+              elsif funct12 = F12_MRET then
+                -- MRET - Machine-mode Return
                 v_inst_type := I_UNKNOWN;
               end if;
             when F3_CSRRW | F3_CSRRS | F3_CSRRC | F3_CSRRWI | F3_CSRRSI | F3_CSRRCI =>
               -- CSR instructions (require CSR register file support)
               v_inst_type := I_UNKNOWN;
+              if funct12 = to_bitvector(CSR_MHARTID) then
+                -- MHARTID (Machine Hart ID): Read-only
+                v_res       := mhartid_r;
+                pending_rd  := rd;
+                pending_res := v_res;
+              end if;
             when others => null;
           end case;
 
