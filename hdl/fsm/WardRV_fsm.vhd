@@ -52,7 +52,7 @@ entity WardRV_fsm is
     sbi_tgt_i  : in  sbi_tgt_t;
 
     -- Interruption Interface
-    irq_i      : in  std_logic
+    meip_i     : in  std_logic
   );
 end entity WardRV_fsm;
 
@@ -261,7 +261,7 @@ begin
   
     inst_is_mret_i      => dec_inst_is_mret,
     
-    irq_i               => irq_i,
+    meip_i              => meip_i,
     trap_mirq_o         => trap_mirq
     );
 
