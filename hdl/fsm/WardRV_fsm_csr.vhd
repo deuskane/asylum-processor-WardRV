@@ -32,31 +32,33 @@ entity WardRV_fsm_csr is
     clk_i               : in  std_logic;
     arst_b_i            : in  std_logic;
 
-    -- Interface avec le Décodeur / Pipeline
+    -- Decoder / Pipeline Interface
     csr_addr_i          : in  std_logic_vector(11 downto 0);
     csr_we_i            : in  std_logic;
     csr_re_i            : in  std_logic;
     csr_wdata_i         : in  std_logic_vector(31 downto 0);
     csr_rdata_o         : out std_logic_vector(31 downto 0);
 
-    -- Gestion des Traps (Exceptions/Interruptions)
+    -- CSR Outputs
+    csr_mtvec_o         : out std_logic_vector(31 downto 0);
+
+    -- Trap Management (Exceptions/Interrupts)
     trap_i              : in  std_logic;
     trap_cause_i        : in  std_logic_vector(31 downto 0);
     trap_pc_i           : in  std_logic_vector(31 downto 0);
     trap_mtval_i        : in  std_logic_vector(31 downto 0);
 
-    -- Instruction MRET
+    -- MRET Instruction
     inst_is_mret_i      : in  std_logic;
 
     irq_i               : in  std_logic;
     trap_mirq_o         : out std_logic
-
   );
 end entity WardRV_fsm_csr;
 
 architecture behavioural of WardRV_fsm_csr is
 
-  -- Stockage des registres (Subset Machine Mode)
+  -- Register Storage (Machine Mode Subset)
   signal mhartid_q  : std_logic_vector(31 downto 0) := HARTID;
   signal mstatus_q  : std_logic_vector(31 downto 0);
   signal mtvec_q    : std_logic_vector(31 downto 0);
@@ -69,7 +71,7 @@ architecture behavioural of WardRV_fsm_csr is
 
 begin
 
-  -- Logique de Lecture
+  -- Read Logic
   process(all)
   begin
     csr_rdata_o <= (others => '0');
@@ -87,12 +89,12 @@ begin
     end case;
   end process;
 
-  -- Logique d'Écriture et Mise à jour
+  -- Write and Update Logic
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' 
     then
-      mstatus_q  <= x"00001800"; -- MPP = 11 (Machine mode) par défaut
+      mstatus_q  <= x"00001800"; -- MPP = 11 (Machine mode) by default
       mie_q      <= (others => '0');
       mip_q      <= (others => '0');
       mtvec_q    <= (others => '0');
@@ -133,7 +135,9 @@ begin
     end if;
   end process;
 
-  -- Sortie de signal de trap pour le pipeline
+  -- Trap signal output for the pipeline
   trap_mirq_o <= '1' when mip_q(11) = '1' and mie_q(11) = '1' and mstatus_q(3) = '1' else '0';
 
+  -- CSR Outputs
+  csr_mtvec_o <= mtvec_q;
 end architecture behavioural;

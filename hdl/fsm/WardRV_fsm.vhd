@@ -151,6 +151,7 @@ architecture behavioural of WardRV_fsm is
   signal csr_we                     : std_logic; -- Write enable for CSRs
 
   signal csr_rdata                  : std_logic_vector(31 downto 0);
+  signal csr_mtvec                  : std_logic_vector(31 downto 0);  
 
   -- Trap Handling (Stubs for now)
   signal trap                       : std_logic;
@@ -250,10 +251,14 @@ begin
     csr_re_i            => dec_csr_re,
     csr_wdata_i         => alu_res_r,
     csr_rdata_o         => csr_rdata,
+
+    csr_mtvec_o         => csr_mtvec,
+
     trap_i              => trap,
     trap_cause_i        => trap_cause,
     trap_pc_i           => trap_pc,
     trap_mtval_i        => trap_mtval,
+  
     inst_is_mret_i      => dec_inst_is_mret,
     
     irq_i               => irq_i,
@@ -417,7 +422,8 @@ begin
                             (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
                    else '0';
   -- Next PC Mux: Sequential (+4), Branch target, or Jump target
-  pc_r_next    <= csr_rdata                     when (dec_pc_sel = PC_SEL_XEPC) else
+  pc_r_next    <= csr_mtvec                     when trap = '1' else
+                  csr_rdata                     when (dec_pc_sel = PC_SEL_XEPC) else
                   alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
                                                      (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
                   pc_seq_r; -- pc_seq_r is already PC+4
