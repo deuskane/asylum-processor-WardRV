@@ -34,6 +34,7 @@ use     asylum.WardRV_fsm_alu_pkg.all;
 
 entity WardRV_fsm is
   generic (
+  --VENDORID   : std_logic_vector(31 downto 0) := (others => '0');
     HARTID     : std_logic_vector(31 downto 0) := (others => '0');
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
     VERBOSE    : boolean                       := true
@@ -48,7 +49,10 @@ entity WardRV_fsm is
 
     -- Data Interface
     sbi_ini_o  : out sbi_ini_t;
-    sbi_tgt_i  : in  sbi_tgt_t
+    sbi_tgt_i  : in  sbi_tgt_t;
+
+    -- Interruption Interface
+    irq_i      : in  std_logic
   );
 end entity WardRV_fsm;
 
@@ -144,16 +148,16 @@ architecture behavioural of WardRV_fsm is
   signal dec_inst_is_mret           : std_logic;
      
   -- CSR Signals
+  signal csr_we                     : std_logic; -- Write enable for CSRs
+
   signal csr_rdata                  : std_logic_vector(31 downto 0);
-  signal csr_mepc                   : std_logic_vector(31 downto 0);
-  signal csr_mtvec                  : std_logic_vector(31 downto 0);
-  signal csr_mstatus_mie            : std_logic;
 
   -- Trap Handling (Stubs for now)
-  signal trap                       : std_logic := '0';
-  signal trap_cause                 : std_logic_vector(31 downto 0) := (others => '0');
-  signal trap_pc                    : std_logic_vector(31 downto 0) := (others => '0');
-  signal trap_mtval                 : std_logic_vector(31 downto 0) := (others => '0');
+  signal trap                       : std_logic;
+  signal trap_mirq                  : std_logic;
+  signal trap_cause                 : std_logic_vector(31 downto 0);
+  signal trap_pc                    : std_logic_vector(31 downto 0);
+  signal trap_mtval                 : std_logic_vector(31 downto 0);
 
   -- Mux selection signals for ALU inputs, determined by the FSM state or decoder.
   signal alu_src_a_sel              : alu_src_a_sel_t;
@@ -232,6 +236,7 @@ begin
   --------------------------------------------------------------------
   -- CSR Instance
   --------------------------------------------------------------------
+  csr_we                <= dec_csr_we and regfile_we;
 
   csr_inst : entity work.WardRV_fsm_csr
   generic map (
@@ -241,7 +246,7 @@ begin
     clk_i               => clk_i,
     arst_b_i            => arst_b_i,
     csr_addr_i          => dec_csr_addr,
-    csr_we_i            => dec_csr_we and regfile_we, -- Write back during WB state
+    csr_we_i            => csr_we,
     csr_re_i            => dec_csr_re,
     csr_wdata_i         => alu_res_r,
     csr_rdata_o         => csr_rdata,
@@ -250,10 +255,18 @@ begin
     trap_pc_i           => trap_pc,
     trap_mtval_i        => trap_mtval,
     inst_is_mret_i      => dec_inst_is_mret,
-    csr_mepc_o          => csr_mepc,
-    csr_mtvec_o         => csr_mtvec,
-    csr_mstatus_mie_o   => csr_mstatus_mie
-  );
+    
+    irq_i               => irq_i,
+    trap_mirq_o         => trap_mirq
+    );
+
+  --------------------------------------------------------------------
+  -- Trap
+  --------------------------------------------------------------------
+  trap       <= '1'           when trap_mirq = '1' and regfile_we = '1' else '0';
+  trap_cause <= x"8000000B";--when trap_mirq = '1' else (others => '0'); -- External Interrupt
+  trap_pc    <= pc_r       ;--when trap_mirq = '1' else (others => '0');
+  trap_mtval <= (others => '0'); -- No additional info for external interrupts
 
   --------------------------------------------------------------------
   -- Register File Instance

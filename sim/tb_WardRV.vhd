@@ -94,7 +94,8 @@ begin
         inst_ini_o => inst_ini,
         inst_tgt_i => inst_tgt,
         sbi_ini_o  => sbi_ini,
-        sbi_tgt_i  => sbi_tgt
+        sbi_tgt_i  => sbi_tgt,
+        irq_i      => '0'
       );
   end generate g_FSM;
 

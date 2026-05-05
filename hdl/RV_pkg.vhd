@@ -139,10 +139,20 @@ package RV_pkg is
   constant CSR_MIMPID     : std_logic_vector(11 downto 0) := x"F13";
   constant CSR_MHARTID    : std_logic_vector(11 downto 0) := x"F14";
   constant CSR_MCONFIGPTR : std_logic_vector(11 downto 0) := x"F15";
+
+  -- Machine Trap Setup
   constant CSR_MSTATUS    : std_logic_vector(11 downto 0) := x"300";
   constant CSR_MISA       : std_logic_vector(11 downto 0) := x"301";
+  constant CSR_MEDELEG    : std_logic_vector(11 downto 0) := x"302";
+  constant CSR_MIDELEG    : std_logic_vector(11 downto 0) := x"303";
   constant CSR_MIE        : std_logic_vector(11 downto 0) := x"304";
   constant CSR_MTVEC      : std_logic_vector(11 downto 0) := x"305";
+  constant CSR_MCOUNTEREN : std_logic_vector(11 downto 0) := x"306";
+
+  constant CSR_MSTATUSH   : std_logic_vector(11 downto 0) := x"310";
+  constant CSR_MEDELEGH   : std_logic_vector(11 downto 0) := x"312";
+
+  -- Machine Trap Handling
   constant CSR_MSCRATCH   : std_logic_vector(11 downto 0) := x"340";
   constant CSR_MEPC       : std_logic_vector(11 downto 0) := x"341";
   constant CSR_MCAUSE     : std_logic_vector(11 downto 0) := x"342";

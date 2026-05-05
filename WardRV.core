@@ -46,14 +46,6 @@ filesets:
       - hdl/fsm/WardRV_fsm_csr.vhd
       - hdl/fsm/WardRV_fsm.vhd
 
-      #- hdl/tiny/WardRV_tiny_decode.vhd
-      #- hdl/tiny/WardRV_tiny_execute.vhd
-      #- hdl/tiny/WardRV_tiny_lsu_8b.vhd
-      #- hdl/tiny/WardRV_tiny_lsu.vhd
-      #- hdl/tiny/WardRV_tiny_pc.vhd
-      #- hdl/tiny/WardRV_tiny_pkg.vhd
-      #- hdl/tiny/WardRV_tiny.vhd
-
     file_type    : vhdlSource-2008
     logical_name : asylum
     depend       :
