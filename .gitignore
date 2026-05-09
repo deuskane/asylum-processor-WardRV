@@ -1,4 +1,5 @@
 build
 build-*
 fusesoc.conf
-esw/compliance/riscv-compliance-ws
+esw/compliance/riscv-compliance-ws*
+tools/riscv-compliance-ws*
