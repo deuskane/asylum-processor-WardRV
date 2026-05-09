@@ -27,16 +27,20 @@ filesets:
   files_hdl:
   #---------------------------------------
     files        :
+      # Common package
       - hdl/RV_pkg.vhd
       - hdl/WardRV_pkg.vhd
       - hdl/WardRV_stats_pkg.vhd
 
+      # Instruction Set Simulator
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
 
+      # Debug Version
       #- hdl/debug/WardRV_debug_pkg.vhd
       #- hdl/debug/WardRV_debug.vhd
 
+      # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
       - hdl/fsm/WardRV_fsm_fetch.vhd
       - hdl/fsm/WardRV_fsm_alu.vhd
@@ -45,6 +49,10 @@ filesets:
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm_csr.vhd
       - hdl/fsm/WardRV_fsm.vhd
+
+      # Bridge
+      - hdl/bridge/dmem2sbi.vhd
+      - hdl/bridge/imem2sbi.vhd
 
     file_type    : vhdlSource-2008
     logical_name : asylum
