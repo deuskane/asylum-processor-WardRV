@@ -44,12 +44,12 @@ entity WardRV_fsm is
     arst_b_i   : in  std_logic;
 
     -- Instruction Interface
-    inst_ini_o : out inst_ini_t;
-    inst_tgt_i : in  inst_tgt_t;
+    imem_ini_o : out imem_ini_t;
+    imem_tgt_i : in  imem_tgt_t;
 
     -- Data Interface
-    sbi_ini_o  : out sbi_ini_t;
-    sbi_tgt_i  : in  sbi_tgt_t;
+    dmem_ini_o  : out dmem_ini_t;
+    dmem_tgt_i  : in  dmem_tgt_t;
 
     -- Interruption Interface
     meip_i     : in  std_logic
@@ -96,7 +96,7 @@ architecture behavioural of WardRV_fsm is
   signal dmem_be                    : std_logic_vector(3 downto 0);
   signal dmem_addr                  : std_logic_vector(31 downto 0);
   signal dmem_rdata_r               : std_logic_vector(31 downto 0);
-  signal sbi_ini                    : sbi_ini_t;
+  signal dmem_ini                    : dmem_ini_t;
 
   -- Intermediate register for ALU result to be used across FSM cycles.
   signal alu_res_r_we               : std_logic;
@@ -187,8 +187,8 @@ begin
     inst_r_o     => inst_r,
 
     -- Physical Interface
-    inst_ini_o   => inst_ini_o,
-    inst_tgt_i   => inst_tgt_i
+    imem_ini_o   => imem_ini_o,
+    imem_tgt_i   => imem_tgt_i
   );
 
   imem_addr <= pc_r;
@@ -403,11 +403,11 @@ begin
     dmem_ready_o        => dmem_ready,
     dmem_rdata_r_o      => dmem_rdata_r,
     
-    sbi_ini_o           => sbi_ini,
-    sbi_tgt_i           => sbi_tgt_i
+    dmem_ini_o           => dmem_ini,
+    dmem_tgt_i           => dmem_tgt_i
   );
 
-  sbi_ini_o <= sbi_ini;
+  dmem_ini_o <= dmem_ini;
 
   --------------------------------------------------------------------
   -- Program Counter Logic
@@ -556,8 +556,8 @@ begin
             v_report.imm_j     := to_bitvector(dec_imm_j);
             v_report.op1       := to_bitvector(src_a_val);
             v_report.op2       := to_bitvector(src_b_val);
-            v_report.mem_addr  := to_bitvector(sbi_ini.addr   );
-            v_report.mem_be    := to_bitvector(sbi_ini.be     );             
+            v_report.mem_addr  := to_bitvector(dmem_ini.addr   );
+            v_report.mem_be    := to_bitvector(dmem_ini.be     );             
             v_report.mem_rdata := to_bitvector(dmem_rdata_r);
             v_report.res       := to_bitvector(regfile_rd_wdata);
             v_report.npc       := to_bitvector(pc_r_next);

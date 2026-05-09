@@ -34,8 +34,8 @@ entity WardRV_fsm_fetch is
     inst_r_o        : out std_logic_vector(31 downto 0); -- The fetched instruction
 
     -- Instruction Memory Interface (Bus)
-    inst_ini_o      : out inst_ini_t;
-    inst_tgt_i      : in  inst_tgt_t
+    imem_ini_o      : out imem_ini_t;
+    imem_tgt_i      : in  imem_tgt_t
   );
 end entity WardRV_fsm_fetch;
 
@@ -49,11 +49,11 @@ begin
   -- Bus Interface Mapping
   --------------------------------------------------------------------
   -- We directly drive the address from the PC.
-  inst_ini_o.addr  <= pc_i;
-  inst_ini_o.valid <= imem_valid_r;
+  imem_ini_o.addr  <= pc_i;
+  imem_ini_o.valid <= imem_valid_r;
   
   -- Expose the memory ready signal to the FSM so it knows when to transition states.
-  imem_ready_o     <= inst_tgt_i.ready;
+  imem_ready_o     <= imem_tgt_i.ready;
 
   --------------------------------------------------------------------
   -- Request Logic & Instruction Latch
@@ -73,8 +73,8 @@ begin
       -- We capture the data only when both the master (this module) and 
       -- the slave (memory) agree that the bus transaction is valid and ready.
       -- This is the standard "valid/ready" handshake pattern.
-      if (imem_valid_r = '1') and (inst_tgt_i.ready = '1') then
-        inst_r_o <= inst_tgt_i.inst;
+      if (imem_valid_r = '1') and (imem_tgt_i.ready = '1') then
+        inst_r_o <= imem_tgt_i.inst;
       end if;
       
     end if;

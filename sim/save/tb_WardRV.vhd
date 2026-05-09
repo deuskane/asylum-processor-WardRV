@@ -46,10 +46,10 @@ architecture rtl of tb_WardRV is
   signal sim_end_rtl : boolean   := false;
 
   -- Interfaces
-  signal inst_ini    : inst_ini_t;
-  signal inst_tgt    : inst_tgt_t;
-  signal sbi_ini     : sbi_ini_t;
-  signal sbi_tgt     : sbi_tgt_t;
+  signal imem_ini    : imem_ini_t;
+  signal imem_tgt    : imem_tgt_t;
+  signal dmem_ini     : dmem_ini_t;
+  signal dmem_tgt     : dmem_tgt_t;
   signal it_val      : std_logic := '0';
   signal it_ack      : std_logic;
 
@@ -94,10 +94,10 @@ begin
     port map (
       clk_i      => clk_i,
       arst_b_i   => arst_b_i,
-      inst_ini_o => inst_ini,
-      inst_tgt_i => inst_tgt,
-      sbi_ini_o  => sbi_ini,
-      sbi_tgt_i  => sbi_tgt
+      imem_ini_o => imem_ini,
+      imem_tgt_i => imem_tgt,
+      dmem_ini_o  => dmem_ini,
+      dmem_tgt_i  => dmem_tgt
     --it_val_i   => it_val,
     --it_ack_o   => it_ack,
     --jtag_ini_i => jtag_ini,
@@ -135,33 +135,33 @@ begin
   begin
     if rising_edge(clk_i) then
       -- Instruction Fetch
-      inst_tgt.ready <= '0';
-      inst_tgt.inst  <= (others => '0');
+      imem_tgt.ready <= '0';
+      imem_tgt.inst  <= (others => '0');
       
-      if inst_ini.valid = '1' then
-        if unsigned(inst_ini.addr) < C_MEM_SIZE - 3 then
-          i_addr := to_integer(unsigned(inst_ini.addr));
+      if imem_ini.valid = '1' then
+        if unsigned(imem_ini.addr) < C_MEM_SIZE - 3 then
+          i_addr := to_integer(unsigned(imem_ini.addr));
           v_inst := mem(i_addr+3) & mem(i_addr+2) & mem(i_addr+1) & mem(i_addr);
-          inst_tgt.inst <= v_inst;
-          print_instruction(inst_ini.addr, v_inst, VERBOSE);
-          inst_tgt.ready <= '1';
+          imem_tgt.inst <= v_inst;
+          print_instruction(imem_ini.addr, v_inst, VERBOSE);
+          imem_tgt.ready <= '1';
         else
           -- Out of bounds fetch returns 0 (NOP/Illegal)
-          inst_tgt.ready <= '1';
+          imem_tgt.ready <= '1';
         end if;
       end if;
 
       -- Data Access
-      sbi_tgt.ready <= '0';
-      sbi_tgt.rdata <= (others => '0');
-      sbi_tgt.err   <= '0';
+      dmem_tgt.ready <= '0';
+      dmem_tgt.rdata <= (others => '0');
+      dmem_tgt.err   <= '0';
 
-      if sbi_ini.valid = '1' then
+      if dmem_ini.valid = '1' then
         
         -- Check for TOHOST (Simulation Exit)
         -- Assuming writing to a specific high address signals end
-        if sbi_ini.addr = C_TOHOST_ADDR and sbi_ini.we = '1' then
-           if sbi_ini.wdata = C_TOHOST_DATA_OK
+        if dmem_ini.addr = C_TOHOST_ADDR and dmem_ini.we = '1' then
+           if dmem_ini.wdata = C_TOHOST_DATA_OK
            then
              log(ID_LOG_HDR, "RTL: TEST PASSED");
            else
@@ -178,28 +178,28 @@ begin
            end if;
            sim_end_rtl <= true;
            
-        elsif unsigned(sbi_ini.addr) < C_MEM_SIZE - 3 then
-          d_addr := to_integer(unsigned(sbi_ini.addr));
-          sbi_tgt.ready <= '1';
+        elsif unsigned(dmem_ini.addr) < C_MEM_SIZE - 3 then
+          d_addr := to_integer(unsigned(dmem_ini.addr));
+          dmem_tgt.ready <= '1';
           
           -- Write
-          if sbi_ini.we = '1' then
-            if sbi_ini.be(0) = '1' then mem(d_addr)   <= sbi_ini.wdata(7 downto 0); end if;
-            if sbi_ini.be(1) = '1' then mem(d_addr+1) <= sbi_ini.wdata(15 downto 8); end if;
-            if sbi_ini.be(2) = '1' then mem(d_addr+2) <= sbi_ini.wdata(23 downto 16); end if;
-            if sbi_ini.be(3) = '1' then mem(d_addr+3) <= sbi_ini.wdata(31 downto 24); end if;
+          if dmem_ini.we = '1' then
+            if dmem_ini.be(0) = '1' then mem(d_addr)   <= dmem_ini.wdata(7 downto 0); end if;
+            if dmem_ini.be(1) = '1' then mem(d_addr+1) <= dmem_ini.wdata(15 downto 8); end if;
+            if dmem_ini.be(2) = '1' then mem(d_addr+2) <= dmem_ini.wdata(23 downto 16); end if;
+            if dmem_ini.be(3) = '1' then mem(d_addr+3) <= dmem_ini.wdata(31 downto 24); end if;
           
           -- Read
           else
-            sbi_tgt.rdata(7 downto 0)   <= mem(d_addr);
-            sbi_tgt.rdata(15 downto 8)  <= mem(d_addr+1);
-            sbi_tgt.rdata(23 downto 16) <= mem(d_addr+2);
-            sbi_tgt.rdata(31 downto 24) <= mem(d_addr+3);
+            dmem_tgt.rdata(7 downto 0)   <= mem(d_addr);
+            dmem_tgt.rdata(15 downto 8)  <= mem(d_addr+1);
+            dmem_tgt.rdata(23 downto 16) <= mem(d_addr+2);
+            dmem_tgt.rdata(31 downto 24) <= mem(d_addr+3);
           end if;
         else
           -- Out of bounds access
-          sbi_tgt.err   <= '1';
-          sbi_tgt.ready <= '1';
+          dmem_tgt.err   <= '1';
+          dmem_tgt.ready <= '1';
         end if;
       end if;
     end if;

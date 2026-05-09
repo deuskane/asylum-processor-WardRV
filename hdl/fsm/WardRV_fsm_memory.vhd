@@ -38,8 +38,8 @@ entity WardRV_fsm_memory is
     dmem_rdata_r_o      : out std_logic_vector(31 downto 0); -- Registered data for Writeback
 
     -- Physical Data Memory Interface (SBI Bus)
-    sbi_ini_o           : out sbi_ini_t;
-    sbi_tgt_i           : in  sbi_tgt_t
+    dmem_ini_o           : out dmem_ini_t;
+    dmem_tgt_i           : in  dmem_tgt_t
   );
 end entity WardRV_fsm_memory;
 
@@ -66,13 +66,13 @@ begin
   dmem_wdata_aligned  <= std_logic_vector(shift_left(unsigned(wdata_i), to_integer(unsigned(addr_i(1 downto 0))) * 8));
 
   -- SBI Output Assignment
-  sbi_ini_o.valid <= dmem_valid_r      ;
-  sbi_ini_o.addr  <= addr_i            ;
-  sbi_ini_o.wdata <= dmem_wdata_aligned;
-  sbi_ini_o.we    <= we_i              ;
-  sbi_ini_o.be    <= dmem_be_aligned   ;
+  dmem_ini_o.valid <= dmem_valid_r      ;
+  dmem_ini_o.addr  <= addr_i            ;
+  dmem_ini_o.wdata <= dmem_wdata_aligned;
+  dmem_ini_o.we    <= we_i              ;
+  dmem_ini_o.be    <= dmem_be_aligned   ;
 
-  dmem_ready_o    <= sbi_tgt_i.ready;
+  dmem_ready_o    <= dmem_tgt_i.ready;
 
   --------------------------------------------------------------------
   -- Load Data Formatting (Combinatorial)
@@ -83,7 +83,7 @@ begin
     variable v_rdata : std_logic_vector(31 downto 0);
   begin
     v_shamt := to_integer(unsigned(addr_i(1 downto 0))) * 8;
-    v_rdata := std_logic_vector(shift_right(unsigned(sbi_tgt_i.rdata), v_shamt));
+    v_rdata := std_logic_vector(shift_right(unsigned(dmem_tgt_i.rdata), v_shamt));
 
     case be_i is
       when "0001"  => -- Byte access
@@ -103,7 +103,7 @@ begin
     if arst_b_i = '0' then
       dmem_rdata_r_o <= (others => '0');
     elsif rising_edge(clk_i) then
-      if dmem_valid_r = '1' and sbi_tgt_i.ready = '1' then
+      if dmem_valid_r = '1' and dmem_tgt_i.ready = '1' then
         dmem_rdata_r_o <= dmem_rdata_aligned;
       end if;
     end if; 

@@ -33,12 +33,12 @@ entity WardRV_iss is
     arst_b_i   : in  std_logic;
 
     -- Instruction Interface
-    inst_ini_o : out inst_ini_t;
-    inst_tgt_i : in  inst_tgt_t;
+    imem_ini_o : out imem_ini_t;
+    imem_tgt_i : in  imem_tgt_t;
 
     -- Data Interface
-    sbi_ini_o  : out sbi_ini_t;
-    sbi_tgt_i  : in  sbi_tgt_t
+    dmem_ini_o  : out dmem_ini_t;
+    dmem_tgt_i  : in  dmem_tgt_t
   );
 end entity WardRV_iss;
 
@@ -55,27 +55,27 @@ architecture rtl of WardRV_iss is
     shared variable mem_rdata  : std_logic_vector(31 downto 0);
 begin
     -- Combinational logic for instruction fetch
-    inst_ini_o.valid <= '1' when state = S_FETCH else '0';
+    imem_ini_o.valid <= '1' when state = S_FETCH else '0';
     
     
     -- Combinational logic for instruction execution
     -- Always execute the instruction to determine if it is a memory access, but only assert valid when in EXECUTE state
     process(all)
     begin
-        iss.execute_instruction(inst_tgt_i.inst, 
+        iss.execute_instruction(imem_tgt_i.inst, 
                                 mem_access      ,
                                 mem_we          ,     
                                 mem_addr        , 
                                 mem_wdata       , 
                                 mem_be          );
-        sbi_ini_o.valid <= '1' when (state = S_EXECUTE) and mem_access else '0';
-        sbi_ini_o.we    <= mem_we;
-        sbi_ini_o.be    <= mem_be;
-        sbi_ini_o.addr  <= mem_addr;
-        sbi_ini_o.wdata <= mem_wdata;
+        dmem_ini_o.valid <= '1' when (state = S_EXECUTE) and mem_access else '0';
+        dmem_ini_o.we    <= mem_we;
+        dmem_ini_o.be    <= mem_be;
+        dmem_ini_o.addr  <= mem_addr;
+        dmem_ini_o.wdata <= mem_wdata;
 
         if mem_access and (mem_we = '0') then
-            iss.complete_load(sbi_tgt_i.rdata);
+            iss.complete_load(dmem_tgt_i.rdata);
         end if;
     end process;
 
@@ -92,14 +92,14 @@ begin
             case state is
                 when S_FETCH =>
 
-                    if inst_tgt_i.ready = '1' 
+                    if imem_tgt_i.ready = '1' 
                     then
                         state <= S_EXECUTE;
                     end if;
 
                 when S_EXECUTE =>
 
-                    if not mem_access or (mem_access and (sbi_tgt_i.ready = '1')) 
+                    if not mem_access or (mem_access and (dmem_tgt_i.ready = '1')) 
                     then
                         iss.complete;
                         state <= S_FETCH;
@@ -107,7 +107,7 @@ begin
             end case;
 
         end if;
-        inst_ini_o.addr  <= iss.get_pc;
+        imem_ini_o.addr  <= iss.get_pc;
     end process;
 
 end architecture rtl;

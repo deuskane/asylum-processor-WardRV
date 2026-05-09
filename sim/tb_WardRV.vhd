@@ -46,10 +46,10 @@ architecture rtl of tb_WardRV is
   signal mem : ram_t ;
 
   -- ISS Interface
-  signal inst_ini : inst_ini_t;
-  signal inst_tgt : inst_tgt_t;
-  signal sbi_ini  : sbi_ini_t;
-  signal sbi_tgt  : sbi_tgt_t;
+  signal imem_ini : imem_ini_t;
+  signal imem_tgt : imem_tgt_t;
+  signal dmem_ini  : dmem_ini_t;
+  signal dmem_tgt  : dmem_tgt_t;
 
 begin
 
@@ -74,10 +74,10 @@ begin
       port map (
         clk_i      => clk_i,
         arst_b_i   => arst_b_i,
-        inst_ini_o => inst_ini,
-        inst_tgt_i => inst_tgt,
-        sbi_ini_o  => sbi_ini,
-        sbi_tgt_i  => sbi_tgt
+        imem_ini_o => imem_ini,
+        imem_tgt_i => imem_tgt,
+        dmem_ini_o  => dmem_ini,
+        dmem_tgt_i  => dmem_tgt
       );
   end generate g_ISS;
 
@@ -91,10 +91,10 @@ begin
       port map (
         clk_i      => clk_i,
         arst_b_i   => arst_b_i,
-        inst_ini_o => inst_ini,
-        inst_tgt_i => inst_tgt,
-        sbi_ini_o  => sbi_ini,
-        sbi_tgt_i  => sbi_tgt,
+        imem_ini_o => imem_ini,
+        imem_tgt_i => imem_tgt,
+        dmem_ini_o  => dmem_ini,
+        dmem_tgt_i  => dmem_tgt,
         meip_i     => '0'
       );
   end generate g_FSM;
@@ -108,10 +108,10 @@ begin
     init_ram(FIRMWARE_FILE, mem);
     
     -- Initialize outputs
-    inst_tgt.ready <= '0';
-    inst_tgt.inst  <= (others => '0');
-    sbi_tgt.ready  <= '0';
-    sbi_tgt.rdata  <= (others => '0');
+    imem_tgt.ready <= '0';
+    imem_tgt.inst  <= (others => '0');
+    dmem_tgt.ready  <= '0';
+    dmem_tgt.rdata  <= (others => '0');
 
     wait until arst_b_i = '1';
 
@@ -119,27 +119,27 @@ begin
       wait until rising_edge(clk_i);
       
       -- Default Ready
-      inst_tgt.ready <= '0';
-      sbi_tgt.ready  <= '0';
+      imem_tgt.ready <= '0';
+      dmem_tgt.ready  <= '0';
       
       -- Handle Instruction Fetch
-      if inst_ini.valid = '1' then
-        if unsigned(inst_ini.addr) >= unsigned(C_FIRMWARE_ADDR) and unsigned(inst_ini.addr) < unsigned(C_FIRMWARE_ADDR) + C_MEM_SIZE - 3 then
-          read_mem(mem, inst_ini.addr, v_rdata, VERBOSE);
+      if imem_ini.valid = '1' then
+        if unsigned(imem_ini.addr) >= unsigned(C_FIRMWARE_ADDR) and unsigned(imem_ini.addr) < unsigned(C_FIRMWARE_ADDR) + C_MEM_SIZE - 3 then
+          read_mem(mem, imem_ini.addr, v_rdata, VERBOSE);
         else
           v_rdata := (others => '0');
         end if;
-        inst_tgt.inst  <= v_rdata;
-        inst_tgt.ready <= '1';
-        print_instruction(inst_ini.addr, v_rdata, VERBOSE);
+        imem_tgt.inst  <= v_rdata;
+        imem_tgt.ready <= '1';
+        print_instruction(imem_ini.addr, v_rdata, VERBOSE);
       end if;
       
       -- Handle Data Access
-      if sbi_ini.valid = '1' then
-        if sbi_ini.we = '1' then
+      if dmem_ini.valid = '1' then
+        if dmem_ini.we = '1' then
           -- Write
-          if sbi_ini.addr = C_TOHOST_ADDR then
-            if sbi_ini.wdata = C_TOHOST_DATA_OK then
+          if dmem_ini.addr = C_TOHOST_ADDR then
+            if dmem_ini.wdata = C_TOHOST_DATA_OK then
               log(ID_LOG_HDR, "ISS: TEST PASSED");
             else
               alert(TB_ERROR, "ISS: TEST FAILED");
@@ -153,14 +153,14 @@ begin
             end if;
             sim_end <= true;
           else
-            write_mem(mem, sbi_ini.addr, sbi_ini.wdata, sbi_ini.be, VERBOSE);
+            write_mem(mem, dmem_ini.addr, dmem_ini.wdata, dmem_ini.be, VERBOSE);
           end if;
         else
           -- Read
-          read_mem(mem, sbi_ini.addr, v_rdata, VERBOSE);
-          sbi_tgt.rdata <= v_rdata;
+          read_mem(mem, dmem_ini.addr, v_rdata, VERBOSE);
+          dmem_tgt.rdata <= v_rdata;
         end if;
-        sbi_tgt.ready <= '1';
+        dmem_tgt.ready <= '1';
       end if;
     end loop;
 
