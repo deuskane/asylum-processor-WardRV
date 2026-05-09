@@ -32,6 +32,10 @@ filesets:
       - hdl/WardRV_pkg.vhd
       - hdl/WardRV_stats_pkg.vhd
 
+      # Bridge
+      - hdl/bridge/dmem2sbi.vhd
+      - hdl/bridge/imem2sbi.vhd
+
       # Instruction Set Simulator
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
@@ -49,10 +53,7 @@ filesets:
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm_csr.vhd
       - hdl/fsm/WardRV_fsm.vhd
-
-      # Bridge
-      - hdl/bridge/dmem2sbi.vhd
-      - hdl/bridge/imem2sbi.vhd
+      - hdl/fsm/sbi_WardRV_fsm.vhd
 
     file_type    : vhdlSource-2008
     logical_name : asylum
