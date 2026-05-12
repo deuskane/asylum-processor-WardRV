@@ -25,7 +25,8 @@ entity sbi_WardRV_fsm is
   generic (
      -- WardRV specific generics
      HARTID            : std_logic_vector(31 downto 0) := (others => '0');
-     RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0')
+     RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0');
+     IADDR_WIDTH       : natural := 32
   );
   port (
     clk_i            : in    std_logic;
@@ -34,7 +35,7 @@ entity sbi_WardRV_fsm is
 
     -- Instructions
     ics_o            : out std_logic;
-    iaddr_o          : out std_logic_vector(32-1 downto 0);
+    iaddr_o          : out std_logic_vector(IADDR_WIDTH-1 downto 0);
     idata_i          : in  std_logic_vector(32-1 downto 0);
     
     -- Bus (SBI)
@@ -57,7 +58,7 @@ begin
 
   -- Instruction mapping
   ics_o          <= imem_ini.valid;
-  iaddr_o        <= imem_ini.addr(31 downto 0);
+  iaddr_o        <= imem_ini.addr(IADDR_WIDTH-1 downto 0);
   imem_tgt.inst  <= idata_i;
   imem_tgt.ready <= cke_i;
   
