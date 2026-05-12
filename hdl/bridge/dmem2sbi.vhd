@@ -52,6 +52,8 @@ architecture behavioural of dmem2sbi is
   -- Registers to hold the dmem request parameters
   -- Internal registers to buffer the 32-bit request and accumulate response
   signal addr_r       : std_logic_vector(31 downto 0);
+  signal addr_r_word  : std_logic_vector(31 downto 0);
+
   signal wdata_r      : std_logic_vector(31 downto 0);
   signal rdata_r      : std_logic_vector(31 downto 0);
   signal be_r         : std_logic_vector(3  downto 0);
@@ -162,7 +164,8 @@ begin
   --------------------------------------------------------------------
   -- Address is the base address + current byte offset
   -- Address is word-aligned base address + byte index (0 to 3)
-  sbi_ini_o.addr  <= std_logic_vector(unsigned(addr_r(31 downto 2) & "00") + byte_cnt_r);
+  addr_r_word     <= addr_r(31 downto 2) & "00"; -- Word-aligned address
+  sbi_ini_o.addr  <= std_logic_vector(unsigned(addr_r_word)+ unsigned(byte_cnt_r));
   
   -- Select the correct byte from the 32-bit word
   -- Multiplex the 32-bit write data into 8-bit chunks for SBI

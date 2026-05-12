@@ -34,7 +34,7 @@ entity sbi_WardRV_fsm is
 
     -- Instructions
     ics_o            : out std_logic;
-    iaddr_o          : out std_logic_vector(ADDR_INST_WIDTH-1 downto 0);
+    iaddr_o          : out std_logic_vector(32-1 downto 0);
     idata_i          : in  std_logic_vector(32-1 downto 0);
     
     -- Bus (SBI)
@@ -53,13 +53,12 @@ architecture rtl of sbi_WardRV_fsm is
   signal dmem_ini : dmem_ini_t;
   signal dmem_tgt : dmem_tgt_t;
   
-  signal sbi_ini  : sbi_ini_t;
 begin
 
   -- Instruction mapping
   ics_o          <= imem_ini.valid;
-  iaddr_o        <= imem_ini.addr(ADDR_INST_WIDTH-1 downto 0);
-  imem_tgt.rdata <= idata_i;
+  iaddr_o        <= imem_ini.addr(31 downto 0);
+  imem_tgt.inst  <= idata_i;
   imem_tgt.ready <= cke_i;
   
   interrupt_ack_o <= '0';
@@ -85,11 +84,8 @@ begin
       arst_b_i   => arstn_i,
       dmem_ini_i => dmem_ini,
       dmem_tgt_o => dmem_tgt,
-      sbi_ini_o  => sbi_ini,
+      sbi_ini_o  => sbi_ini_o,
       sbi_tgt_i  => sbi_tgt_i
     );
-
-  sbi_ini_o    <= sbi_ini;
-  sbi_ini_o.cs <= sbi_ini.re or sbi_ini.we;
 
 end architecture rtl;
