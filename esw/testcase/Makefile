@@ -6,8 +6,6 @@ CC           = $(RISCV_PREFIX)gcc
 OBJCOPY      = $(RISCV_PREFIX)objcopy
 OBJDUMP      = $(RISCV_PREFIX)objdump
 
-# Compilation options for RV32I (Base architecture without hardware multiplication/division)
-
 # -----------------------------------------------------------------------------
 # Files
 # -----------------------------------------------------------------------------
@@ -22,19 +20,19 @@ ASM          = $(BUILD_DIR)/main.s
 # -----------------------------------------------------------------------------
 # Flags
 # -----------------------------------------------------------------------------
-CFLAGS       = -march=rv32i_zicsr  # Architecture de base RISC-V 32-bit entier
-CFLAGS      += -mabi=ilp32         # ABI standard 32-bit (int, long, pointeurs sont 32-bit)
-CFLAGS      += -O2                 # Optimisation de niveau 2 pour la performance
-CFLAGS      += -ffreestanding      # Environnement sans OS (pas de bibliothèque standard complète)
-CFLAGS      += -nostartfiles       # Ne pas utiliser les fichiers de démarrage standards (crt0...)
-CFLAGS      += -nostdlib           # Ne pas lier les bibliothèques standards
-CFLAGS      += -g                  # Inclure les informations de débogage
-CFLAGS      += -fverbose-asm       # Ajouter des commentaires explicatifs dans l'assembleur généré
-CFLAGS      += -Wall               # Activer tous les avertissements de base
-CFLAGS      += -Wextra             # Activer des avertissements supplémentaires
-CFLAGS      += -Werror             # Traiter les avertissements comme des erreurs
-CFLAGS      += -static             # Lier statiquement les bibliothèques
-CFLAGS      += -mcmodel=medany     # Modèle de code pour adresser n'importe où dans une plage de 2 Go
+CFLAGS       = -march=rv32i_zicsr  # RISC-V 32-bit integer base architecture
+CFLAGS      += -mabi=ilp32         # Standard 32-bit ABI (int, long, pointers are 32-bit)
+CFLAGS      += -O2                 # Level 2 optimization for performance
+CFLAGS      += -ffreestanding      # OS-less environment (no full standard library)
+CFLAGS      += -nostartfiles       # Do not use standard startup files (crt0...)
+CFLAGS      += -nostdlib           # Do not link standard libraries
+CFLAGS      += -g                  # Include debugging information
+CFLAGS      += -fverbose-asm       # Add explanatory comments in generated assembly
+CFLAGS      += -Wall               # Enable all basic warnings
+CFLAGS      += -Wextra             # Enable extra warnings
+CFLAGS      += -Werror             # Treat warnings as errors
+CFLAGS      += -static             # Statically link libraries
+CFLAGS      += -mcmodel=medany     # Code model to address anywhere within a 2 GB range
 CFLAGS      += $(INCLUDES)
 
 
