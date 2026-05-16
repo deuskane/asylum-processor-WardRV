@@ -41,6 +41,10 @@ entity dmem2sbi is
 end entity dmem2sbi;
 
 architecture behavioural of dmem2sbi is
+
+  -- SBI Address width
+  constant SBI_ADDR_WIDTH : integer := sbi_ini_o.addr'length;
+  
   -- State machine to sequence 32-bit accesses into four 8-bit SBI transactions
   type state_t is (S_IDLE,      -- Wait for dmem request
                    S_TRANSFER,  -- Perform SBI byte-accesses
@@ -165,7 +169,7 @@ begin
   -- Address is the base address + current byte offset
   -- Address is word-aligned base address + byte index (0 to 3)
   addr_r_word     <= addr_r(31 downto 2) & "00"; -- Word-aligned address
-  sbi_ini_o.addr  <= std_logic_vector(unsigned(addr_r_word)+ unsigned(byte_cnt_r));
+  sbi_ini_o.addr  <= std_logic_vector(resize(unsigned(addr_r_word) + unsigned(byte_cnt_r), SBI_ADDR_WIDTH));
   
   -- Select the correct byte from the 32-bit word
   -- Multiplex the 32-bit write data into 8-bit chunks for SBI
