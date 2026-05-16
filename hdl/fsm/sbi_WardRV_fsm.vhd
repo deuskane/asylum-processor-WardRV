@@ -26,7 +26,8 @@ entity sbi_WardRV_fsm is
      -- WardRV specific generics
      HARTID            : std_logic_vector(31 downto 0) := (others => '0');
      RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0');
-     IADDR_WIDTH       : natural := 32
+     IADDR_WIDTH       : natural := 32;
+     IADDR_ALIGN_BITS  : natural := 2
   );
   port (
     clk_i            : in    std_logic;
@@ -54,13 +55,24 @@ architecture rtl of sbi_WardRV_fsm is
   signal dmem_ini : dmem_ini_t;
   signal dmem_tgt : dmem_tgt_t;
   
+  signal ics_r    : std_logic;
 begin
 
   -- Instruction mapping
   ics_o          <= imem_ini.valid;
-  iaddr_o        <= imem_ini.addr(IADDR_WIDTH-1 downto 0);
+  iaddr_o        <= imem_ini.addr(IADDR_WIDTH-1+IADDR_ALIGN_BITS downto IADDR_ALIGN_BITS);
+
+  process(clk_i, arstn_i)
+  begin
+    if arstn_i = '0' then
+      ics_r <= '0';
+    elsif rising_edge(clk_i) then
+      ics_r <= imem_ini.valid;
+    end if;
+  end process;
+
   imem_tgt.inst  <= idata_i;
-  imem_tgt.ready <= cke_i;
+  imem_tgt.ready <= cke_i and ics_r;
   
   interrupt_ack_o <= '0';
 

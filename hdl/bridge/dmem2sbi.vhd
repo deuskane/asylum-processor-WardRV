@@ -62,6 +62,9 @@ architecture behavioural of dmem2sbi is
   signal rdata_r      : std_logic_vector(31 downto 0);
   signal be_r         : std_logic_vector(3  downto 0);
   signal we_r         : std_logic;
+
+  signal we           : std_logic;
+  signal re           : std_logic;
   
   -- Counter to sequence through the 4 bytes
   signal byte_cnt_r      : unsigned(1 downto 0);
@@ -181,8 +184,12 @@ begin
 
   -- Drive SBI control signals only during valid transfers
   -- Enable SBI control signals only in TRANSFER state and if the specific byte is requested
-  sbi_ini_o.we <= '1' when state_r = S_TRANSFER and we_r = '1' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
-  sbi_ini_o.re <= '1' when state_r = S_TRANSFER and we_r = '0' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
+  we <= '1' when state_r = S_TRANSFER and we_r = '1' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
+  re <= '1' when state_r = S_TRANSFER and we_r = '0' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
+
+  sbi_ini_o.cs    <= we or re;
+  sbi_ini_o.we    <= we;
+  sbi_ini_o.re    <= re;
 
   --------------------------------------------------------------------
   -- dmem Output Mapping

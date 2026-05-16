@@ -61,7 +61,8 @@ architecture behavioural of WardRV_fsm is
 
   -- FSM states representing the standard RISC-V instruction cycle phases.
   -- This multi-cycle design explicitly separates these phases into distinct states.
-  type state_t is (S_FETCH, 
+  type state_t is (S_RESET,
+                   S_FETCH, 
                    S_DECODE, 
                    S_EXECUTE,
                    S_BRANCH_DECISION, 
@@ -191,7 +192,8 @@ begin
     imem_tgt_i   => imem_tgt_i
   );
 
-  imem_addr <= pc_r;
+  imem_addr  <= pc_r;
+  imem_rdata <= inst_r;
   
   --------------------------------------------------------------------
   -- Decoder Instance
@@ -403,11 +405,14 @@ begin
     dmem_ready_o        => dmem_ready,
     dmem_rdata_r_o      => dmem_rdata_r,
     
-    dmem_ini_o           => dmem_ini,
-    dmem_tgt_i           => dmem_tgt_i
+    dmem_ini_o          => dmem_ini,
+    dmem_tgt_i          => dmem_tgt_i
   );
 
   dmem_ini_o <= dmem_ini;
+  dmem_addr  <= dmem_ini.addr;
+  dmem_be    <= dmem_ini.be;
+
 
   --------------------------------------------------------------------
   -- Program Counter Logic
@@ -474,6 +479,10 @@ begin
     state_r_next <= state_r;
 
     case state_r is
+      -- Reset state: Initialize PC and transition to Fetch
+      when S_RESET =>
+        state_r_next <= S_FETCH;
+
       -- S_FETCH: Request instruction from memory. Transition to S_DECODE when memory is ready.
       when S_FETCH =>
         if imem_ready = '1' then
@@ -515,7 +524,7 @@ begin
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' then
-      state_r          <= S_FETCH;
+      state_r          <= S_RESET;
 
       elsif rising_edge(clk_i) then
 
