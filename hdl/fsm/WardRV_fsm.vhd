@@ -67,10 +67,22 @@ architecture behavioural of WardRV_fsm is
                    S_EXECUTE,
                    S_BRANCH_DECISION, 
                    S_MEMORY, 
-                   S_WRITEBACK);
+                   S_WRITEBACK,
+                   S_TRAP);
                    
   signal state_r                    : state_t;
   signal state_r_next               : state_t;
+
+  signal state_is_reset             : std_logic;
+  signal state_is_fetch             : std_logic;
+  signal state_is_decode            : std_logic;
+  signal state_is_execute           : std_logic;
+  signal state_is_branch_decision   : std_logic;
+  signal state_is_memory            : std_logic;
+  signal state_is_writeback         : std_logic;
+  signal state_is_trap              : std_logic;
+  signal state_next_is_fetch        : std_logic;
+  signal state_next_is_memory       : std_logic;
 
   -- CPU State
   signal pc_r_next                  : std_logic_vector(31 downto 0);
@@ -155,6 +167,7 @@ architecture behavioural of WardRV_fsm is
   signal csr_mtvec                  : std_logic_vector(31 downto 0);  
 
   -- Trap Handling (Stubs for now)
+  signal trap_valid                 : std_logic;
   signal trap                       : std_logic;
   signal trap_mirq                  : std_logic;
   signal trap_cause                 : std_logic_vector(31 downto 0);
@@ -166,7 +179,6 @@ architecture behavioural of WardRV_fsm is
   signal alu_src_b_sel              : alu_src_b_sel_t;
   signal src_a_val                  : std_logic_vector(31 downto 0);
   signal src_b_val                  : std_logic_vector(31 downto 0);
-  signal regfile_we                 : std_logic; -- Global RF write enable from FSM
   signal regfile_rd_we              : std_logic; -- Combined RF write enable
   signal regfile_rd_wdata           : std_logic_vector(31 downto 0); -- Data to write back
 
@@ -192,6 +204,7 @@ begin
     imem_tgt_i   => imem_tgt_i
   );
 
+  imem_valid <= state_next_is_fetch;
   imem_addr  <= pc_r;
   imem_rdata <= inst_r;
   
@@ -239,7 +252,7 @@ begin
   --------------------------------------------------------------------
   -- CSR Instance
   --------------------------------------------------------------------
-  csr_we                <= dec_csr_we and regfile_we;
+  csr_we                <= dec_csr_we and state_is_writeback;
 
   csr_inst : entity work.WardRV_fsm_csr
   generic map (
@@ -270,7 +283,8 @@ begin
   --------------------------------------------------------------------
   -- Trap
   --------------------------------------------------------------------
-  trap       <= '1'           when trap_mirq = '1' and regfile_we = '1' else '0';
+  trap_valid <= trap_mirq; -- For now, we only have one trap source (external interrupt). In a full implementation, this would be a combination of multiple trap sources (e.g., illegal instruction, ecall, timer interrupt) and would likely involve prioritization logic.
+  trap       <= state_is_trap;
   trap_cause <= x"8000000B";--when trap_mirq = '1' else (others => '0'); -- External Interrupt
   trap_pc    <= pc_r       ;--when trap_mirq = '1' else (others => '0');
   trap_mtval <= (others => '0'); -- No additional info for external interrupts
@@ -281,7 +295,7 @@ begin
 
   -- We only perform a Write Back to the Register File if the FSM is in the 
   -- WRITEBACK state AND the instruction actually targets a destination register.
-  regfile_rd_we    <= dec_rd_we and regfile_we;
+  regfile_rd_we    <= dec_rd_we and state_is_writeback;
 
   -- Writeback data multiplexer: 
   -- selects between the ALU result, memory data or the link address (PC+4).
@@ -370,6 +384,7 @@ begin
   -- across multiple FSM cycles. For example, a memory address calculated
   -- in S_EXECUTE needs to be held until S_MEMORY, and a jump target
   -- until S_WRITEBACK.
+  alu_res_r_we <= state_is_execute; -- We only latch the ALU result at the end of the EXECUTE state, as this is when the final result is ready for all instruction types.
   process(clk_i, arst_b_i)
   begin
     if arst_b_i = '0' then
@@ -409,6 +424,7 @@ begin
     dmem_tgt_i          => dmem_tgt_i
   );
 
+  dmem_valid <= state_next_is_memory;
   dmem_ini_o <= dmem_ini;
   dmem_addr  <= dmem_ini.addr;
   dmem_be    <= dmem_ini.be;
@@ -432,6 +448,11 @@ begin
                   alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
                                                      (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
                   pc_seq_r; -- pc_seq_r is already PC+4
+
+  pc_seq_r_we       <= state_is_fetch; -- We compute PC+4 at the end of the FETCH stage, so it's ready for the next instruction. This also simplifies the logic, as we don't need to compute PC+4 in multiple places (e.g., for jumps/branches) and can rely on the FSM to have it ready when needed.
+  branch_taken_r_we <= state_is_branch_decision; -- We determine if the branch is taken at the end of the BRANCH_DECISION stage, so we latch it then for use in the next cycle when we decide the next PC.
+  pc_r_we           <= state_is_writeback or state_is_trap; -- We update the PC at the end of the WRITEBACK stage, so it's ready for the next instruction.
+
 
   process(clk_i, arst_b_i)
   begin
@@ -464,13 +485,17 @@ begin
   -- This section defines the FSM's outputs (control signals) and state
   -- transition logic, acting as the "orchestrator" of the processor.
   --------------------------------------------------------------------
-  imem_valid         <= '1' when state_r_next = S_FETCH             else '0';
-  dmem_valid         <= '1' when state_r_next = S_MEMORY            else '0';
-  regfile_we         <= '1' when state_r      = S_WRITEBACK         else '0';
-  alu_res_r_we       <= '1' when state_r      = S_EXECUTE           else '0';
-  pc_seq_r_we        <= '1' when state_r      = S_FETCH             else '0';
-  branch_taken_r_we  <= '1' when state_r      = S_BRANCH_DECISION   else '0';
-  pc_r_we            <= '1' when state_r      = S_WRITEBACK         else '0';
+  state_is_reset           <= '1' when state_r = S_RESET            else '0';
+  state_is_fetch           <= '1' when state_r = S_FETCH            else '0';
+  state_is_decode          <= '1' when state_r = S_DECODE           else '0';
+  state_is_execute         <= '1' when state_r = S_EXECUTE          else '0';
+  state_is_branch_decision <= '1' when state_r = S_BRANCH_DECISION  else '0';
+  state_is_memory          <= '1' when state_r = S_MEMORY           else '0';
+  state_is_writeback       <= '1' when state_r = S_WRITEBACK        else '0';
+  state_is_trap            <= '1' when state_r = S_TRAP             else '0';
+
+  state_next_is_fetch      <= '1' when state_r_next = S_FETCH       else '0';
+  state_next_is_memory     <= '1' when state_r_next = S_MEMORY      else '0';
 
   -- State Transition Logic: Defines how the FSM moves from one state to another.
   -- Each state's transition depends on the instruction type and external ready signals.
@@ -516,6 +541,12 @@ begin
 
       -- S_WRITEBACK: Write result to register file and update PC. Always transitions back to S_FETCH.
       when S_WRITEBACK =>
+        if trap_valid = '1' then
+          state_r_next <= S_TRAP;
+        else
+          state_r_next <= S_FETCH;
+        end if;
+      when S_TRAP =>
         state_r_next <= S_FETCH;
       when others =>
     end case;

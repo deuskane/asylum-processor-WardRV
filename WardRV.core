@@ -14,11 +14,11 @@ CAPI=2:
 # Revisions  :
 # Date        Version  Author   Description
 # 2026-01-24  0.0.1    mrosiere Created
+# 2026-06-02  0.0.2    mrosiere fsm : add state trap
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.1
-description : WardRV
-
+name        : asylum:processor:WardRV:0.0.2
+description : WardRV - Academic RISCV processor
 
 #=========================================
 filesets:

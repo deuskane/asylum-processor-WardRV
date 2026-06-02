@@ -136,7 +136,7 @@ begin
   end process;
 
   -- Trap signal output for the pipeline
-  trap_mirq_o <= '1' when mip_r(11) = '1' and mie_r(11) = '1' and mstatus_r(3) = '1' else '0';
+  trap_mirq_o <= '1' when mip_r(11) = '1' and mie_r(11) = '1' and mstatus_r(3) = '1' and inst_is_mret_i = '0' else '0';
 
   -- CSR Outputs
   csr_mtvec_o <= mtvec_r;
