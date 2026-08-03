@@ -1,3 +1,3 @@
 FILE_CORE	?= WardRV.core
-TARGET          ?= default
+TARGET          ?= sim_basic
 TOOL		?= ghdl

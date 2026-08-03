@@ -32,12 +32,15 @@ IP_NAME          = $(shell echo $(CORE_NAME) | cut -d':' -f4)
 IP_VERSION       = $(shell echo $(CORE_NAME) | cut -d':' -f5)
 VLNV             = $(IP_VENDOR):$(IP_LIBRARY):$(IP_NAME):$(IP_VERSION)
 
-TARGETS_SIM     := $(shell cat $(FILE_TARGETS) | grep sim_   | cut -d ':' -f1 | tr -d ' ')
-TARGETS_EMU     := $(shell cat $(FILE_TARGETS) | grep emu_   | cut -d ':' -f1 | tr -d ' ')
-TARGETS_LINT    := $(shell cat $(FILE_TARGETS) | grep lint_  | cut -d ':' -f1 | tr -d ' ')
+TARGETS_FILTER  ?= .
+
+TARGETS_SIM     := $(shell grep -e ^sim_  $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
+TARGETS_EMU     := $(shell grep -e ^emu_  $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
+TARGETS_LINT    := $(shell grep -e ^lint_ $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
 
 PATH_BUILD      ?= $(CURDIR)/build
 
+FUSESOC_CACHE    = ~/.cache/fusesoc
 FUSESOC_OPT     += --build-root $(PATH_BUILD)
 FUSESOC_OPT     += --no-export
 
@@ -73,6 +76,8 @@ help : $(FILE_TARGETS)
 	@for target in $(TARGETS_LINT); do \
 	 echo "                * $${target}"; \
 	 done
+	@echo "TARGETS_FILTER: Filter for targets (regex)"
+	@echo "                $(TARGETS_FILTER)"
 	@echo "NONREG        : Non Regression Type (SIM/EMU/LINT)"
 	@echo "                $(NONREG)"
 	@echo "PATH_BUILD    : Path to build directory"
@@ -81,7 +86,8 @@ help : $(FILE_TARGETS)
 	@echo "==============| Rules"
 	@echo "help          : Print this message"
 	@echo "info          : Display library list and cores list"
-	@echo "clean         : delete build directory"
+	@echo "update        : Update the FuseSoC core libraries"
+	@echo "clean         : Delete build directory"
 	@echo "nonreg        : Run all simulation targets"
 	@echo ""
 	@echo "target        : Execute all   stages of fusesoc flow for specific target and tool"
@@ -113,6 +119,14 @@ info :
 .PHONY : info
 
 #--------------------------------------------------------
+# Update the FuseSoC core libraries
+update :
+#--------------------------------------------------------
+	@fusesoc library update
+
+.PHONY : update
+
+#--------------------------------------------------------
 target :
 #--------------------------------------------------------
 	fusesoc run $(FUSESOC_OPT) --target $(TARGET) --tool $(TOOL) $(VLNV)
@@ -141,6 +155,7 @@ nonreg : $(TARGETS_$(NONREG))
 #--------------------------------------------------------
 clean :
 #--------------------------------------------------------
+	rm -fr $(FUSESOC_CACHE)/generator_cache
 	rm -fr $(PATH_BUILD)
 
 .PHONY : clean
