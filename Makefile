@@ -34,6 +34,7 @@ VLNV             = $(IP_VENDOR):$(IP_LIBRARY):$(IP_NAME):$(IP_VERSION)
 
 TARGETS_FILTER  ?= .
 
+TARGETS_ALL     := $(shell cat $(FILE_TARGETS) | cut -d ':' -f1 | tr -d ' ')
 TARGETS_SIM     := $(shell grep -e ^sim_  $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
 TARGETS_EMU     := $(shell grep -e ^emu_  $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
 TARGETS_LINT    := $(shell grep -e ^lint_ $(FILE_TARGETS) | grep -e $(TARGETS_FILTER) | cut -d ':' -f1 | tr -d ' ')
@@ -141,9 +142,11 @@ setup build run :
 .PHONY : setup build run
 
 #--------------------------------------------------------
-% :
+$(TARGETS_ALL) :
 #--------------------------------------------------------
-	@fusesoc run $(FUSESOC_OPT) --target $* $(VLNV)
+	@fusesoc run $(FUSESOC_OPT) --target $@ $(VLNV)
+
+.PHONY : $(TARGETS_ALL)
 
 #--------------------------------------------------------
 nonreg : $(TARGETS_$(NONREG))
