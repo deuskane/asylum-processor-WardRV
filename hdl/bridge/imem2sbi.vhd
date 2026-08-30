@@ -40,6 +40,9 @@ entity imem2sbi is
 end entity imem2sbi;
 
 architecture behavioural of imem2sbi is
+  -- SBI Address width
+  constant SBI_ADDR_WIDTH : integer := sbi_ini_o.addr'length;
+
   -- State machine to sequence 32-bit instruction fetch into four 8-bit SBI reads
   type state_t is (S_IDLE,      -- Wait for imem request
                    S_TRANSFER,  -- Perform SBI byte-reads
@@ -50,6 +53,7 @@ architecture behavioural of imem2sbi is
 
   -- Internal registers to buffer the request address and accumulate instruction bytes
   signal addr_r       : std_logic_vector(31 downto 0);
+  signal addr_r_word  : std_logic_vector(31 downto 0);
   signal inst_r       : std_logic_vector(31 downto 0);
   
   -- Counter to sequence through the 4 bytes
@@ -129,7 +133,8 @@ begin
   -- SBI Output Mapping
   --------------------------------------------------------------------
   -- Address sequencing: word-aligned address + byte offset
-  sbi_ini_o.addr  <= std_logic_vector(unsigned(addr_r(31 downto 2) & "00") + byte_cnt_r);
+  addr_r_word     <= addr_r(31 downto 2) & "00"; -- Word-aligned address
+  sbi_ini_o.addr  <= std_logic_vector(resize(unsigned(addr_r_word) + unsigned(byte_cnt_r), SBI_ADDR_WIDTH));
   sbi_ini_o.wdata <= (others => '0'); -- No writes in imem bridge
   sbi_ini_o.we    <= '0';             -- Read only
   sbi_ini_o.re    <= '1' when state_r = S_TRANSFER else '0';
