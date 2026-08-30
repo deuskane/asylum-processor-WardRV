@@ -612,6 +612,6 @@ begin
     end if;
 
   end process;
-      -- synthesis translate_off
+  -- synthesis translate_on
 
 end architecture behavioural;
