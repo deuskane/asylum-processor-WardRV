@@ -42,16 +42,13 @@ begin
 
   -- Lecture Asynchrone (Combinatoire)
   -- Note: regs(0) est maintenu à 0 par l'initialisation et l'exclusion d'écriture.
-  rs1_rdata_o <= regs(to_integer(unsigned(rs1_addr_i))) when rs1_re_i = '1' else (others => '0');
-  rs2_rdata_o <= regs(to_integer(unsigned(rs2_addr_i))) when rs2_re_i = '1' else (others => '0');
+  rs1_rdata_o <= regs(to_integer(unsigned(rs1_addr_i))) when (rs1_re_i = '1') and (rs1_addr_i /= "00000") else (others => '0');
+  rs2_rdata_o <= regs(to_integer(unsigned(rs2_addr_i))) when (rs2_re_i = '1') and (rs2_addr_i /= "00000") else (others => '0');
 
   -- Écriture Synchrone
-  process(clk_i, arst_b_i)
+  process(clk_i)
   begin
-    if arst_b_i = '0' then
-      -- Initialisation de tous les registres à 0
-      regs <= (others => (others => '0'));
-    elsif rising_edge(clk_i) then
+    if rising_edge(clk_i) then
       
       if rd_we_i = '1' then
         regs(to_integer(unsigned(rd_addr_i))) <= rd_wdata_i;
