@@ -15,6 +15,9 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-05-09  1.0      mrosiere Created
+-- 2026-08-31  1.1      mrosiere LUT optimization: address concat instead of
+--                               adder, merged wdata/rdata register, factored
+--                               byte-enable mux
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -44,33 +47,41 @@ architecture behavioural of dmem2sbi is
 
   -- SBI Address width
   constant SBI_ADDR_WIDTH : integer := sbi_ini_o.addr'length;
-  
+
   -- State machine to sequence 32-bit accesses into four 8-bit SBI transactions
   type state_t is (S_IDLE,      -- Wait for dmem request
                    S_TRANSFER,  -- Perform SBI byte-accesses
                    S_DONE);     -- Signal completion to dmem
-  
+
   signal state_r      : state_t;
   signal state_r_next : state_t;
 
   -- Registers to hold the dmem request parameters
-  -- Internal registers to buffer the 32-bit request and accumulate response
   signal addr_r       : std_logic_vector(31 downto 0);
-  signal addr_r_word  : std_logic_vector(31 downto 0);
 
-  signal wdata_r      : std_logic_vector(31 downto 0);
-  signal rdata_r      : std_logic_vector(31 downto 0);
+  -- Shared 32-bit data register: holds write data during a write access,
+  -- accumulates read data during a read access (never both at once).
+  signal data_r       : std_logic_vector(31 downto 0);
+
   signal be_r         : std_logic_vector(3  downto 0);
   signal we_r         : std_logic;
 
+  -- Current byte enable (single factored 4->1 mux)
+  signal be_cur       : std_logic;
+
   signal we           : std_logic;
   signal re           : std_logic;
-  
+
   -- Counter to sequence through the 4 bytes
   signal byte_cnt_r      : unsigned(1 downto 0);
   signal byte_cnt_r_next : unsigned(1 downto 0);
 
 begin
+
+  --------------------------------------------------------------------
+  -- Current byte enable : one shared 4->1 mux reused everywhere
+  --------------------------------------------------------------------
+  be_cur <= be_r(to_integer(byte_cnt_r));
 
   --------------------------------------------------------------------
   -- Control Path
@@ -91,19 +102,8 @@ begin
 
       -- Iterate through all 4 bytes of the 32-bit word
       when S_TRANSFER =>
-        -- If current byte is not enabled, skip it
-        -- Optimization: Skip the current SBI cycle if the byte enable (BE) bit is not set
-        if be_r(to_integer(byte_cnt_r)) = '0'
-        then
-          if byte_cnt_r = 3
-          then
-            state_r_next <= S_DONE;
-          else
-            byte_cnt_r_next <= byte_cnt_r + 1;
-          end if;
-        -- Otherwise wait for SBI handshake
-        -- Otherwise, execute 8-bit transaction and wait for SBI target to be ready
-        elsif sbi_tgt_i.ready = '1'
+        -- Advance when the byte is disabled (skip) OR the SBI handshake completes
+        if be_cur = '0' or sbi_tgt_i.ready = '1'
         then
           if byte_cnt_r = 3
           then
@@ -132,8 +132,7 @@ begin
       state_r    <= S_IDLE;
       byte_cnt_r <= (others => '0');
       addr_r     <= (others => '0');
-      wdata_r    <= (others => '0');
-      rdata_r    <= (others => '0');
+      data_r     <= (others => '0');
       be_r       <= (others => '0');
       we_r       <= '0';
     elsif rising_edge(clk_i)
@@ -141,25 +140,29 @@ begin
       state_r    <= state_r_next;
       byte_cnt_r <= byte_cnt_r_next;
 
-      -- Capture request at the start
-      -- Capture the 32-bit request parameters into local registers
+      -- Capture the 32-bit request parameters into local registers.
+      -- data_r is loaded with wdata for writes; for reads it is left free
+      -- to accumulate the incoming SBI bytes below.
       if state_r = S_IDLE and dmem_ini_i.valid = '1'
       then
         addr_r  <= dmem_ini_i.addr;
-        wdata_r <= dmem_ini_i.wdata;
         be_r    <= dmem_ini_i.be;
         we_r    <= dmem_ini_i.we;
+        if dmem_ini_i.we = '1'
+        then
+          data_r <= dmem_ini_i.wdata;
+        end if;
       end if;
 
-      -- Accumulate read data from SBI
-      -- For Read transactions, sample the 8-bit SBI data into the correct byte lane
+      -- For Read transactions, sample the 8-bit SBI data into the correct
+      -- byte lane of the shared data register.
       if state_r = S_TRANSFER and sbi_tgt_i.ready = '1' and we_r = '0'
       then
         case byte_cnt_r is
-          when "00" => rdata_r(7  downto  0) <= sbi_tgt_i.rdata;
-          when "01" => rdata_r(15 downto  8) <= sbi_tgt_i.rdata;
-          when "10" => rdata_r(23 downto 16) <= sbi_tgt_i.rdata;
-          when "11" => rdata_r(31 downto 24) <= sbi_tgt_i.rdata;
+          when "00" => data_r(7  downto  0) <= sbi_tgt_i.rdata;
+          when "01" => data_r(15 downto  8) <= sbi_tgt_i.rdata;
+          when "10" => data_r(23 downto 16) <= sbi_tgt_i.rdata;
+          when "11" => data_r(31 downto 24) <= sbi_tgt_i.rdata;
           when others => null;
         end case;
       end if;
@@ -169,23 +172,24 @@ begin
   --------------------------------------------------------------------
   -- SBI Output Mapping
   --------------------------------------------------------------------
-  -- Address is the base address + current byte offset
-  -- Address is word-aligned base address + byte index (0 to 3)
-  addr_r_word     <= addr_r(31 downto 2) & "00"; -- Word-aligned address
-  sbi_ini_o.addr  <= std_logic_vector(resize(unsigned(addr_r_word) + unsigned(byte_cnt_r), SBI_ADDR_WIDTH));
-  
-  -- Select the correct byte from the 32-bit word
+  -- Word-aligned base address with the 2-bit byte index concatenated as the
+  -- two LSBs. No adder is inferred: addr_r(1 downto 0) are always "00" on a
+  -- word-aligned access, so the offset is a pure wire concatenation.
+  sbi_ini_o.addr <= std_logic_vector(resize(
+                      unsigned(addr_r(SBI_ADDR_WIDTH-1 downto 2)) & byte_cnt_r,
+                      SBI_ADDR_WIDTH));
+
   -- Multiplex the 32-bit write data into 8-bit chunks for SBI
   with byte_cnt_r select
-    sbi_ini_o.wdata <= wdata_r(7  downto  0) when "00",
-                       wdata_r(15 downto  8) when "01",
-                       wdata_r(23 downto 16) when "10",
-                       wdata_r(31 downto 24) when others;
+    sbi_ini_o.wdata <= data_r(7  downto  0) when "00",
+                       data_r(15 downto  8) when "01",
+                       data_r(23 downto 16) when "10",
+                       data_r(31 downto 24) when others;
 
-  -- Drive SBI control signals only during valid transfers
-  -- Enable SBI control signals only in TRANSFER state and if the specific byte is requested
-  we <= '1' when state_r = S_TRANSFER and we_r = '1' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
-  re <= '1' when state_r = S_TRANSFER and we_r = '0' and be_r(to_integer(byte_cnt_r)) = '1' else '0';
+  -- Enable SBI control signals only in TRANSFER state and if the specific
+  -- byte is requested (be_cur reused, no extra mux).
+  we <= '1' when state_r = S_TRANSFER and we_r = '1' and be_cur = '1' else '0';
+  re <= '1' when state_r = S_TRANSFER and we_r = '0' and be_cur = '1' else '0';
 
   sbi_ini_o.cs    <= we or re;
   sbi_ini_o.we    <= we;
@@ -194,9 +198,8 @@ begin
   --------------------------------------------------------------------
   -- dmem Output Mapping
   --------------------------------------------------------------------
-  dmem_tgt_o.rdata <= rdata_r;
-  
-  -- Handshake ready only when all enabled bytes have been processed
+  dmem_tgt_o.rdata <= data_r;
+
   -- Ready is only pulsed for one cycle after all sub-transactions are finished
   dmem_tgt_o.ready <= '1' when state_r = S_DONE else '0';
   dmem_tgt_o.err   <= '0'; -- Errors not handled in this version
