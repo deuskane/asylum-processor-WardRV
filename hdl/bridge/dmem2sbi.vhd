@@ -166,26 +166,31 @@ begin
         when S_TRANSFER =>
           -- For Read transactions, sample the 8-bit SBI data into the correct
           -- byte lane of the shared data register.
-          if sbi_tgt_i.ready = '1' and we_r = '0'
+          if (sbi_tgt_i.ready = '1' or be_cur = '0')
           then
-            if (be_sel_r(0))
+            if we_r = '0'
             then
-              rdata_r(7  downto  0) <= sbi_tgt_i.rdata;
+              if (be_sel_r(0))
+              then
+                rdata_r(7  downto  0) <= sbi_tgt_i.rdata;
+              end if;
+              if (be_sel_r(1))
+              then
+                rdata_r(15 downto  8) <= sbi_tgt_i.rdata;
+              end if;
+              if (be_sel_r(2))
+              then
+                rdata_r(23 downto 16) <= sbi_tgt_i.rdata;
+              end if;
+              if (be_sel_r(3))
+              then
+                rdata_r(31 downto 24) <= sbi_tgt_i.rdata;
+              end if;
+            else
+              -- shift register
+              wdata_r(23 downto 0) <= wdata_r(31 downto 8);
             end if;
-            if (be_sel_r(1))
-            then
-              rdata_r(15 downto  8) <= sbi_tgt_i.rdata;
-            end if;
-            if (be_sel_r(2))
-            then
-              rdata_r(23 downto 16) <= sbi_tgt_i.rdata;
-            end if;
-            if (be_sel_r(3))
-            then
-              rdata_r(31 downto 24) <= sbi_tgt_i.rdata;
-            end if;
-          end if;
-      
+          end if; 
         when others =>
           null;
       end case;
@@ -211,11 +216,12 @@ begin
                         SBI_ADDR_WIDTH));
 
   -- Multiplex the 32-bit write data into 8-bit chunks for SBI
-  with addr_byte select
-  sbi_ini_o.wdata  <= wdata_r(7  downto  0) when "00",
-                      wdata_r(15 downto  8) when "01",
-                      wdata_r(23 downto 16) when "10",
-                      wdata_r(31 downto 24) when others;
+  --with addr_byte select
+  --sbi_ini_o.wdata  <= wdata_r(7  downto  0) when "00",
+  --                    wdata_r(15 downto  8) when "01",
+  --                    wdata_r(23 downto 16) when "10",
+  --                    wdata_r(31 downto 24) when others;
+  sbi_ini_o.wdata  <= wdata_r(7  downto  0);
   
   -- Enable SBI control signals only in TRANSFER state and if the specific
   -- byte is requested (be_cur reused, no extra mux).
