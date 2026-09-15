@@ -14,6 +14,8 @@
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
+library asylum;
+use     asylum.ram_pkg.all;
 
 entity WardRV_fsm_regfile is
   port (
@@ -36,24 +38,59 @@ entity WardRV_fsm_regfile is
 end entity WardRV_fsm_regfile;
 
 architecture behavioural of WardRV_fsm_regfile is
-  type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
-  signal regs : regfile_t;
+  signal rs1_re    : std_logic;
+  signal rs2_re    : std_logic;
+  signal rs1_rdata : std_logic_vector(31 downto 0);
+  signal rs2_rdata : std_logic_vector(31 downto 0);
 begin
 
-  -- Lecture Asynchrone (Combinatoire)
-  -- Note: regs(0) est maintenu à 0 par l'initialisation et l'exclusion d'écriture.
-  rs1_rdata_o <= regs(to_integer(unsigned(rs1_addr_i))) when (rs1_re_i = '1') and (rs1_addr_i /= "00000") else (others => '0');
-  rs2_rdata_o <= regs(to_integer(unsigned(rs2_addr_i))) when (rs2_re_i = '1') and (rs2_addr_i /= "00000") else (others => '0');
+  rs1_re <= '1' when (rs1_re_i = '1') and (rs1_addr_i /= "00000") else '0';
+  rs2_re <= '1' when (rs2_re_i = '1') and (rs2_addr_i /= "00000") else '0';
 
-  -- Écriture Synchrone
-  process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      
-      if rd_we_i = '1' then
-        regs(to_integer(unsigned(rd_addr_i))) <= rd_wdata_i;
-      end if;
-    end if;
-  end process;
+  regfile_ram : ram_2r1w
+    generic map (
+      WIDTH     => 32,
+      DEPTH     => 32,
+      SYNC_READ => false
+    )
+    port map (
+      clk_i    => clk_i,
+      cke_i    => '1',
+      re0_i    => rs1_re,
+      raddr0_i => rs1_addr_i,
+      rdata0_o => rs1_rdata,
+      re1_i    => rs2_re,
+      raddr1_i => rs2_addr_i,
+      rdata1_o => rs2_rdata,
+      we_i     => rd_we_i,
+      waddr_i  => rd_addr_i,
+      wdata_i  => rd_wdata_i
+    );
+
+  rs1_rdata_o <= rs1_rdata when (rs1_re = '1') else (others => '0');
+  rs2_rdata_o <= rs2_rdata when (rs2_re = '1') else (others => '0');
 
 end architecture behavioural;
+
+--architecture behavioural of WardRV_fsm_regfile is
+--  type regfile_t is array (0 to 31) of std_logic_vector(31 downto 0);
+--  signal regs : regfile_t;
+--begin
+--
+--  -- Lecture Asynchrone (Combinatoire)
+--  -- Note: regs(0) est maintenu à 0 par l'initialisation et l'exclusion d'écriture.
+--  rs1_rdata_o <= regs(to_integer(unsigned(rs1_addr_i))) when (rs1_re_i = '1') and (rs1_addr_i /= "00000") else (others => '0');
+--  rs2_rdata_o <= regs(to_integer(unsigned(rs2_addr_i))) when (rs2_re_i = '1') and (rs2_addr_i /= "00000") else (others => '0');
+--
+--  -- Écriture Synchrone
+--  process(clk_i)
+--  begin
+--    if rising_edge(clk_i) then
+--      
+--      if rd_we_i = '1' then
+--        regs(to_integer(unsigned(rd_addr_i))) <= rd_wdata_i;
+--      end if;
+--    end if;
+--  end process;
+--
+--end architecture behavioural;
