@@ -171,13 +171,23 @@ $(TARGETS_ALL) :
 NONREG_UPPER = $(shell printf '%s' '$(1)' | tr '[:lower:]' '[:upper:]')
 
 define NONREG_GROUP_TEMPLATE
+ifneq ($(strip $(STEP)),)
 nonreg_$(1) :
-	+$(MAKE) --no-print-directory $(addprefix nonreg_$(1)_,$(NONREG_STEPS));
+	+$(MAKE) --no-print-directory $(addprefix nonreg_$(1)_,$(STEP));
+else
+nonreg_$(1) :
+	@:
+endif
 endef
 
 define NONREG_STEP_TEMPLATE
+ifneq ($(strip $$(TARGETS_$(call NONREG_UPPER,$(1)))),)
 nonreg_$(1)_$(2) :
 	+$(MAKE) --no-print-directory $$(TARGETS_$(call NONREG_UPPER,$(1))) STEP=$(2);
+else
+nonreg_$(1)_$(2) :
+	@:
+endif
 endef
 
 $(foreach type,$(NONREG_TYPES),$(eval $(call NONREG_GROUP_TEMPLATE,$(type))))
@@ -186,7 +196,12 @@ $(foreach type,$(NONREG_TYPES),$(foreach step,$(NONREG_STEPS),$(eval $(call NONR
 .PHONY : $(NONREG_RULES)
 
 #--------------------------------------------------------
+ifneq ($(strip $(NONREG)),)
 nonreg : nonreg_$(NONREG)
+else
+nonreg :
+	@:
+endif
 #--------------------------------------------------------
 # nothing
 
