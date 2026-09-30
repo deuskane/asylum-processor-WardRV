@@ -70,7 +70,7 @@ filesets:
       - sim/tb_WardRV_pkg.vhd                                        
       - sim/tb_WardRV.vhd                                            
       - sim/tb_WardRV_iss.vhd                                        
-      - esw/testcase/build/firmware.hex                              : {file_type : user, copyto : firmware.hex}
+      - esw/testcase/firmware.hex                                    : {file_type : user, copyto : firmware.hex}
       - esw/compliance/benchs                                        : {file_type : user, copyto : benchs}
 
     file_type    : vhdlSource-2008

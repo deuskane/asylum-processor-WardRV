@@ -1,0 +1,1629 @@
+
+build/firmware.elf:     format de fichier elf32-littleriscv
+
+
+Déassemblage de la section .text :
+
+80000000 <_start>:
+.section .text
+.global _start
+
+_start:
+    # Initialize the Stack Pointer (SP) using the symbol defined in the linker script
+    la   sp, _stack_top
+80000000:	00020117          	auipc	sp,0x20
+80000004:	00010113          	mv	sp,sp
+    addi sp,sp,-8
+80000008:	ff810113          	addi	sp,sp,-8 # 8001fff8 <main+0x1f254>
+
+    # Invoke the main function
+    call main
+8000000c:	599000ef          	jal	80000da4 <main>
+
+80000010 <loop>:
+
+    # Infinite loop to prevent execution from proceeding beyond the intended scope
+loop:
+    j loop
+80000010:	0000006f          	j	80000010 <loop>
+
+80000014 <check>:
+static inline void test_fail() {
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+}
+
+void check(uint32_t result, uint32_t expected) {
+    if (result != expected) {
+80000014:	00b50863          	beq	a0,a1,80000024 <check+0x10>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000018:	802007b7          	lui	a5,0x80200
+8000001c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        test_fail();
+        while(1);
+80000020:	0000006f          	j	80000020 <check+0xc>
+    }
+}
+80000024:	00008067          	ret
+
+80000028 <check16>:
+
+void check16(uint16_t result, uint16_t expected) {
+    if (result != expected) {
+80000028:	00b50863          	beq	a0,a1,80000038 <check16+0x10>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000002c:	802007b7          	lui	a5,0x80200
+80000030:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        test_fail();
+        while(1);
+80000034:	0000006f          	j	80000034 <check16+0xc>
+    }
+}
+80000038:	00008067          	ret
+
+8000003c <read_mem8>:
+
+uint8_t read_mem8(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint8_t*)(addr + offset);
+8000003c:	00b50533          	add	a0,a0,a1
+80000040:	00054503          	lbu	a0,0(a0)
+}
+80000044:	00008067          	ret
+
+80000048 <read_mem16>:
+
+uint16_t read_mem16(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint16_t*)(addr + offset);
+80000048:	00b50533          	add	a0,a0,a1
+8000004c:	00055503          	lhu	a0,0(a0)
+}
+80000050:	00008067          	ret
+
+80000054 <read_mem32>:
+
+uint32_t read_mem32(uintptr_t addr, uint32_t offset) {
+    return *(volatile uint32_t*)(addr + offset);
+80000054:	00b50533          	add	a0,a0,a1
+80000058:	00052503          	lw	a0,0(a0)
+}
+8000005c:	00008067          	ret
+
+80000060 <testcase>:
+#define CHECK_LBU(offset, expected) \
+    asm volatile ("lbu %0, " #offset "(%1)" : "=r"(data_u8) : "r"(mem8u)); \
+    check(data_u8, expected);
+
+uint32_t testcase(uint32_t * operands) {
+    uint32_t   a     = operands[0];
+80000060:	00052683          	lw	a3,0(a0)
+    uint32_t   b     = operands[1];
+80000064:	00452603          	lw	a2,4(a0)
+    int8_t   data_i8;
+
+    // Test RV32I Arithmetic and Logical instructions using registers
+    
+    // Test RV32I Arithmetic instructions
+    asm volatile ("add %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+80000068:	00c687b3          	add	a5,a3,a2
+    if (result != expected) {
+8000006c:	12345737          	lui	a4,0x12345
+80000070:	67970713          	addi	a4,a4,1657 # 12345679 <_start-0x6dcba987>
+80000074:	00e78863          	beq	a5,a4,80000084 <testcase+0x24>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000078:	802007b7          	lui	a5,0x80200
+8000007c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000080:	0000006f          	j	80000080 <testcase+0x20>
+    check(res, 0x12345679); // Verify ADD (Addition)
+    asm volatile ("sub %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+80000084:	40c685b3          	sub	a1,a3,a2
+    if (result != expected) {
+80000088:	12345737          	lui	a4,0x12345
+8000008c:	67770713          	addi	a4,a4,1655 # 12345677 <_start-0x6dcba989>
+80000090:	00e58863          	beq	a1,a4,800000a0 <testcase+0x40>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000094:	802007b7          	lui	a5,0x80200
+80000098:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000009c:	0000006f          	j	8000009c <testcase+0x3c>
+    check(res, 0x12345677); // Verify SUB (Subtraction)
+    asm volatile ("xor %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+800000a0:	00c6c733          	xor	a4,a3,a2
+    if (result != expected) {
+800000a4:	00f70863          	beq	a4,a5,800000b4 <testcase+0x54>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800000a8:	802007b7          	lui	a5,0x80200
+800000ac:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800000b0:	0000006f          	j	800000b0 <testcase+0x50>
+    check(res, 0x12345679); // Verify XOR (Exclusive OR)
+    asm volatile ("or  %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+800000b4:	00c6e7b3          	or	a5,a3,a2
+    if (result != expected) {
+800000b8:	00e78863          	beq	a5,a4,800000c8 <testcase+0x68>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800000bc:	802007b7          	lui	a5,0x80200
+800000c0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800000c4:	0000006f          	j	800000c4 <testcase+0x64>
+    check(res, 0x12345679); // Verify OR (Logical OR)
+    asm volatile ("and %0, %1, %2" : "=r"(res) : "r"(a), "r"(b));
+800000c8:	00c6f7b3          	and	a5,a3,a2
+    if (result != expected) {
+800000cc:	00078863          	beqz	a5,800000dc <testcase+0x7c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800000d0:	802007b7          	lui	a5,0x80200
+800000d4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800000d8:	0000006f          	j	800000d8 <testcase+0x78>
+    uint32_t   c     = operands[2];
+800000dc:	00852883          	lw	a7,8(a0)
+    check(res, 0x00000000); // Verify AND (Logical AND)
+    asm volatile ("and %0, %1, %2" : "=r"(res) : "r"(a), "r"(c));
+800000e0:	0116f733          	and	a4,a3,a7
+    if (result != expected) {
+800000e4:	123457b7          	lui	a5,0x12345
+800000e8:	67878793          	addi	a5,a5,1656 # 12345678 <_start-0x6dcba988>
+800000ec:	00f70863          	beq	a4,a5,800000fc <testcase+0x9c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800000f0:	802007b7          	lui	a5,0x80200
+800000f4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800000f8:	0000006f          	j	800000f8 <testcase+0x98>
+    check(res, 0x12345678); // Verify AND with identical values
+
+    // Test RV32I Shift instructions
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(a), "r"(1));
+800000fc:	00100713          	li	a4,1
+80000100:	00e6d5b3          	srl	a1,a3,a4
+    if (result != expected) {
+80000104:	091a37b7          	lui	a5,0x91a3
+80000108:	b3c78793          	addi	a5,a5,-1220 # 91a2b3c <_start-0x76e5d4c4>
+8000010c:	00f58863          	beq	a1,a5,8000011c <testcase+0xbc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000110:	802007b7          	lui	a5,0x80200
+80000114:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000118:	0000006f          	j	80000118 <testcase+0xb8>
+    check(res, 0x091A2B3C); // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(a), "r"(1));
+8000011c:	40e6d7b3          	sra	a5,a3,a4
+    if (result != expected) {
+80000120:	00b78863          	beq	a5,a1,80000130 <testcase+0xd0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000124:	802007b7          	lui	a5,0x80200
+80000128:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000012c:	0000006f          	j	8000012c <testcase+0xcc>
+    uint32_t   d     = operands[3];
+80000130:	00c52783          	lw	a5,12(a0)
+    check(res, 0x091A2B3C); // Verify SRA (Shift Right Arithmetic)
+    
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(d), "r"(1));
+80000134:	00e7d833          	srl	a6,a5,a4
+    if (result != expected) {
+80000138:	43b2a5b7          	lui	a1,0x43b2a
+8000013c:	19058593          	addi	a1,a1,400 # 43b2a190 <_start-0x3c4d5e70>
+80000140:	00b80863          	beq	a6,a1,80000150 <testcase+0xf0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000144:	802007b7          	lui	a5,0x80200
+80000148:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000014c:	0000006f          	j	8000014c <testcase+0xec>
+    check(res, 0x43B2A190); // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(d), "r"(1));
+80000150:	40e7d7b3          	sra	a5,a5,a4
+    if (result != expected) {
+80000154:	c3b2a737          	lui	a4,0xc3b2a
+80000158:	19070713          	addi	a4,a4,400 # c3b2a190 <_stack_top+0x43b0a190>
+8000015c:	00e78863          	beq	a5,a4,8000016c <testcase+0x10c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000160:	802007b7          	lui	a5,0x80200
+80000164:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000168:	0000006f          	j	80000168 <testcase+0x108>
+    check(res, 0xC3B2A190); // Verify SRA (Shift Right Arithmetic)
+    
+    asm volatile ("sll %0, %1, %2" : "=r"(res) : "r"(a), "r"(4));
+8000016c:	00400793          	li	a5,4
+80000170:	00f697b3          	sll	a5,a3,a5
+    if (result != expected) {
+80000174:	23456737          	lui	a4,0x23456
+80000178:	78070713          	addi	a4,a4,1920 # 23456780 <_start-0x5cba9880>
+8000017c:	00e78863          	beq	a5,a4,8000018c <testcase+0x12c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000180:	802007b7          	lui	a5,0x80200
+80000184:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000188:	0000006f          	j	80000188 <testcase+0x128>
+    int32_t    neg   = operands[4];
+8000018c:	01052703          	lw	a4,16(a0)
+    int32_t    pos   = operands[5];
+80000190:	01452583          	lw	a1,20(a0)
+    check(res, 0x23456780); // Verify SLL (Shift Left Logical)
+
+
+    // Test RV32I Comparison instructions
+    asm volatile ("slt %0, %1, %2" : "=r"(res) : "r"(pos), "r"(neg));
+80000194:	00e5a833          	slt	a6,a1,a4
+    if (result != expected) {
+80000198:	00080863          	beqz	a6,800001a8 <testcase+0x148>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000019c:	802007b7          	lui	a5,0x80200
+800001a0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800001a4:	0000006f          	j	800001a4 <testcase+0x144>
+    check(res, 0); // Verify SLT (Set Less Than - signed)
+    asm volatile ("slt %0, %1, %2" : "=r"(res) : "r"(neg), "r"(pos));
+800001a8:	00b72833          	slt	a6,a4,a1
+    if (result != expected) {
+800001ac:	00100313          	li	t1,1
+800001b0:	00680863          	beq	a6,t1,800001c0 <testcase+0x160>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800001b4:	802007b7          	lui	a5,0x80200
+800001b8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800001bc:	0000006f          	j	800001bc <testcase+0x15c>
+    check(res, 1); // Verify SLT (Set Less Than - signed)
+    asm volatile ("sltu %0, %1, %2" : "=r"(res) : "r"(neg), "r"(pos));
+800001c0:	00b73333          	sltu	t1,a4,a1
+    if (result != expected) {
+800001c4:	00030863          	beqz	t1,800001d4 <testcase+0x174>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800001c8:	802007b7          	lui	a5,0x80200
+800001cc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800001d0:	0000006f          	j	800001d0 <testcase+0x170>
+    check(res, 0); // Verify SLTU (Set Less Than Unsigned)
+    asm volatile ("sltu %0, %1, %2" : "=r"(res) : "r"(pos), "r"(neg));
+800001d4:	00e5b333          	sltu	t1,a1,a4
+    if (result != expected) {
+800001d8:	01030863          	beq	t1,a6,800001e8 <testcase+0x188>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800001dc:	802007b7          	lui	a5,0x80200
+800001e0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800001e4:	0000006f          	j	800001e4 <testcase+0x184>
+    check(res, 1); // Verify SLTU (Set Less Than Unsigned)
+
+    // Test RV32I instructions with Immediate values
+    asm volatile ("addi %0, %1, 0x123" : "=r"(res) : "r"(a));
+800001e8:	12368313          	addi	t1,a3,291
+    if (result != expected) {
+800001ec:	12345837          	lui	a6,0x12345
+800001f0:	79b80813          	addi	a6,a6,1947 # 1234579b <_start-0x6dcba865>
+800001f4:	01030863          	beq	t1,a6,80000204 <testcase+0x1a4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800001f8:	802007b7          	lui	a5,0x80200
+800001fc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000200:	0000006f          	j	80000200 <testcase+0x1a0>
+    check(res, 0x1234579B); // Verify ADDI (Add Immediate)
+    asm volatile ("slli %0, %1, 4" : "=r"(res) : "r"(a));
+80000204:	00469813          	slli	a6,a3,0x4
+    if (result != expected) {
+80000208:	00f80863          	beq	a6,a5,80000218 <testcase+0x1b8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000020c:	802007b7          	lui	a5,0x80200
+80000210:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000214:	0000006f          	j	80000214 <testcase+0x1b4>
+    check(res, 0x23456780); // Verify SLLI (Shift Left Logical Immediate)
+    asm volatile ("srli %0, %1, 4" : "=r"(res) : "r"(a));
+80000218:	0046d813          	srli	a6,a3,0x4
+    if (result != expected) {
+8000021c:	012347b7          	lui	a5,0x1234
+80000220:	56778793          	addi	a5,a5,1383 # 1234567 <_start-0x7edcba99>
+80000224:	00f80863          	beq	a6,a5,80000234 <testcase+0x1d4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000228:	802007b7          	lui	a5,0x80200
+8000022c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000230:	0000006f          	j	80000230 <testcase+0x1d0>
+    volatile uint32_t * mem32u = &(operands[6]);
+80000234:	01850793          	addi	a5,a0,24
+    check(res, 0x01234567);
+    
+    // Test RV32I Memory Access (Load and Store) instructions
+    CHECK_LW(0,  0x01234567);
+80000238:	0007a503          	lw	a0,0(a5)
+    if (result != expected) {
+8000023c:	01050863          	beq	a0,a6,8000024c <testcase+0x1ec>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000240:	802007b7          	lui	a5,0x80200
+80000244:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000248:	0000006f          	j	80000248 <testcase+0x1e8>
+    CHECK_LW(4,  0x89ABCDEF);
+8000024c:	0047a803          	lw	a6,4(a5)
+    if (result != expected) {
+80000250:	89abd537          	lui	a0,0x89abd
+80000254:	def50513          	addi	a0,a0,-529 # 89abcdef <_stack_top+0x9a9cdef>
+80000258:	00a80863          	beq	a6,a0,80000268 <testcase+0x208>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000025c:	802007b7          	lui	a5,0x80200
+80000260:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000264:	0000006f          	j	80000264 <testcase+0x204>
+    CHECK_LW(8,  0xFEDCBA98);
+80000268:	0087a803          	lw	a6,8(a5)
+    if (result != expected) {
+8000026c:	fedcc537          	lui	a0,0xfedcc
+80000270:	a9850513          	addi	a0,a0,-1384 # fedcba98 <_stack_top+0x7edaba98>
+80000274:	00a80863          	beq	a6,a0,80000284 <testcase+0x224>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000278:	802007b7          	lui	a5,0x80200
+8000027c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000280:	0000006f          	j	80000280 <testcase+0x220>
+    CHECK_LW(12, 0x76543210);
+80000284:	00c7a803          	lw	a6,12(a5)
+    if (result != expected) {
+80000288:	76543537          	lui	a0,0x76543
+8000028c:	21050513          	addi	a0,a0,528 # 76543210 <_start-0x9abcdf0>
+80000290:	00a80863          	beq	a6,a0,800002a0 <testcase+0x240>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000294:	802007b7          	lui	a5,0x80200
+80000298:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000029c:	0000006f          	j	8000029c <testcase+0x23c>
+
+    CHECK_LHU(0,  0x4567);
+800002a0:	0007d803          	lhu	a6,0(a5)
+    if (result != expected) {
+800002a4:	00004537          	lui	a0,0x4
+    CHECK_LHU(0,  0x4567);
+800002a8:	01081813          	slli	a6,a6,0x10
+800002ac:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+800002b0:	56750513          	addi	a0,a0,1383 # 4567 <_start-0x7fffba99>
+800002b4:	00a80863          	beq	a6,a0,800002c4 <testcase+0x264>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800002b8:	802007b7          	lui	a5,0x80200
+800002bc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800002c0:	0000006f          	j	800002c0 <testcase+0x260>
+    CHECK_LHU(2,  0x0123);
+800002c4:	0027d503          	lhu	a0,2(a5)
+800002c8:	01051513          	slli	a0,a0,0x10
+800002cc:	01055513          	srli	a0,a0,0x10
+    if (result != expected) {
+800002d0:	12300813          	li	a6,291
+800002d4:	01050863          	beq	a0,a6,800002e4 <testcase+0x284>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800002d8:	802007b7          	lui	a5,0x80200
+800002dc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800002e0:	0000006f          	j	800002e0 <testcase+0x280>
+    CHECK_LHU(4,  0xCDEF);
+800002e4:	0047d803          	lhu	a6,4(a5)
+    if (result != expected) {
+800002e8:	0000d537          	lui	a0,0xd
+    CHECK_LHU(4,  0xCDEF);
+800002ec:	01081813          	slli	a6,a6,0x10
+800002f0:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+800002f4:	def50513          	addi	a0,a0,-529 # cdef <_start-0x7fff3211>
+800002f8:	00a80863          	beq	a6,a0,80000308 <testcase+0x2a8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800002fc:	802007b7          	lui	a5,0x80200
+80000300:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000304:	0000006f          	j	80000304 <testcase+0x2a4>
+    CHECK_LHU(6,  0x89AB);
+80000308:	0067d803          	lhu	a6,6(a5)
+    if (result != expected) {
+8000030c:	00009537          	lui	a0,0x9
+    CHECK_LHU(6,  0x89AB);
+80000310:	01081813          	slli	a6,a6,0x10
+80000314:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+80000318:	9ab50513          	addi	a0,a0,-1621 # 89ab <_start-0x7fff7655>
+8000031c:	00a80863          	beq	a6,a0,8000032c <testcase+0x2cc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000320:	802007b7          	lui	a5,0x80200
+80000324:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000328:	0000006f          	j	80000328 <testcase+0x2c8>
+    CHECK_LHU(8,  0xBA98);
+8000032c:	0087d803          	lhu	a6,8(a5)
+    if (result != expected) {
+80000330:	0000c537          	lui	a0,0xc
+    CHECK_LHU(8,  0xBA98);
+80000334:	01081813          	slli	a6,a6,0x10
+80000338:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+8000033c:	a9850513          	addi	a0,a0,-1384 # ba98 <_start-0x7fff4568>
+80000340:	00a80863          	beq	a6,a0,80000350 <testcase+0x2f0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000344:	802007b7          	lui	a5,0x80200
+80000348:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000034c:	0000006f          	j	8000034c <testcase+0x2ec>
+    CHECK_LHU(10, 0xFEDC);
+80000350:	00a7d803          	lhu	a6,10(a5)
+    if (result != expected) {
+80000354:	00010537          	lui	a0,0x10
+    CHECK_LHU(10, 0xFEDC);
+80000358:	01081813          	slli	a6,a6,0x10
+8000035c:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+80000360:	edc50513          	addi	a0,a0,-292 # fedc <_start-0x7fff0124>
+80000364:	00a80863          	beq	a6,a0,80000374 <testcase+0x314>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000368:	802007b7          	lui	a5,0x80200
+8000036c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000370:	0000006f          	j	80000370 <testcase+0x310>
+    CHECK_LHU(12, 0x3210);
+80000374:	00c7d803          	lhu	a6,12(a5)
+    if (result != expected) {
+80000378:	00003537          	lui	a0,0x3
+    CHECK_LHU(12, 0x3210);
+8000037c:	01081813          	slli	a6,a6,0x10
+80000380:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+80000384:	21050513          	addi	a0,a0,528 # 3210 <_start-0x7fffcdf0>
+80000388:	00a80863          	beq	a6,a0,80000398 <testcase+0x338>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000038c:	802007b7          	lui	a5,0x80200
+80000390:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000394:	0000006f          	j	80000394 <testcase+0x334>
+    CHECK_LHU(14, 0x7654);
+80000398:	00e7d803          	lhu	a6,14(a5)
+    if (result != expected) {
+8000039c:	00007537          	lui	a0,0x7
+    CHECK_LHU(14, 0x7654);
+800003a0:	01081813          	slli	a6,a6,0x10
+800003a4:	01085813          	srli	a6,a6,0x10
+    if (result != expected) {
+800003a8:	65450513          	addi	a0,a0,1620 # 7654 <_start-0x7fff89ac>
+800003ac:	00a80863          	beq	a6,a0,800003bc <testcase+0x35c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800003b0:	802007b7          	lui	a5,0x80200
+800003b4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800003b8:	0000006f          	j	800003b8 <testcase+0x358>
+
+    CHECK_LBU(0,  0x67);
+800003bc:	0007c503          	lbu	a0,0(a5)
+    if (result != expected) {
+800003c0:	06700813          	li	a6,103
+    CHECK_LBU(0,  0x67);
+800003c4:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800003c8:	01050863          	beq	a0,a6,800003d8 <testcase+0x378>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800003cc:	802007b7          	lui	a5,0x80200
+800003d0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800003d4:	0000006f          	j	800003d4 <testcase+0x374>
+    CHECK_LBU(1,  0x45);
+800003d8:	0017c503          	lbu	a0,1(a5)
+    if (result != expected) {
+800003dc:	04500813          	li	a6,69
+    CHECK_LBU(1,  0x45);
+800003e0:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800003e4:	01050863          	beq	a0,a6,800003f4 <testcase+0x394>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800003e8:	802007b7          	lui	a5,0x80200
+800003ec:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800003f0:	0000006f          	j	800003f0 <testcase+0x390>
+    CHECK_LBU(2,  0x23);
+800003f4:	0027c503          	lbu	a0,2(a5)
+    if (result != expected) {
+800003f8:	02300813          	li	a6,35
+    CHECK_LBU(2,  0x23);
+800003fc:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000400:	01050863          	beq	a0,a6,80000410 <testcase+0x3b0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000404:	802007b7          	lui	a5,0x80200
+80000408:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000040c:	0000006f          	j	8000040c <testcase+0x3ac>
+    CHECK_LBU(3,  0x01);
+80000410:	0037c503          	lbu	a0,3(a5)
+    if (result != expected) {
+80000414:	00100813          	li	a6,1
+    CHECK_LBU(3,  0x01);
+80000418:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+8000041c:	01050863          	beq	a0,a6,8000042c <testcase+0x3cc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000420:	802007b7          	lui	a5,0x80200
+80000424:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000428:	0000006f          	j	80000428 <testcase+0x3c8>
+    CHECK_LBU(4,  0xEF);
+8000042c:	0047c503          	lbu	a0,4(a5)
+    if (result != expected) {
+80000430:	0ef00813          	li	a6,239
+    CHECK_LBU(4,  0xEF);
+80000434:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000438:	01050863          	beq	a0,a6,80000448 <testcase+0x3e8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000043c:	802007b7          	lui	a5,0x80200
+80000440:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000444:	0000006f          	j	80000444 <testcase+0x3e4>
+    CHECK_LBU(5,  0xCD);
+80000448:	0057c503          	lbu	a0,5(a5)
+    if (result != expected) {
+8000044c:	0cd00813          	li	a6,205
+    CHECK_LBU(5,  0xCD);
+80000450:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000454:	01050863          	beq	a0,a6,80000464 <testcase+0x404>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000458:	802007b7          	lui	a5,0x80200
+8000045c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000460:	0000006f          	j	80000460 <testcase+0x400>
+    CHECK_LBU(6,  0xAB);
+80000464:	0067c503          	lbu	a0,6(a5)
+    if (result != expected) {
+80000468:	0ab00813          	li	a6,171
+    CHECK_LBU(6,  0xAB);
+8000046c:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000470:	01050863          	beq	a0,a6,80000480 <testcase+0x420>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000474:	802007b7          	lui	a5,0x80200
+80000478:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000047c:	0000006f          	j	8000047c <testcase+0x41c>
+    CHECK_LBU(7,  0x89);
+80000480:	0077c503          	lbu	a0,7(a5)
+    if (result != expected) {
+80000484:	08900813          	li	a6,137
+    CHECK_LBU(7,  0x89);
+80000488:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+8000048c:	01050863          	beq	a0,a6,8000049c <testcase+0x43c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000490:	802007b7          	lui	a5,0x80200
+80000494:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000498:	0000006f          	j	80000498 <testcase+0x438>
+    CHECK_LBU(8,  0x98);
+8000049c:	0087c503          	lbu	a0,8(a5)
+    if (result != expected) {
+800004a0:	09800813          	li	a6,152
+    CHECK_LBU(8,  0x98);
+800004a4:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800004a8:	01050863          	beq	a0,a6,800004b8 <testcase+0x458>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800004ac:	802007b7          	lui	a5,0x80200
+800004b0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800004b4:	0000006f          	j	800004b4 <testcase+0x454>
+    CHECK_LBU(9,  0xBA);
+800004b8:	0097c503          	lbu	a0,9(a5)
+    if (result != expected) {
+800004bc:	0ba00813          	li	a6,186
+    CHECK_LBU(9,  0xBA);
+800004c0:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800004c4:	01050863          	beq	a0,a6,800004d4 <testcase+0x474>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800004c8:	802007b7          	lui	a5,0x80200
+800004cc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800004d0:	0000006f          	j	800004d0 <testcase+0x470>
+    CHECK_LBU(10, 0xDC);
+800004d4:	00a7c503          	lbu	a0,10(a5)
+    if (result != expected) {
+800004d8:	0dc00813          	li	a6,220
+    CHECK_LBU(10, 0xDC);
+800004dc:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800004e0:	01050863          	beq	a0,a6,800004f0 <testcase+0x490>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800004e4:	802007b7          	lui	a5,0x80200
+800004e8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800004ec:	0000006f          	j	800004ec <testcase+0x48c>
+    CHECK_LBU(11, 0xFE);
+800004f0:	00b7c503          	lbu	a0,11(a5)
+    if (result != expected) {
+800004f4:	0fe00813          	li	a6,254
+    CHECK_LBU(11, 0xFE);
+800004f8:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+800004fc:	01050863          	beq	a0,a6,8000050c <testcase+0x4ac>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000500:	802007b7          	lui	a5,0x80200
+80000504:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000508:	0000006f          	j	80000508 <testcase+0x4a8>
+    CHECK_LBU(12, 0x10);
+8000050c:	00c7c503          	lbu	a0,12(a5)
+    if (result != expected) {
+80000510:	01000813          	li	a6,16
+    CHECK_LBU(12, 0x10);
+80000514:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000518:	01050863          	beq	a0,a6,80000528 <testcase+0x4c8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+8000051c:	802007b7          	lui	a5,0x80200
+80000520:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000524:	0000006f          	j	80000524 <testcase+0x4c4>
+    CHECK_LBU(13, 0x32);
+80000528:	00d7c503          	lbu	a0,13(a5)
+    if (result != expected) {
+8000052c:	03200813          	li	a6,50
+    CHECK_LBU(13, 0x32);
+80000530:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000534:	01050863          	beq	a0,a6,80000544 <testcase+0x4e4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000538:	802007b7          	lui	a5,0x80200
+8000053c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000540:	0000006f          	j	80000540 <testcase+0x4e0>
+    CHECK_LBU(14, 0x54);
+80000544:	00e7c503          	lbu	a0,14(a5)
+    if (result != expected) {
+80000548:	05400813          	li	a6,84
+    CHECK_LBU(14, 0x54);
+8000054c:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+80000550:	01050863          	beq	a0,a6,80000560 <testcase+0x500>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000554:	802007b7          	lui	a5,0x80200
+80000558:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000055c:	0000006f          	j	8000055c <testcase+0x4fc>
+    CHECK_LBU(15, 0x76);
+80000560:	00f7c503          	lbu	a0,15(a5)
+    if (result != expected) {
+80000564:	07600813          	li	a6,118
+    CHECK_LBU(15, 0x76);
+80000568:	0ff57513          	zext.b	a0,a0
+    if (result != expected) {
+8000056c:	01050863          	beq	a0,a6,8000057c <testcase+0x51c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000570:	802007b7          	lui	a5,0x80200
+80000574:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000578:	0000006f          	j	80000578 <testcase+0x518>
+
+    CHECK_LH(0,  0x00004567);
+8000057c:	00079803          	lh	a6,0(a5)
+    if (result != expected) {
+80000580:	00004537          	lui	a0,0x4
+    CHECK_LH(0,  0x00004567);
+80000584:	01081813          	slli	a6,a6,0x10
+80000588:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+8000058c:	56750513          	addi	a0,a0,1383 # 4567 <_start-0x7fffba99>
+80000590:	00a80863          	beq	a6,a0,800005a0 <testcase+0x540>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000594:	802007b7          	lui	a5,0x80200
+80000598:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000059c:	0000006f          	j	8000059c <testcase+0x53c>
+    CHECK_LH(2,  0x00000123);
+800005a0:	00279503          	lh	a0,2(a5)
+800005a4:	01051513          	slli	a0,a0,0x10
+800005a8:	41055513          	srai	a0,a0,0x10
+    if (result != expected) {
+800005ac:	12300813          	li	a6,291
+800005b0:	01050863          	beq	a0,a6,800005c0 <testcase+0x560>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800005b4:	802007b7          	lui	a5,0x80200
+800005b8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800005bc:	0000006f          	j	800005bc <testcase+0x55c>
+    CHECK_LH(4,  0xFFFFCDEF);
+800005c0:	00479803          	lh	a6,4(a5)
+    if (result != expected) {
+800005c4:	ffffd537          	lui	a0,0xffffd
+    CHECK_LH(4,  0xFFFFCDEF);
+800005c8:	01081813          	slli	a6,a6,0x10
+800005cc:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+800005d0:	def50513          	addi	a0,a0,-529 # ffffcdef <_stack_top+0x7ffdcdef>
+800005d4:	00a80863          	beq	a6,a0,800005e4 <testcase+0x584>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800005d8:	802007b7          	lui	a5,0x80200
+800005dc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800005e0:	0000006f          	j	800005e0 <testcase+0x580>
+    CHECK_LH(6,  0xFFFF89AB);
+800005e4:	00679803          	lh	a6,6(a5)
+    if (result != expected) {
+800005e8:	ffff9537          	lui	a0,0xffff9
+    CHECK_LH(6,  0xFFFF89AB);
+800005ec:	01081813          	slli	a6,a6,0x10
+800005f0:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+800005f4:	9ab50513          	addi	a0,a0,-1621 # ffff89ab <_stack_top+0x7ffd89ab>
+800005f8:	00a80863          	beq	a6,a0,80000608 <testcase+0x5a8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800005fc:	802007b7          	lui	a5,0x80200
+80000600:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000604:	0000006f          	j	80000604 <testcase+0x5a4>
+    CHECK_LH(8,  0xFFFFBA98);
+80000608:	00879803          	lh	a6,8(a5)
+    if (result != expected) {
+8000060c:	ffffc537          	lui	a0,0xffffc
+    CHECK_LH(8,  0xFFFFBA98);
+80000610:	01081813          	slli	a6,a6,0x10
+80000614:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+80000618:	a9850513          	addi	a0,a0,-1384 # ffffba98 <_stack_top+0x7ffdba98>
+8000061c:	00a80863          	beq	a6,a0,8000062c <testcase+0x5cc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000620:	802007b7          	lui	a5,0x80200
+80000624:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000628:	0000006f          	j	80000628 <testcase+0x5c8>
+    CHECK_LH(10, 0xFFFFFEDC);
+8000062c:	00a79503          	lh	a0,10(a5)
+80000630:	01051513          	slli	a0,a0,0x10
+80000634:	41055513          	srai	a0,a0,0x10
+    if (result != expected) {
+80000638:	edc00813          	li	a6,-292
+8000063c:	01050863          	beq	a0,a6,8000064c <testcase+0x5ec>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000640:	802007b7          	lui	a5,0x80200
+80000644:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000648:	0000006f          	j	80000648 <testcase+0x5e8>
+    CHECK_LH(12, 0x00003210);
+8000064c:	00c79803          	lh	a6,12(a5)
+    if (result != expected) {
+80000650:	00003537          	lui	a0,0x3
+    CHECK_LH(12, 0x00003210);
+80000654:	01081813          	slli	a6,a6,0x10
+80000658:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+8000065c:	21050513          	addi	a0,a0,528 # 3210 <_start-0x7fffcdf0>
+80000660:	00a80863          	beq	a6,a0,80000670 <testcase+0x610>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000664:	802007b7          	lui	a5,0x80200
+80000668:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000066c:	0000006f          	j	8000066c <testcase+0x60c>
+    CHECK_LH(14, 0x00007654);
+80000670:	00e79803          	lh	a6,14(a5)
+    if (result != expected) {
+80000674:	00007537          	lui	a0,0x7
+    CHECK_LH(14, 0x00007654);
+80000678:	01081813          	slli	a6,a6,0x10
+8000067c:	41085813          	srai	a6,a6,0x10
+    if (result != expected) {
+80000680:	65450513          	addi	a0,a0,1620 # 7654 <_start-0x7fff89ac>
+80000684:	00a80863          	beq	a6,a0,80000694 <testcase+0x634>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000688:	802007b7          	lui	a5,0x80200
+8000068c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000690:	0000006f          	j	80000690 <testcase+0x630>
+
+    CHECK_LB(0,  0x00000067);
+80000694:	00078503          	lb	a0,0(a5)
+80000698:	01851513          	slli	a0,a0,0x18
+8000069c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800006a0:	06700813          	li	a6,103
+800006a4:	01050863          	beq	a0,a6,800006b4 <testcase+0x654>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800006a8:	802007b7          	lui	a5,0x80200
+800006ac:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800006b0:	0000006f          	j	800006b0 <testcase+0x650>
+    CHECK_LB(1,  0x00000045);
+800006b4:	00178503          	lb	a0,1(a5)
+800006b8:	01851513          	slli	a0,a0,0x18
+800006bc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800006c0:	04500813          	li	a6,69
+800006c4:	01050863          	beq	a0,a6,800006d4 <testcase+0x674>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800006c8:	802007b7          	lui	a5,0x80200
+800006cc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800006d0:	0000006f          	j	800006d0 <testcase+0x670>
+    CHECK_LB(2,  0x00000023);
+800006d4:	00278503          	lb	a0,2(a5)
+800006d8:	01851513          	slli	a0,a0,0x18
+800006dc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800006e0:	02300813          	li	a6,35
+800006e4:	01050863          	beq	a0,a6,800006f4 <testcase+0x694>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800006e8:	802007b7          	lui	a5,0x80200
+800006ec:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800006f0:	0000006f          	j	800006f0 <testcase+0x690>
+    CHECK_LB(3,  0x00000001);
+800006f4:	00378503          	lb	a0,3(a5)
+800006f8:	01851513          	slli	a0,a0,0x18
+800006fc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000700:	00100813          	li	a6,1
+80000704:	01050863          	beq	a0,a6,80000714 <testcase+0x6b4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000708:	802007b7          	lui	a5,0x80200
+8000070c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000710:	0000006f          	j	80000710 <testcase+0x6b0>
+    CHECK_LB(4,  0xFFFFFFEF);
+80000714:	00478503          	lb	a0,4(a5)
+80000718:	01851513          	slli	a0,a0,0x18
+8000071c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000720:	fef00813          	li	a6,-17
+80000724:	01050863          	beq	a0,a6,80000734 <testcase+0x6d4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000728:	802007b7          	lui	a5,0x80200
+8000072c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000730:	0000006f          	j	80000730 <testcase+0x6d0>
+    CHECK_LB(5,  0xFFFFFFCD);
+80000734:	00578503          	lb	a0,5(a5)
+80000738:	01851513          	slli	a0,a0,0x18
+8000073c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000740:	fcd00813          	li	a6,-51
+80000744:	01050863          	beq	a0,a6,80000754 <testcase+0x6f4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000748:	802007b7          	lui	a5,0x80200
+8000074c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000750:	0000006f          	j	80000750 <testcase+0x6f0>
+    CHECK_LB(6,  0xFFFFFFAB);
+80000754:	00678503          	lb	a0,6(a5)
+80000758:	01851513          	slli	a0,a0,0x18
+8000075c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000760:	fab00813          	li	a6,-85
+80000764:	01050863          	beq	a0,a6,80000774 <testcase+0x714>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000768:	802007b7          	lui	a5,0x80200
+8000076c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000770:	0000006f          	j	80000770 <testcase+0x710>
+    CHECK_LB(7,  0xFFFFFF89);
+80000774:	00778503          	lb	a0,7(a5)
+80000778:	01851513          	slli	a0,a0,0x18
+8000077c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000780:	f8900813          	li	a6,-119
+80000784:	01050863          	beq	a0,a6,80000794 <testcase+0x734>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000788:	802007b7          	lui	a5,0x80200
+8000078c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000790:	0000006f          	j	80000790 <testcase+0x730>
+    CHECK_LB(8,  0xFFFFFF98);
+80000794:	00878503          	lb	a0,8(a5)
+80000798:	01851513          	slli	a0,a0,0x18
+8000079c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800007a0:	f9800813          	li	a6,-104
+800007a4:	01050863          	beq	a0,a6,800007b4 <testcase+0x754>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800007a8:	802007b7          	lui	a5,0x80200
+800007ac:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800007b0:	0000006f          	j	800007b0 <testcase+0x750>
+    CHECK_LB(9,  0xFFFFFFBA);
+800007b4:	00978503          	lb	a0,9(a5)
+800007b8:	01851513          	slli	a0,a0,0x18
+800007bc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800007c0:	fba00813          	li	a6,-70
+800007c4:	01050863          	beq	a0,a6,800007d4 <testcase+0x774>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800007c8:	802007b7          	lui	a5,0x80200
+800007cc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800007d0:	0000006f          	j	800007d0 <testcase+0x770>
+    CHECK_LB(10, 0xFFFFFFDC);
+800007d4:	00a78503          	lb	a0,10(a5)
+800007d8:	01851513          	slli	a0,a0,0x18
+800007dc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+800007e0:	fdc00813          	li	a6,-36
+800007e4:	01050863          	beq	a0,a6,800007f4 <testcase+0x794>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800007e8:	802007b7          	lui	a5,0x80200
+800007ec:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800007f0:	0000006f          	j	800007f0 <testcase+0x790>
+    CHECK_LB(11, 0xFFFFFFFE);
+800007f4:	00b78503          	lb	a0,11(a5)
+800007f8:	01851513          	slli	a0,a0,0x18
+800007fc:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000800:	ffe00813          	li	a6,-2
+80000804:	01050863          	beq	a0,a6,80000814 <testcase+0x7b4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000808:	802007b7          	lui	a5,0x80200
+8000080c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000810:	0000006f          	j	80000810 <testcase+0x7b0>
+    CHECK_LB(12, 0x00000010);
+80000814:	00c78503          	lb	a0,12(a5)
+80000818:	01851513          	slli	a0,a0,0x18
+8000081c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000820:	01000813          	li	a6,16
+80000824:	01050863          	beq	a0,a6,80000834 <testcase+0x7d4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000828:	802007b7          	lui	a5,0x80200
+8000082c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000830:	0000006f          	j	80000830 <testcase+0x7d0>
+    CHECK_LB(13, 0x00000032);
+80000834:	00d78503          	lb	a0,13(a5)
+80000838:	01851513          	slli	a0,a0,0x18
+8000083c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000840:	03200813          	li	a6,50
+80000844:	01050863          	beq	a0,a6,80000854 <testcase+0x7f4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000848:	802007b7          	lui	a5,0x80200
+8000084c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000850:	0000006f          	j	80000850 <testcase+0x7f0>
+    CHECK_LB(14, 0x00000054);
+80000854:	00e78503          	lb	a0,14(a5)
+80000858:	01851513          	slli	a0,a0,0x18
+8000085c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000860:	05400813          	li	a6,84
+80000864:	01050863          	beq	a0,a6,80000874 <testcase+0x814>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000868:	802007b7          	lui	a5,0x80200
+8000086c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000870:	0000006f          	j	80000870 <testcase+0x810>
+    CHECK_LB(15, 0x00000076);
+80000874:	00f78503          	lb	a0,15(a5)
+80000878:	01851513          	slli	a0,a0,0x18
+8000087c:	41855513          	srai	a0,a0,0x18
+    if (result != expected) {
+80000880:	07600813          	li	a6,118
+80000884:	01050863          	beq	a0,a6,80000894 <testcase+0x834>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000888:	802007b7          	lui	a5,0x80200
+8000088c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000890:	0000006f          	j	80000890 <testcase+0x830>
+
+    SW(      0,  0x0badbeef);
+80000894:	0badc537          	lui	a0,0xbadc
+80000898:	eef50513          	addi	a0,a0,-273 # badbeef <_start-0x74524111>
+8000089c:	00a7a023          	sw	a0,0(a5)
+    CHECK_LH(0,  0xffffbeef);
+800008a0:	00079303          	lh	t1,0(a5)
+    if (result != expected) {
+800008a4:	ffffc837          	lui	a6,0xffffc
+    CHECK_LH(0,  0xffffbeef);
+800008a8:	01031313          	slli	t1,t1,0x10
+800008ac:	41035313          	srai	t1,t1,0x10
+    if (result != expected) {
+800008b0:	eef80813          	addi	a6,a6,-273 # ffffbeef <_stack_top+0x7ffdbeef>
+800008b4:	01030863          	beq	t1,a6,800008c4 <testcase+0x864>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800008b8:	802007b7          	lui	a5,0x80200
+800008bc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800008c0:	0000006f          	j	800008c0 <testcase+0x860>
+    CHECK_LH(2,  0x00000bad);
+800008c4:	00279303          	lh	t1,2(a5)
+    if (result != expected) {
+800008c8:	00001837          	lui	a6,0x1
+    CHECK_LH(2,  0x00000bad);
+800008cc:	01031313          	slli	t1,t1,0x10
+800008d0:	41035313          	srai	t1,t1,0x10
+    if (result != expected) {
+800008d4:	bad80813          	addi	a6,a6,-1107 # bad <_start-0x7ffff453>
+800008d8:	01030863          	beq	t1,a6,800008e8 <testcase+0x888>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800008dc:	802007b7          	lui	a5,0x80200
+800008e0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800008e4:	0000006f          	j	800008e4 <testcase+0x884>
+    CHECK_LW(0,  0x0badbeef);
+800008e8:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+800008ec:	00a80863          	beq	a6,a0,800008fc <testcase+0x89c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800008f0:	802007b7          	lui	a5,0x80200
+800008f4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800008f8:	0000006f          	j	800008f8 <testcase+0x898>
+    
+    SH(      0,  0xcafe);
+800008fc:	ffffd537          	lui	a0,0xffffd
+80000900:	afe50513          	addi	a0,a0,-1282 # ffffcafe <_stack_top+0x7ffdcafe>
+80000904:	00a79023          	sh	a0,0(a5)
+    CHECK_LW(0,  0x0badcafe);
+80000908:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+8000090c:	0badd537          	lui	a0,0xbadd
+80000910:	afe50513          	addi	a0,a0,-1282 # badcafe <_start-0x74523502>
+80000914:	00a80863          	beq	a6,a0,80000924 <testcase+0x8c4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000918:	802007b7          	lui	a5,0x80200
+8000091c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000920:	0000006f          	j	80000920 <testcase+0x8c0>
+    SH(      2,  0x900d);
+80000924:	ffff9537          	lui	a0,0xffff9
+80000928:	00d50513          	addi	a0,a0,13 # ffff900d <_stack_top+0x7ffd900d>
+8000092c:	00a79123          	sh	a0,2(a5)
+    CHECK_LW(0,  0x900dcafe);
+80000930:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+80000934:	900dd537          	lui	a0,0x900dd
+80000938:	afe50513          	addi	a0,a0,-1282 # 900dcafe <_stack_top+0x100bcafe>
+8000093c:	00a80863          	beq	a6,a0,8000094c <testcase+0x8ec>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000940:	802007b7          	lui	a5,0x80200
+80000944:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000948:	0000006f          	j	80000948 <testcase+0x8e8>
+ 
+    SB(      0,  0x1e);
+8000094c:	01e00513          	li	a0,30
+80000950:	00a78023          	sb	a0,0(a5)
+    CHECK_LW(0,  0x900dca1e);
+80000954:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+80000958:	900dd537          	lui	a0,0x900dd
+8000095c:	a1e50513          	addi	a0,a0,-1506 # 900dca1e <_stack_top+0x100bca1e>
+80000960:	00a80863          	beq	a6,a0,80000970 <testcase+0x910>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000964:	802007b7          	lui	a5,0x80200
+80000968:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+8000096c:	0000006f          	j	8000096c <testcase+0x90c>
+    SB(      1,  0x2d);
+80000970:	02d00513          	li	a0,45
+80000974:	00a780a3          	sb	a0,1(a5)
+    CHECK_LW(0,  0x900d2d1e);
+80000978:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+8000097c:	900d3537          	lui	a0,0x900d3
+80000980:	d1e50513          	addi	a0,a0,-738 # 900d2d1e <_stack_top+0x100b2d1e>
+80000984:	00a80863          	beq	a6,a0,80000994 <testcase+0x934>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000988:	802007b7          	lui	a5,0x80200
+8000098c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000990:	0000006f          	j	80000990 <testcase+0x930>
+    SB(      2,  0x3c);
+80000994:	03c00513          	li	a0,60
+80000998:	00a78123          	sb	a0,2(a5)
+    CHECK_LW(0,  0x903c2d1e);
+8000099c:	0007a803          	lw	a6,0(a5)
+    if (result != expected) {
+800009a0:	903c3537          	lui	a0,0x903c3
+800009a4:	d1e50513          	addi	a0,a0,-738 # 903c2d1e <_stack_top+0x103a2d1e>
+800009a8:	00a80863          	beq	a6,a0,800009b8 <testcase+0x958>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800009ac:	802007b7          	lui	a5,0x80200
+800009b0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800009b4:	0000006f          	j	800009b4 <testcase+0x954>
+    SB(      3,  0x4b);
+800009b8:	04b00513          	li	a0,75
+800009bc:	00a781a3          	sb	a0,3(a5)
+    CHECK_LW(0,  0x4b3c2d1e);
+800009c0:	0007a783          	lw	a5,0(a5)
+    if (result != expected) {
+800009c4:	4b3c3537          	lui	a0,0x4b3c3
+800009c8:	d1e50513          	addi	a0,a0,-738 # 4b3c2d1e <_start-0x34c3d2e2>
+800009cc:	00a78863          	beq	a5,a0,800009dc <testcase+0x97c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800009d0:	802007b7          	lui	a5,0x80200
+800009d4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800009d8:	0000006f          	j	800009d8 <testcase+0x978>
+ 
+    // Test RV32I Conditional Branching instructions
+    CHECK_BRANCH("bne",  a, b, BRANCH_TAKE);
+800009dc:	02a00513          	li	a0,42
+800009e0:	00050793          	mv	a5,a0
+800009e4:	00c69463          	bne	a3,a2,800009ec <testcase+0x98c>
+800009e8:	01800793          	li	a5,24
+    if (result != expected) {
+800009ec:	00a78863          	beq	a5,a0,800009fc <testcase+0x99c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+800009f0:	802007b7          	lui	a5,0x80200
+800009f4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+800009f8:	0000006f          	j	800009f8 <testcase+0x998>
+    CHECK_BRANCH("bne",  a, c, BRANCH_NOT_TAKE);
+800009fc:	02a00813          	li	a6,42
+80000a00:	00080793          	mv	a5,a6
+80000a04:	01169463          	bne	a3,a7,80000a0c <testcase+0x9ac>
+80000a08:	01800793          	li	a5,24
+    if (result != expected) {
+80000a0c:	01800513          	li	a0,24
+80000a10:	00a78863          	beq	a5,a0,80000a20 <testcase+0x9c0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000a14:	802007b7          	lui	a5,0x80200
+80000a18:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000a1c:	0000006f          	j	80000a1c <testcase+0x9bc>
+
+    CHECK_BRANCH("beq",  a, c, BRANCH_TAKE);
+80000a20:	00080513          	mv	a0,a6
+80000a24:	01168463          	beq	a3,a7,80000a2c <testcase+0x9cc>
+80000a28:	01800513          	li	a0,24
+    if (result != expected) {
+80000a2c:	01050863          	beq	a0,a6,80000a3c <testcase+0x9dc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000a30:	802007b7          	lui	a5,0x80200
+80000a34:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000a38:	0000006f          	j	80000a38 <testcase+0x9d8>
+    CHECK_BRANCH("beq",  a, b, BRANCH_NOT_TAKE);
+80000a3c:	00050813          	mv	a6,a0
+80000a40:	00c68463          	beq	a3,a2,80000a48 <testcase+0x9e8>
+80000a44:	01800813          	li	a6,24
+    if (result != expected) {
+80000a48:	00f80863          	beq	a6,a5,80000a58 <testcase+0x9f8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000a4c:	802007b7          	lui	a5,0x80200
+80000a50:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000a54:	0000006f          	j	80000a54 <testcase+0x9f4>
+
+    CHECK_BRANCH("blt",   (int32_t)neg,  (int32_t)pos, BRANCH_TAKE);
+80000a58:	00050793          	mv	a5,a0
+80000a5c:	00b74463          	blt	a4,a1,80000a64 <testcase+0xa04>
+80000a60:	01800793          	li	a5,24
+    if (result != expected) {
+80000a64:	00a78863          	beq	a5,a0,80000a74 <testcase+0xa14>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000a68:	802007b7          	lui	a5,0x80200
+80000a6c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000a70:	0000006f          	j	80000a70 <testcase+0xa10>
+    CHECK_BRANCH("blt",   (int32_t)pos,  (int32_t)neg, BRANCH_NOT_TAKE);
+80000a74:	00078513          	mv	a0,a5
+80000a78:	00e5c463          	blt	a1,a4,80000a80 <testcase+0xa20>
+80000a7c:	01800513          	li	a0,24
+    if (result != expected) {
+80000a80:	01050863          	beq	a0,a6,80000a90 <testcase+0xa30>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000a84:	802007b7          	lui	a5,0x80200
+80000a88:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000a8c:	0000006f          	j	80000a8c <testcase+0xa2c>
+    CHECK_BRANCH("blt",   (int32_t)pos,  (int32_t)pos, BRANCH_NOT_TAKE);
+80000a90:	00078813          	mv	a6,a5
+80000a94:	00b5c463          	blt	a1,a1,80000a9c <testcase+0xa3c>
+80000a98:	01800813          	li	a6,24
+    if (result != expected) {
+80000a9c:	00a80863          	beq	a6,a0,80000aac <testcase+0xa4c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000aa0:	802007b7          	lui	a5,0x80200
+80000aa4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000aa8:	0000006f          	j	80000aa8 <testcase+0xa48>
+    CHECK_BRANCH("blt",   (int32_t)neg,  (int32_t)neg, BRANCH_NOT_TAKE);
+80000aac:	00078513          	mv	a0,a5
+80000ab0:	00e74463          	blt	a4,a4,80000ab8 <testcase+0xa58>
+80000ab4:	01800513          	li	a0,24
+    if (result != expected) {
+80000ab8:	01050863          	beq	a0,a6,80000ac8 <testcase+0xa68>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000abc:	802007b7          	lui	a5,0x80200
+80000ac0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000ac4:	0000006f          	j	80000ac4 <testcase+0xa64>
+
+    CHECK_BRANCH("bltu", (uint32_t)neg, (uint32_t)pos, BRANCH_NOT_TAKE);
+80000ac8:	00078813          	mv	a6,a5
+80000acc:	00b76463          	bltu	a4,a1,80000ad4 <testcase+0xa74>
+80000ad0:	01800813          	li	a6,24
+    if (result != expected) {
+80000ad4:	00a80863          	beq	a6,a0,80000ae4 <testcase+0xa84>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000ad8:	802007b7          	lui	a5,0x80200
+80000adc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000ae0:	0000006f          	j	80000ae0 <testcase+0xa80>
+    CHECK_BRANCH("bltu", (uint32_t)pos, (uint32_t)neg, BRANCH_TAKE);
+80000ae4:	00078513          	mv	a0,a5
+80000ae8:	00e5e463          	bltu	a1,a4,80000af0 <testcase+0xa90>
+80000aec:	01800513          	li	a0,24
+    if (result != expected) {
+80000af0:	00f50863          	beq	a0,a5,80000b00 <testcase+0xaa0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000af4:	802007b7          	lui	a5,0x80200
+80000af8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000afc:	0000006f          	j	80000afc <testcase+0xa9c>
+    CHECK_BRANCH("bltu", (uint32_t)pos, (uint32_t)pos, BRANCH_NOT_TAKE);
+80000b00:	00b5e463          	bltu	a1,a1,80000b08 <testcase+0xaa8>
+80000b04:	01800513          	li	a0,24
+    if (result != expected) {
+80000b08:	01050863          	beq	a0,a6,80000b18 <testcase+0xab8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000b0c:	802007b7          	lui	a5,0x80200
+80000b10:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000b14:	0000006f          	j	80000b14 <testcase+0xab4>
+    CHECK_BRANCH("bltu", (uint32_t)neg, (uint32_t)neg, BRANCH_NOT_TAKE);
+80000b18:	02a00813          	li	a6,42
+80000b1c:	00080513          	mv	a0,a6
+80000b20:	00e76463          	bltu	a4,a4,80000b28 <testcase+0xac8>
+80000b24:	01800513          	li	a0,24
+    if (result != expected) {
+80000b28:	01800793          	li	a5,24
+80000b2c:	00f50863          	beq	a0,a5,80000b3c <testcase+0xadc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000b30:	802007b7          	lui	a5,0x80200
+80000b34:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000b38:	0000006f          	j	80000b38 <testcase+0xad8>
+
+    CHECK_BRANCH("bgeu", (uint32_t)neg, (uint32_t)pos, BRANCH_TAKE);
+80000b3c:	00080793          	mv	a5,a6
+80000b40:	00b77463          	bgeu	a4,a1,80000b48 <testcase+0xae8>
+80000b44:	01800793          	li	a5,24
+    if (result != expected) {
+80000b48:	01078863          	beq	a5,a6,80000b58 <testcase+0xaf8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000b4c:	802007b7          	lui	a5,0x80200
+80000b50:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000b54:	0000006f          	j	80000b54 <testcase+0xaf4>
+    CHECK_BRANCH("bgeu", (uint32_t)pos, (uint32_t)neg, BRANCH_NOT_TAKE);
+80000b58:	00078813          	mv	a6,a5
+80000b5c:	00e5f463          	bgeu	a1,a4,80000b64 <testcase+0xb04>
+80000b60:	01800813          	li	a6,24
+    if (result != expected) {
+80000b64:	00a80863          	beq	a6,a0,80000b74 <testcase+0xb14>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000b68:	802007b7          	lui	a5,0x80200
+80000b6c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000b70:	0000006f          	j	80000b70 <testcase+0xb10>
+    CHECK_BRANCH("bgeu", (uint32_t)pos, (uint32_t)pos, BRANCH_TAKE);
+80000b74:	00078513          	mv	a0,a5
+80000b78:	00b5f463          	bgeu	a1,a1,80000b80 <testcase+0xb20>
+80000b7c:	01800513          	li	a0,24
+    if (result != expected) {
+80000b80:	00f50863          	beq	a0,a5,80000b90 <testcase+0xb30>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000b84:	802007b7          	lui	a5,0x80200
+80000b88:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000b8c:	0000006f          	j	80000b8c <testcase+0xb2c>
+    CHECK_BRANCH("bgeu", (uint32_t)neg, (uint32_t)neg, BRANCH_TAKE);
+80000b90:	00050793          	mv	a5,a0
+80000b94:	00e77463          	bgeu	a4,a4,80000b9c <testcase+0xb3c>
+80000b98:	01800793          	li	a5,24
+    if (result != expected) {
+80000b9c:	00a78863          	beq	a5,a0,80000bac <testcase+0xb4c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000ba0:	802007b7          	lui	a5,0x80200
+80000ba4:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000ba8:	0000006f          	j	80000ba8 <testcase+0xb48>
+
+    CHECK_BRANCH("bge",   (int32_t)neg,  (int32_t)pos, BRANCH_NOT_TAKE);
+80000bac:	00078513          	mv	a0,a5
+80000bb0:	00b75463          	bge	a4,a1,80000bb8 <testcase+0xb58>
+80000bb4:	01800513          	li	a0,24
+    if (result != expected) {
+80000bb8:	01050863          	beq	a0,a6,80000bc8 <testcase+0xb68>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000bbc:	802007b7          	lui	a5,0x80200
+80000bc0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000bc4:	0000006f          	j	80000bc4 <testcase+0xb64>
+    CHECK_BRANCH("bge",   (int32_t)pos,  (int32_t)neg, BRANCH_TAKE);
+80000bc8:	00078513          	mv	a0,a5
+80000bcc:	00e5d463          	bge	a1,a4,80000bd4 <testcase+0xb74>
+80000bd0:	01800513          	li	a0,24
+    if (result != expected) {
+80000bd4:	00f50863          	beq	a0,a5,80000be4 <testcase+0xb84>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000bd8:	802007b7          	lui	a5,0x80200
+80000bdc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000be0:	0000006f          	j	80000be0 <testcase+0xb80>
+    CHECK_BRANCH("bge",   (int32_t)pos,  (int32_t)pos, BRANCH_TAKE);
+80000be4:	00050793          	mv	a5,a0
+80000be8:	00b5d463          	bge	a1,a1,80000bf0 <testcase+0xb90>
+80000bec:	01800793          	li	a5,24
+    if (result != expected) {
+80000bf0:	00a78863          	beq	a5,a0,80000c00 <testcase+0xba0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000bf4:	802007b7          	lui	a5,0x80200
+80000bf8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000bfc:	0000006f          	j	80000bfc <testcase+0xb9c>
+    CHECK_BRANCH("bge",   (int32_t)neg,  (int32_t)neg, BRANCH_TAKE);
+80000c00:	00078513          	mv	a0,a5
+80000c04:	00e75463          	bge	a4,a4,80000c0c <testcase+0xbac>
+80000c08:	01800513          	li	a0,24
+    if (result != expected) {
+80000c0c:	00f50863          	beq	a0,a5,80000c1c <testcase+0xbbc>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000c10:	802007b7          	lui	a5,0x80200
+80000c14:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000c18:	0000006f          	j	80000c18 <testcase+0xbb8>
+jump_target:                      // Target for the jump
+    check(jump_check, 0);         // Verify JAL (Jump and Link) via C goto
+
+    // Test RV32I Upper Immediate instructions
+    uint32_t lui_val;
+    asm volatile ("lui %0, 0x12345" : "=r"(lui_val));
+80000c1c:	12345537          	lui	a0,0x12345
+    if (result != expected) {
+80000c20:	123457b7          	lui	a5,0x12345
+80000c24:	00f50863          	beq	a0,a5,80000c34 <testcase+0xbd4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000c28:	802007b7          	lui	a5,0x80200
+80000c2c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000c30:	0000006f          	j	80000c30 <testcase+0xbd0>
+    check(lui_val, 0x12345000);   // Verify LUI (Load Upper Immediate)
+
+
+    // Test AUIPC (Add Upper Immediate to PC)
+    uint32_t auipc_val;
+    asm volatile ("auipc %0, 0" : "=r"(auipc_val));
+80000c34:	00000797          	auipc	a5,0x0
+
+    // Test BLT (Branch Less Than) using assembly
+    uint32_t blt_asm_res = 0;
+    asm volatile (
+80000c38:	ff600293          	li	t0,-10
+80000c3c:	00a00313          	li	t1,10
+80000c40:	00000513          	li	a0,0
+80000c44:	0062c463          	blt	t0,t1,80000c4c <testcase+0xbec>
+80000c48:	00200513          	li	a0,2
+80000c4c:	00150513          	addi	a0,a0,1 # 12345001 <_start-0x6dcbafff>
+    if (result != expected) {
+80000c50:	00100793          	li	a5,1
+80000c54:	00f50863          	beq	a0,a5,80000c64 <testcase+0xc04>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000c58:	802007b7          	lui	a5,0x80200
+80000c5c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000c60:	0000006f          	j	80000c60 <testcase+0xc00>
+    );
+    check(blt_asm_res, 1);
+
+    // Test BGEU (Branch Greater Equal Unsigned) using assembly
+    uint32_t bgeu_asm_res = 1;
+    asm volatile (
+80000c64:	01400293          	li	t0,20
+80000c68:	00a00313          	li	t1,10
+80000c6c:	0062f463          	bgeu	t0,t1,80000c74 <testcase+0xc14>
+80000c70:	00200793          	li	a5,2
+80000c74:	fff78793          	addi	a5,a5,-1
+    if (result != expected) {
+80000c78:	00078863          	beqz	a5,80000c88 <testcase+0xc28>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000c7c:	802007b7          	lui	a5,0x80200
+80000c80:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000c84:	0000006f          	j	80000c84 <testcase+0xc24>
+    check(bgeu_asm_res, 0);
+
+
+    // Test SLTI (Set Less Than Immediate - signed)
+    int32_t slti_res;
+    asm volatile ("slti %0, %1, 5" : "=r"(slti_res) : "r"(pos));
+80000c88:	0055a793          	slti	a5,a1,5
+    if (result != expected) {
+80000c8c:	00078863          	beqz	a5,80000c9c <testcase+0xc3c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000c90:	802007b7          	lui	a5,0x80200
+80000c94:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000c98:	0000006f          	j	80000c98 <testcase+0xc38>
+    check(slti_res, 0);
+    asm volatile ("slti %0, %1, 5" : "=r"(slti_res) : "r"(neg));
+80000c9c:	00572793          	slti	a5,a4,5
+    if (result != expected) {
+80000ca0:	00a78863          	beq	a5,a0,80000cb0 <testcase+0xc50>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000ca4:	802007b7          	lui	a5,0x80200
+80000ca8:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000cac:	0000006f          	j	80000cac <testcase+0xc4c>
+    check(slti_res, 1);
+
+        
+    // Test SLTIU (Set Less Than Immediate Unsigned)
+    int32_t sltiu_res;
+    asm volatile ("sltiu %0, %1, 15" : "=r"(sltiu_res) : "r"(pos));
+80000cb0:	00f5b593          	sltiu	a1,a1,15
+    if (result != expected) {
+80000cb4:	00f58863          	beq	a1,a5,80000cc4 <testcase+0xc64>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000cb8:	802007b7          	lui	a5,0x80200
+80000cbc:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000cc0:	0000006f          	j	80000cc0 <testcase+0xc60>
+    check(sltiu_res, 1);
+    asm volatile ("sltiu %0, %1, 15" : "=r"(sltiu_res) : "r"(neg));
+80000cc4:	00f73713          	sltiu	a4,a4,15
+    if (result != expected) {
+80000cc8:	00070863          	beqz	a4,80000cd8 <testcase+0xc78>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000ccc:	802007b7          	lui	a5,0x80200
+80000cd0:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000cd4:	0000006f          	j	80000cd4 <testcase+0xc74>
+    check(sltiu_res, 0);
+
+    // Test XORI and ORI (Logical operations with immediates)
+    asm volatile ("xori %0, %1, 0x123" : "=r"(res) : "r"(a));
+80000cd8:	1236c713          	xori	a4,a3,291
+    if (result != expected) {
+80000cdc:	123457b7          	lui	a5,0x12345
+80000ce0:	75b78793          	addi	a5,a5,1883 # 1234575b <_start-0x6dcba8a5>
+80000ce4:	00f70863          	beq	a4,a5,80000cf4 <testcase+0xc94>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000ce8:	802007b7          	lui	a5,0x80200
+80000cec:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000cf0:	0000006f          	j	80000cf0 <testcase+0xc90>
+    check(res, 0x1234575B); // Verify XORI (Exclusive OR Immediate)
+    asm volatile ("ori %0, %1, 0x123" : "=r"(res) : "r"(a));
+80000cf4:	1236e713          	ori	a4,a3,291
+    if (result != expected) {
+80000cf8:	123457b7          	lui	a5,0x12345
+80000cfc:	77b78793          	addi	a5,a5,1915 # 1234577b <_start-0x6dcba885>
+80000d00:	00f70863          	beq	a4,a5,80000d10 <testcase+0xcb0>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d04:	802007b7          	lui	a5,0x80200
+80000d08:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d0c:	0000006f          	j	80000d0c <testcase+0xcac>
+    check(res, 0x1234577B); // Verify ORI (Logical OR Immediate)
+    asm volatile ("andi %0, %1, 0x123" : "=r"(res) : "r"(a));
+80000d10:	1236f713          	andi	a4,a3,291
+    if (result != expected) {
+80000d14:	02000793          	li	a5,32
+80000d18:	00f70863          	beq	a4,a5,80000d28 <testcase+0xcc8>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d1c:	802007b7          	lui	a5,0x80200
+80000d20:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d24:	0000006f          	j	80000d24 <testcase+0xcc4>
+    check(res, 0x00000020); // Verify ANDI (Logical AND Immediate)
+
+    // SLL, SRL, and SRA (Shift operations with register-based shift amount)
+    uint32_t shamt = 3;
+    int32_t  s_signed = 0x80000000;
+    asm volatile ("sll %0, %1, %2" : "=r"(res) : "r"(b), "r"(shamt));
+80000d28:	00300793          	li	a5,3
+80000d2c:	00f61633          	sll	a2,a2,a5
+    if (result != expected) {
+80000d30:	00800793          	li	a5,8
+80000d34:	00f60863          	beq	a2,a5,80000d44 <testcase+0xce4>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d38:	802007b7          	lui	a5,0x80200
+80000d3c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d40:	0000006f          	j	80000d40 <testcase+0xce0>
+    check(res, 8);           // Verify SLL (Shift Left Logical)
+    asm volatile ("srl %0, %1, %2" : "=r"(res) : "r"(a), "r"(shamt));
+80000d44:	00300613          	li	a2,3
+80000d48:	00c6d7b3          	srl	a5,a3,a2
+    if (result != expected) {
+80000d4c:	02469737          	lui	a4,0x2469
+80000d50:	acf70713          	addi	a4,a4,-1329 # 2468acf <_start-0x7db97531>
+80000d54:	00e78863          	beq	a5,a4,80000d64 <testcase+0xd04>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d58:	802007b7          	lui	a5,0x80200
+80000d5c:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d60:	0000006f          	j	80000d60 <testcase+0xd00>
+    check(res, 0x02468ACF);  // Verify SRL (Shift Right Logical)
+    asm volatile ("sra %0, %1, %2" : "=r"(res) : "r"(s_signed), "r"(shamt));
+80000d64:	800007b7          	lui	a5,0x80000
+80000d68:	40c7d7b3          	sra	a5,a5,a2
+    if (result != expected) {
+80000d6c:	f0000737          	lui	a4,0xf0000
+80000d70:	00e78863          	beq	a5,a4,80000d80 <testcase+0xd20>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d74:	802007b7          	lui	a5,0x80200
+80000d78:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d7c:	0000006f          	j	80000d7c <testcase+0xd1c>
+    check(res, 0xF0000000);  // Verify SRA (Shift Right Arithmetic)
+
+    // Test CSR read (mhartid)
+    asm volatile ("csrr %0, mhartid" : "=r"(res));
+80000d80:	f1402773          	csrr	a4,mhartid
+    if (result != expected) {
+80000d84:	900dc7b7          	lui	a5,0x900dc
+80000d88:	0de78793          	addi	a5,a5,222 # 900dc0de <_stack_top+0x100bc0de>
+80000d8c:	00f70863          	beq	a4,a5,80000d9c <testcase+0xd3c>
+    *(volatile uint32_t*)TOHOST_ADDR = 0; // Signal failure to the simulation host
+80000d90:	802007b7          	lui	a5,0x80200
+80000d94:	0007a023          	sw	zero,0(a5) # 80200000 <_stack_top+0x1e0000>
+        while(1);
+80000d98:	0000006f          	j	80000d98 <testcase+0xd38>
+    check(res, 0x900DC0DE);
+
+    
+
+    return 0;    
+}
+80000d9c:	00000513          	li	a0,0
+80000da0:	00008067          	ret
+
+Déassemblage de la section .text.startup :
+
+80000da4 <main>:
+
+uint32_t main() {
+    uint32_t operands[10] = {0x12345678, 
+80000da4:	00000797          	auipc	a5,0x0
+80000da8:	08478793          	addi	a5,a5,132 # 80000e28 <main+0x84>
+80000dac:	0207a703          	lw	a4,32(a5)
+80000db0:	0007ae83          	lw	t4,0(a5)
+80000db4:	0047ae03          	lw	t3,4(a5)
+80000db8:	0087a303          	lw	t1,8(a5)
+80000dbc:	00c7a883          	lw	a7,12(a5)
+80000dc0:	0107a803          	lw	a6,16(a5)
+80000dc4:	0147a583          	lw	a1,20(a5)
+80000dc8:	0187a603          	lw	a2,24(a5)
+80000dcc:	01c7a683          	lw	a3,28(a5)
+80000dd0:	0247a783          	lw	a5,36(a5)
+uint32_t main() {
+80000dd4:	fc010113          	addi	sp,sp,-64
+                            0x01234567, 
+                            0x89ABCDEF, 
+                            0xFEDCBA98, 
+                            0x76543210};
+    
+    testcase(operands);
+80000dd8:	00810513          	addi	a0,sp,8
+uint32_t main() {
+80000ddc:	02112e23          	sw	ra,60(sp)
+    uint32_t operands[10] = {0x12345678, 
+80000de0:	02e12423          	sw	a4,40(sp)
+80000de4:	02f12623          	sw	a5,44(sp)
+80000de8:	01d12423          	sw	t4,8(sp)
+80000dec:	01c12623          	sw	t3,12(sp)
+80000df0:	00612823          	sw	t1,16(sp)
+80000df4:	01112a23          	sw	a7,20(sp)
+80000df8:	01012c23          	sw	a6,24(sp)
+80000dfc:	00b12e23          	sw	a1,28(sp)
+80000e00:	02c12023          	sw	a2,32(sp)
+80000e04:	02d12223          	sw	a3,36(sp)
+    testcase(operands);
+80000e08:	a58ff0ef          	jal	80000060 <testcase>
+
+    test_pass();
+
+    return 0;
+}
+80000e0c:	03c12083          	lw	ra,60(sp)
+    *(volatile uint32_t*)TOHOST_ADDR = 1; // Signal success to the simulation host
+80000e10:	802007b7          	lui	a5,0x80200
+80000e14:	00100713          	li	a4,1
+80000e18:	00e7a023          	sw	a4,0(a5) # 80200000 <_stack_top+0x1e0000>
+}
+80000e1c:	00000513          	li	a0,0
+80000e20:	04010113          	addi	sp,sp,64
+80000e24:	00008067          	ret
