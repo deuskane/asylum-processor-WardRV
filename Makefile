@@ -14,49 +14,65 @@
 # 2024-12-31  1.0      mrosiere	Created
 # 2025-01-22  1.1      mrosiere Delete impulse target
 # 2026-09-29  1.2      mrosiere Add all nonreg variant depends of type and step
+# 2026-10-01  1.3      mrosiere Add log directory and log file for each target
 #-----------------------------------------------------------------------------
 
 #=============================================================================
 # Variables
 #=============================================================================
-SHELL            = /bin/bash
+SHELL                = /bin/bash
 
 include mk/defs.mk
 
 # Fusesoc Options
-PATH_BUILD      ?= $(CURDIR)/build
+PATH_BUILD          ?= $(CURDIR)/build
+PATH_LOG            ?= $(CURDIR)/log
 
-FUSESOC_CACHE    = ~/.cache/fusesoc
-FUSESOC_OPT      = --cores-root .
-FUSESOC_RUN_OPT += --build-root $(PATH_BUILD)
-FUSESOC_RUN_OPT += --no-export
+FUSESOC_CACHE        = ~/.cache/fusesoc
+FUSESOC_OPT          = --cores-root .
+FUSESOC_RUN_OPT     += --build-root $(PATH_BUILD)
+FUSESOC_RUN_OPT     += --no-export
+
+GHDL_ANALYZE_OPTION :=
+GHDL_RUN_OPTION     :=
+
+ifneq ($(CI),true)
+# If not CI, add option to generate waveform file for GHDL simulation
+GHDL_RUN_OPTION     += --fst=dut.fst
+endif
+
+export GHDL_ANALYZE_OPTION
+export GHDL_RUN_OPTION
 
 # IP parameters
-CORE_NAME       := $(shell grep ^name $(FILE_CORE) | head -n1 | tr -d ' ')
+CORE_NAME           := $(shell grep ^name $(FILE_CORE) | head -n1 | tr -d ' ')
 
-IP_VENDOR        = $(shell echo $(CORE_NAME) | cut -d':' -f2)
-IP_LIBRARY       = $(shell echo $(CORE_NAME) | cut -d':' -f3)
-IP_NAME          = $(shell echo $(CORE_NAME) | cut -d':' -f4)
-IP_VERSION       = $(shell echo $(CORE_NAME) | cut -d':' -f5)
-VLNV             = $(IP_VENDOR):$(IP_LIBRARY):$(IP_NAME):$(IP_VERSION)
+IP_VENDOR            = $(shell echo $(CORE_NAME) | cut -d':' -f2)
+IP_LIBRARY           = $(shell echo $(CORE_NAME) | cut -d':' -f3)
+IP_NAME              = $(shell echo $(CORE_NAME) | cut -d':' -f4)
+IP_VERSION           = $(shell echo $(CORE_NAME) | cut -d':' -f5)
+VLNV                 = $(IP_VENDOR):$(IP_LIBRARY):$(IP_NAME):$(IP_VERSION)
+
+space               := $(empty) $(empty)
+LOG_NAME             = $@-$(if $(strip $(STEP)),$(subst $(space),_,$(strip $(STEP))),$(empty)).log
 
 # Targets generations
-FILE_TARGETS     = mk/targets.txt
-TARGETS_FILTER  ?= .
+FILE_TARGETS         = mk/targets.txt
+TARGETS_FILTER      ?= .
 
-TARGETS_ALL     := $(shell cat $(FILE_TARGETS) | cut -d ':' -f1 | tr -d ' ')
-TARGETS_SIM     := $(shell grep -e ^sim_  $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
-TARGETS_EMU     := $(shell grep -e ^emu_  $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
-TARGETS_LINT    := $(shell grep -e ^lint_ $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
+TARGETS_ALL         := $(shell cat $(FILE_TARGETS) | cut -d ':' -f1 | tr -d ' ')
+TARGETS_SIM         := $(shell grep -e ^sim_  $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
+TARGETS_EMU         := $(shell grep -e ^emu_  $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
+TARGETS_LINT        := $(shell grep -e ^lint_ $(FILE_TARGETS) | grep -E -e '$(TARGETS_FILTER)' | cut -d ':' -f1 | tr -d ' ')
 
 # Non regression
-NONREG_TYPES    := sim emu lint
-NONREG_STEPS    := setup build run
-NONREG_RULES    := $(foreach type,$(NONREG_TYPES),nonreg_$(type)) 
-NONREG_RULES    += $(foreach type,$(NONREG_TYPES),$(foreach step,$(NONREG_STEPS),nonreg_$(type)_$(step)))
+NONREG_TYPES        := sim emu lint
+NONREG_STEPS        := setup build run
+NONREG_RULES        := $(foreach type,$(NONREG_TYPES),nonreg_$(type)) 
+NONREG_RULES        += $(foreach type,$(NONREG_TYPES),$(foreach step,$(NONREG_STEPS),nonreg_$(type)_$(step)))
 
-NONREG          ?= sim
-STEP            ?= $(NONREG_STEPS)
+NONREG              ?= sim
+STEP                ?= $(NONREG_STEPS)
 
 #=============================================================================
 # Rules
@@ -160,11 +176,16 @@ setup build run :
 .PHONY : setup build run
 
 #--------------------------------------------------------
-$(TARGETS_ALL) :
+$(TARGETS_ALL) : | $(PATH_LOG)
 #--------------------------------------------------------
-	@fusesoc $(FUSESOC_OPT) run $(FUSESOC_RUN_OPT) $(addprefix --,$(STEP)) --target $@ $(VLNV)
+	@set -o pipefail; fusesoc $(FUSESOC_OPT) run $(FUSESOC_RUN_OPT) $(addprefix --,$(STEP)) --target $@ $(VLNV) | tee $(PATH_LOG)/$(LOG_NAME)
 
 .PHONY : $(TARGETS_ALL)
+
+#--------------------------------------------------------
+$(PATH_LOG) :
+#--------------------------------------------------------
+	@mkdir -p $@
 
 #--------------------------------------------------------
 # Generate nonreg_<type> and nonreg_<type>_<stage> rules
@@ -212,5 +233,6 @@ clean :
 #--------------------------------------------------------
 	rm -fr $(FUSESOC_CACHE)/generator_cache
 	rm -fr $(PATH_BUILD)
+	rm -fr $(PATH_LOG)
 
 .PHONY : clean
