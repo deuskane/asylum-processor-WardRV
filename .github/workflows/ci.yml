@@ -7,8 +7,205 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  nonreg-sim:
-    # Call the workflow from CI repo
+#<GENERATE_BEGIN>
+  sim_basic:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
-      nonreg_type: sim
+      name: sim_basic
+
+  sim_compliance_add_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_add_01
+
+  sim_compliance_addi_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_addi_01
+
+  sim_compliance_and_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_and_01
+
+  sim_compliance_andi_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_andi_01
+
+  sim_compliance_auipc_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_auipc_01
+
+  sim_compliance_beq_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_beq_01
+
+  sim_compliance_bge_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_bge_01
+
+  sim_compliance_bgeu_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_bgeu_01
+
+  sim_compliance_blt_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_blt_01
+
+  sim_compliance_bltu_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_bltu_01
+
+  sim_compliance_bne_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_bne_01
+
+  sim_compliance_fence_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_fence_01
+
+  sim_compliance_jal_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_jal_01
+
+  sim_compliance_jalr_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_jalr_01
+
+  sim_compliance_lb_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lb_align_01
+
+  sim_compliance_lbu_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lbu_align_01
+
+  sim_compliance_lh_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lh_align_01
+
+  sim_compliance_lhu_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lhu_align_01
+
+  sim_compliance_lui_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lui_01
+
+  sim_compliance_lw_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_lw_align_01
+
+  sim_compliance_misalign1_jalr_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_misalign1_jalr_01
+
+  sim_compliance_or_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_or_01
+
+  sim_compliance_ori_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_ori_01
+
+  sim_compliance_sb_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sb_align_01
+
+  sim_compliance_sh_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sh_align_01
+
+  sim_compliance_sll_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sll_01
+
+  sim_compliance_slli_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_slli_01
+
+  sim_compliance_slt_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_slt_01
+
+  sim_compliance_slti_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_slti_01
+
+  sim_compliance_sltiu_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sltiu_01
+
+  sim_compliance_sltu_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sltu_01
+
+  sim_compliance_sra_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sra_01
+
+  sim_compliance_srai_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_srai_01
+
+  sim_compliance_srl_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_srl_01
+
+  sim_compliance_srli_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_srli_01
+
+  sim_compliance_sub_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sub_01
+
+  sim_compliance_sw_align_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_sw_align_01
+
+  sim_compliance_xor_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_xor_01
+
+  sim_compliance_xori_01:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_compliance_xori_01
+
+#<GENERATE_END>

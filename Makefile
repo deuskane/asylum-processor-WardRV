@@ -15,6 +15,7 @@
 # 2025-01-22  1.1      mrosiere Delete impulse target
 # 2026-09-29  1.2      mrosiere Add all nonreg variant depends of type and step
 # 2026-10-01  1.3      mrosiere Add log directory and log file for each target
+# 2026-10-04  1.4      mrosiere Add ci_generate target to generate GitHub Actions jobs
 #-----------------------------------------------------------------------------
 
 #=============================================================================
@@ -55,6 +56,8 @@ VLNV                 = $(IP_VENDOR):$(IP_LIBRARY):$(IP_NAME):$(IP_VERSION)
 
 space               := $(empty) $(empty)
 LOG_NAME             = $@-$(if $(strip $(STEP)),$(subst $(space),_,$(strip $(STEP))),$(empty)).log
+
+CI_WORKFLOW          = .github/workflows/ci.yml
 
 # Targets generations
 FILE_TARGETS         = mk/targets.txt
@@ -116,6 +119,7 @@ help : $(FILE_TARGETS)
 	@echo "help                 : Print this message"
 	@echo "info                 : Display library list and cores list"
 	@echo "update               : Update the FuseSoC core libraries"
+	@echo "ci_generate          : Regenerate the GitHub Actions job block between markers"
 	@echo "clean                : Delete build directory"
 	@echo "nonreg               : Run all targets for type set in NONREG"
 	@echo "                       Aka nonreg_$(NONREG)"
@@ -186,6 +190,26 @@ $(TARGETS_ALL) : | $(PATH_LOG)
 $(PATH_LOG) :
 #--------------------------------------------------------
 	@mkdir -p $@
+
+#--------------------------------------------------------
+# Create the CI workflow file and add generation markers if missing
+$(CI_WORKFLOW) : $(FILE_TARGETS)
+#--------------------------------------------------------
+	@set -e; \
+	file="$@"; \
+	mkdir -p "$$(dirname "$$file")"; \
+	if [ ! -f "$$file" ]; then \
+		printf '%s\n' 'name: CI' '' 'on:' '  push:' '    branches: [ main, develop ]' '  pull_request:' '    branches: [ main, develop ]' '' 'jobs:' '#<GENERATE_BEGIN>' '#<GENERATE_END>' > "$$file"; \
+	fi; \
+	if ! grep -q '#<GENERATE_BEGIN>' "$$file" || ! grep -q '#<GENERATE_END>' "$$file"; then \
+		printf '\n#<GENERATE_BEGIN>\n#<GENERATE_END>\n' >> "$$file"; \
+	fi
+
+#--------------------------------------------------------
+# Generate CI jobs between markers only
+ci_generate : $(CI_WORKFLOW) $(FILE_TARGETS)
+#--------------------------------------------------------
+	@python3 -c "import sys; from pathlib import Path; targets = [t for t in sys.argv[1].split() if t]; path = Path(sys.argv[2]); text = path.read_text(); start = '#<GENERATE_BEGIN>'; end = '#<GENERATE_END>'; assert start in text and end in text, f'Markers {start!r} and {end!r} not found in {path}'; start_idx = text.index(start); end_idx = text.index(end, start_idx); jobs = ''.join(f'  {t}:\n    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main\n    with:\n      name: {t}\n\n' for t in targets); new_text = text[:start_idx] + start + '\n' + jobs + end + text[end_idx + len(end):]; path.write_text(new_text)" "$(TARGETS_SIM)" "$<"
 
 #--------------------------------------------------------
 # Generate nonreg_<type> and nonreg_<type>_<stage> rules
