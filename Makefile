@@ -199,7 +199,7 @@ $(CI_WORKFLOW) : $(FILE_TARGETS)
 	file="$@"; \
 	mkdir -p "$$(dirname "$$file")"; \
 	if [ ! -f "$$file" ]; then \
-		printf '%s\n' 'name: CI' '' 'on:' '  push:' '    branches: [ main, develop ]' '  pull_request:' '    branches: [ main, develop ]' '' 'jobs:' '#<GENERATE_BEGIN>' '#<GENERATE_END>' > "$$file"; \
+		printf '%s\n' 'name: CI' '' 'on:' '  push:' '    branches: [ main, develop ]' '  pull_request:' '    branches: [ main, develop ]' '#<GENERATE_BEGIN>' '#<GENERATE_END>' > "$$file"; \
 	fi; \
 	if ! grep -q '#<GENERATE_BEGIN>' "$$file" || ! grep -q '#<GENERATE_END>' "$$file"; then \
 		printf '\n#<GENERATE_BEGIN>\n#<GENERATE_END>\n' >> "$$file"; \
@@ -209,7 +209,7 @@ $(CI_WORKFLOW) : $(FILE_TARGETS)
 # Generate CI jobs between markers only
 ci_generate : $(CI_WORKFLOW) $(FILE_TARGETS)
 #--------------------------------------------------------
-	@python3 -c "import sys; from pathlib import Path; targets = [t for t in sys.argv[1].split() if t]; path = Path(sys.argv[2]); text = path.read_text(); start = '#<GENERATE_BEGIN>'; end = '#<GENERATE_END>'; assert start in text and end in text, f'Markers {start!r} and {end!r} not found in {path}'; start_idx = text.index(start); end_idx = text.index(end, start_idx); jobs = ''.join(f'  {t}:\n    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main\n    with:\n      name: {t}\n\n' for t in targets); new_text = text[:start_idx] + start + '\n' + jobs + end + text[end_idx + len(end):]; path.write_text(new_text)" "$(TARGETS_SIM)" "$<"
+	@python3 -c "import sys; from pathlib import Path; targets = [t for t in sys.argv[1].split() if t]; path = Path(sys.argv[2]); text = path.read_text(); start = '#<GENERATE_BEGIN>'; end = '#<GENERATE_END>'; assert start in text and end in text, f'Markers {start!r} and {end!r} not found in {path}'; start_idx = text.index(start); end_idx = text.index(end, start_idx); jobs = ''.join(f'  {t}:\n    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main\n    with:\n      name: {t}\n\n' for t in targets); jobs_header = 'jobs:' if targets else '# jobs:'; new_text = text[:start_idx] + start + '\n' + jobs_header + ('\n' + jobs if targets else '') + '\n' + end + text[end_idx + len(end):]; path.write_text(new_text)" "$(TARGETS_SIM)" "$<"
 
 #--------------------------------------------------------
 # Generate nonreg_<type> and nonreg_<type>_<stage> rules
