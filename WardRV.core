@@ -16,9 +16,12 @@ CAPI=2:
 # 2026-01-24  0.0.1    mrosiere Created
 # 2026-06-02  0.0.2    mrosiere fsm : add state trap
 # 2026-09-15  0.0.3    mrosiere fsm : use ram2r1w
+# 2026-10-05  0.0.4    mrosiere fsm : fix CSRRC/CSRRCI and BLT/BGE on signed overflow
+#                               Compare compliance signature (SIGNATURE_FILE)
+#                               Fix default/lint_nxmap toplevel, add sim_directed_csr_branch
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.3
+name        : asylum:processor:WardRV:0.0.4
 description : WardRV - Academic RISCV processor
 
 #=========================================
@@ -88,7 +91,7 @@ targets:
     description     : Default Target
     filesets        :
       - files_hdl
-    toplevel        : WardRV
+    toplevel        : sbi_WardRV_fsm
     default_tool    : ghdl
 
   #---------------------------------------
@@ -118,7 +121,7 @@ targets:
         fpga         : NG-MEDIUM
         program      : False
         logical_name : asylum
-    toplevel     : WardRV_iss
+    toplevel     : sbi_WardRV_fsm
 
   #---------------------------------------
   sim_basic:
@@ -135,197 +138,197 @@ targets:
   sim_compliance_add_01:
     << : *sim
     description: Add-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/add-01.hex, GOLDEN_FILE=benchs/add-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/add-01.hex, GOLDEN_FILE=benchs/add-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_addi_01:
     << : *sim
     description: Addi-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/addi-01.hex, GOLDEN_FILE=benchs/addi-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/addi-01.hex, GOLDEN_FILE=benchs/addi-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_and_01:
     << : *sim
     description: And-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/and-01.hex, GOLDEN_FILE=benchs/and-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/and-01.hex, GOLDEN_FILE=benchs/and-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_andi_01:
     << : *sim
     description: Andi-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/andi-01.hex, GOLDEN_FILE=benchs/andi-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/andi-01.hex, GOLDEN_FILE=benchs/andi-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_auipc_01:
     << : *sim
     description: Auipc-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/auipc-01.hex, GOLDEN_FILE=benchs/auipc-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/auipc-01.hex, GOLDEN_FILE=benchs/auipc-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_beq_01:
     << : *sim
     description: Beq-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/beq-01.hex, GOLDEN_FILE=benchs/beq-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/beq-01.hex, GOLDEN_FILE=benchs/beq-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_bge_01:
     << : *sim
     description: Bge-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bge-01.hex, GOLDEN_FILE=benchs/bge-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/bge-01.hex, GOLDEN_FILE=benchs/bge-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_bgeu_01:
     << : *sim
     description: Bgeu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bgeu-01.hex, GOLDEN_FILE=benchs/bgeu-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/bgeu-01.hex, GOLDEN_FILE=benchs/bgeu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_blt_01:
     << : *sim
     description: Blt-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/blt-01.hex, GOLDEN_FILE=benchs/blt-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/blt-01.hex, GOLDEN_FILE=benchs/blt-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_bltu_01:
     << : *sim
     description: Bltu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bltu-01.hex, GOLDEN_FILE=benchs/bltu-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/bltu-01.hex, GOLDEN_FILE=benchs/bltu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_bne_01:
     << : *sim
     description: Bne-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bne-01.hex, GOLDEN_FILE=benchs/bne-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/bne-01.hex, GOLDEN_FILE=benchs/bne-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_fence_01:
     << : *sim
     description: Fence-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/fence-01.hex, GOLDEN_FILE=benchs/fence-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/fence-01.hex, GOLDEN_FILE=benchs/fence-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_jal_01:
     << : *sim
     description: Jal-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/jal-01.hex, GOLDEN_FILE=benchs/jal-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/jal-01.hex, GOLDEN_FILE=benchs/jal-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_jalr_01:
     << : *sim
     description: Jalr-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/jalr-01.hex, GOLDEN_FILE=benchs/jalr-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/jalr-01.hex, GOLDEN_FILE=benchs/jalr-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lb_align_01:
     << : *sim
     description: Lb-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lb-align-01.hex, GOLDEN_FILE=benchs/lb-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lb-align-01.hex, GOLDEN_FILE=benchs/lb-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lbu_align_01:
     << : *sim
     description: Lbu-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lbu-align-01.hex, GOLDEN_FILE=benchs/lbu-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lbu-align-01.hex, GOLDEN_FILE=benchs/lbu-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lh_align_01:
     << : *sim
     description: Lh-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lh-align-01.hex, GOLDEN_FILE=benchs/lh-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lh-align-01.hex, GOLDEN_FILE=benchs/lh-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lhu_align_01:
     << : *sim
     description: Lhu-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lhu-align-01.hex, GOLDEN_FILE=benchs/lhu-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lhu-align-01.hex, GOLDEN_FILE=benchs/lhu-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lui_01:
     << : *sim
     description: Lui-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lui-01.hex, GOLDEN_FILE=benchs/lui-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lui-01.hex, GOLDEN_FILE=benchs/lui-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_lw_align_01:
     << : *sim
     description: Lw-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lw-align-01.hex, GOLDEN_FILE=benchs/lw-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/lw-align-01.hex, GOLDEN_FILE=benchs/lw-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_misalign1_jalr_01:
     << : *sim
     description: Misalign1-jalr-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/misalign1-jalr-01.hex, GOLDEN_FILE=benchs/misalign1-jalr-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/misalign1-jalr-01.hex, GOLDEN_FILE=benchs/misalign1-jalr-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_or_01:
     << : *sim
     description: Or-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/or-01.hex, GOLDEN_FILE=benchs/or-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/or-01.hex, GOLDEN_FILE=benchs/or-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_ori_01:
     << : *sim
     description: Ori-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/ori-01.hex, GOLDEN_FILE=benchs/ori-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/ori-01.hex, GOLDEN_FILE=benchs/ori-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sb_align_01:
     << : *sim
     description: Sb-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sb-align-01.hex, GOLDEN_FILE=benchs/sb-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sb-align-01.hex, GOLDEN_FILE=benchs/sb-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sh_align_01:
     << : *sim
     description: Sh-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sh-align-01.hex, GOLDEN_FILE=benchs/sh-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sh-align-01.hex, GOLDEN_FILE=benchs/sh-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sll_01:
     << : *sim
     description: Sll-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sll-01.hex, GOLDEN_FILE=benchs/sll-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sll-01.hex, GOLDEN_FILE=benchs/sll-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_slli_01:
     << : *sim
     description: Slli-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slli-01.hex, GOLDEN_FILE=benchs/slli-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/slli-01.hex, GOLDEN_FILE=benchs/slli-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_slt_01:
     << : *sim
     description: Slt-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slt-01.hex, GOLDEN_FILE=benchs/slt-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/slt-01.hex, GOLDEN_FILE=benchs/slt-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_slti_01:
     << : *sim
     description: Slti-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slti-01.hex, GOLDEN_FILE=benchs/slti-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/slti-01.hex, GOLDEN_FILE=benchs/slti-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sltiu_01:
     << : *sim
     description: Sltiu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sltiu-01.hex, GOLDEN_FILE=benchs/sltiu-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sltiu-01.hex, GOLDEN_FILE=benchs/sltiu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sltu_01:
     << : *sim
     description: Sltu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sltu-01.hex, GOLDEN_FILE=benchs/sltu-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sltu-01.hex, GOLDEN_FILE=benchs/sltu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sra_01:
     << : *sim
     description: Sra-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sra-01.hex, GOLDEN_FILE=benchs/sra-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sra-01.hex, GOLDEN_FILE=benchs/sra-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_srai_01:
     << : *sim
     description: Srai-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srai-01.hex, GOLDEN_FILE=benchs/srai-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/srai-01.hex, GOLDEN_FILE=benchs/srai-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_srl_01:
     << : *sim
     description: Srl-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srl-01.hex, GOLDEN_FILE=benchs/srl-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/srl-01.hex, GOLDEN_FILE=benchs/srl-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_srli_01:
     << : *sim
     description: Srli-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srli-01.hex, GOLDEN_FILE=benchs/srli-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/srli-01.hex, GOLDEN_FILE=benchs/srli-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sub_01:
     << : *sim
     description: Sub-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sub-01.hex, GOLDEN_FILE=benchs/sub-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sub-01.hex, GOLDEN_FILE=benchs/sub-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_sw_align_01:
     << : *sim
     description: Sw-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sw-align-01.hex, GOLDEN_FILE=benchs/sw-align-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/sw-align-01.hex, GOLDEN_FILE=benchs/sw-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_xor_01:
     << : *sim
     description: Xor-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/xor-01.hex, GOLDEN_FILE=benchs/xor-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/xor-01.hex, GOLDEN_FILE=benchs/xor-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
   sim_compliance_xori_01:
     << : *sim
     description: Xori-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/xori-01.hex, GOLDEN_FILE=benchs/benchs/xori-01.signature, VERBOSE=false]
+    parameters: [FIRMWARE_FILE=benchs/xori-01.hex, GOLDEN_FILE=benchs/xori-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
 
 #=========================================
 parameters :
@@ -341,6 +344,12 @@ parameters :
     description : Golden signature file
     datatype    : str
     default     : golden.hex
+    paramtype   : generic
+
+  SIGNATURE_FILE :
+    description : Signature dump file (signature area compared with GOLDEN_FILE at the end of the test)
+    datatype    : str
+    default     : signature.output
     paramtype   : generic
 
   VERBOSE :

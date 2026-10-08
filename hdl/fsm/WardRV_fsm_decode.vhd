@@ -15,6 +15,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-04-06  1.0      mrosiere Created
+-- 2026-10-05  1.1      mrosiere CSRRC / CSRRCI use ALU_CLR (csr and not rs1/zimm)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -348,7 +349,7 @@ begin
             rs1_re_o        <= '1';
             alu_src_a_sel_o <= ALU_SRC_A_RS1;
             alu_src_b_sel_o <= ALU_SRC_B_CSR;
-            alu_op_o        <= ALU_AND;
+            alu_op_o        <= ALU_CLR; -- csr and not src_a
             csr_we_o        <= '0' when rs1_addr = "00000" else '1';
             csr_re_o        <= '1';
             inst_type_o     <= I_CSRRC;
@@ -378,7 +379,7 @@ begin
             rd_src_o        <= RD_SRC_CSR;
             alu_src_a_sel_o <= ALU_SRC_A_IMM_CSR;
             alu_src_b_sel_o <= ALU_SRC_B_CSR;
-            alu_op_o        <= ALU_AND;
+            alu_op_o        <= ALU_CLR; -- csr and not src_a
             csr_we_o        <= '0' when rs1_addr = "00000" else '1';
             csr_re_o        <= '1';
             inst_type_o     <= I_CSRRCI;

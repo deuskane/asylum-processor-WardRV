@@ -216,8 +216,13 @@ NONREG_UPPER = $(shell printf '%s' '$(1)' | tr '[:lower:]' '[:upper:]')
 
 define NONREG_GROUP_TEMPLATE
 ifneq ($(strip $(STEP)),)
+ifneq ($(strip $$(TARGETS_$(call NONREG_UPPER,$(1)))),)
 nonreg_$(1) :
-	+$(MAKE) --no-print-directory $(addprefix nonreg_$(1)_,$(STEP));
+	+$(MAKE) --no-print-directory $$(TARGETS_$(call NONREG_UPPER,$(1)))
+else
+nonreg_$(1) :
+	@:
+endif
 else
 nonreg_$(1) :
 	@:
