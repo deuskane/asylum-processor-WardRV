@@ -432,9 +432,4 @@ jobs:
     with:
       name: sim_compliance_act4_zicsr_csrrwi_00
 
-  sim_directed_csr_branch:
-    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
-    with:
-      name: sim_directed_csr_branch
-
 #<GENERATE_END>
