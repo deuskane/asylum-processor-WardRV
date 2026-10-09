@@ -14,6 +14,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-05-01  1.0      mrosiere Created
+-- 2026-10-09  1.1      mrosiere mepc[1:0] read-only zero (IALIGN=32)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -126,7 +127,7 @@ begin
         --when CSR_MIP      => mip_r      <= csr_wdata_i;
           when CSR_MTVEC    => mtvec_r    <= csr_wdata_i;
           when CSR_MSCRATCH => mscratch_r <= csr_wdata_i;
-          when CSR_MEPC     => mepc_r     <= csr_wdata_i;
+          when CSR_MEPC     => mepc_r     <= csr_wdata_i(31 downto 2) & "00"; -- IALIGN=32
           when CSR_MCAUSE   => mcause_r   <= csr_wdata_i;
           when CSR_MTVAL    => mtval_r    <= csr_wdata_i;
           when others       => null;

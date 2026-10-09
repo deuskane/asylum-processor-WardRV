@@ -1,3 +1,4 @@
 build
-log
+build-*
 fusesoc.conf
+esw/compliance_act*/riscv-compliance-ws

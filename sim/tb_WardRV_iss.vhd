@@ -42,7 +42,7 @@ architecture rtl of tb_WardRV_iss is
   signal arst_b_i    : std_logic := '0';
   signal sim_end     : boolean   := false;
 
-  signal mem : ram_t ;
+  signal mem : ram_t(0 to C_MEM_SIZE-1);
 
 begin
 

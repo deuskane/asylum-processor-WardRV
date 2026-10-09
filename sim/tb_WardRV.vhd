@@ -32,18 +32,25 @@ entity tb_WardRV is
     SIGNATURE_FILE : string  := "";
     GOLDEN_FILE    : string  := "";
     VERBOSE        : boolean := false;
-    MODEL          : string  := "FSM"  -- Options: "ISS", "FSM"
+    MODEL          : string  := "FSM"; -- Options: "ISS", "FSM"
+    TEST_ENV       : string  := "ACT3" -- Options: "ACT3" (tohost + signature), "ACT4" (self-checking)
   );
 end tb_WardRV;
 
 architecture rtl of tb_WardRV is
+
+  -- Test environment
+  constant C_IS_ACT4    : boolean := TEST_ENV = "ACT4";
+  constant C_BASE_ADDR  : std_logic_vector(31 downto 0) := sel(C_IS_ACT4, C_ACT4_FIRMWARE_ADDR, C_FIRMWARE_ADDR);
+  constant C_SIZE       : integer := sel(C_IS_ACT4, C_ACT4_MEM_SIZE   , C_MEM_SIZE     );
+  constant C_TIMEOUT    : time    := sel(C_IS_ACT4, C_ACT4_SIM_TIMEOUT, C_SIM_TIMEOUT  );
 
   -- Signals
   signal clk_i       : std_logic := '0';
   signal arst_b_i    : std_logic := '0';
   signal sim_end     : boolean   := false;
 
-  signal mem : ram_t ;
+  signal mem : ram_t(0 to C_SIZE-1);
 
   -- ISS Interface
   signal imem_ini : imem_ini_t;
@@ -68,7 +75,7 @@ begin
     dut : entity asylum.WardRV_iss
       generic map (
         HARTID     => C_HARTID,
-        RESET_ADDR => C_FIRMWARE_ADDR,
+        RESET_ADDR => C_BASE_ADDR,
         VERBOSE    => true
       )
       port map (
@@ -85,7 +92,7 @@ begin
     dut : entity asylum.WardRV_fsm
       generic map (
         HARTID     => C_HARTID,
-        RESET_ADDR => C_FIRMWARE_ADDR,
+        RESET_ADDR => C_BASE_ADDR,
         VERBOSE    => true
       )
       port map (
@@ -101,8 +108,13 @@ begin
 
   -- Memory Responder
   p_mem : process
-    variable v_rdata : std_logic_vector(31 downto 0);
+    variable v_rdata   : std_logic_vector(31 downto 0);
+    variable v_console : line;
+    variable v_char    : character;
   begin
+    assert TEST_ENV = "ACT3" or TEST_ENV = "ACT4"
+      report "Unknown TEST_ENV " & TEST_ENV severity failure;
+
     log(ID_LOG_HDR, "Starting ISS Execution Loop");
 
     init_ram(FIRMWARE_FILE, mem);
@@ -124,8 +136,8 @@ begin
       
       -- Handle Instruction Fetch
       if imem_ini.valid = '1' then
-        if unsigned(imem_ini.addr) >= unsigned(C_FIRMWARE_ADDR) and unsigned(imem_ini.addr) < unsigned(C_FIRMWARE_ADDR) + C_MEM_SIZE - 3 then
-          read_mem(mem, imem_ini.addr, v_rdata, VERBOSE);
+        if unsigned(imem_ini.addr) >= unsigned(C_BASE_ADDR) and unsigned(imem_ini.addr) < unsigned(C_BASE_ADDR) + C_SIZE - 3 then
+          read_mem(mem, imem_ini.addr, v_rdata, VERBOSE, C_BASE_ADDR);
         else
           v_rdata := (others => '0');
         end if;
@@ -138,7 +150,31 @@ begin
       if dmem_ini.valid = '1' then
         if dmem_ini.we = '1' then
           -- Write
-          if dmem_ini.addr = C_TOHOST_ADDR then
+          if C_IS_ACT4 and dmem_ini.addr = C_ACT4_HALT_ADDR then
+            -- ACT4 : self-checking test, RVMODEL_HALT_PASS/FAIL
+            if dmem_ini.wdata = C_ACT4_HALT_PASS then
+              log(ID_LOG_HDR, "ACT4: TEST PASSED");
+            else
+              alert(TB_ERROR, "ACT4: TEST FAILED");
+            end if;
+            sim_end <= true;
+          elsif C_IS_ACT4 and dmem_ini.addr = C_ACT4_CONSOLE_ADDR then
+            -- ACT4 : RVMODEL_IO_WRITE_STR, print each line
+            -- The request is still valid the cycle after the acknowledge : take it once
+            v_char := character'val(to_integer(unsigned(dmem_ini.wdata(7 downto 0))));
+            if dmem_tgt.ready = '1' then
+              null;
+            elsif v_char = LF then
+              if v_console = null then
+                log(ID_SEQUENCER, "DUT: ");
+              else
+                log(ID_SEQUENCER, "DUT: " & v_console.all);
+                deallocate(v_console);
+              end if;
+            elsif v_char /= CR then
+              write(v_console, v_char);
+            end if;
+          elsif not C_IS_ACT4 and dmem_ini.addr = C_TOHOST_ADDR then
             if dmem_ini.wdata = C_TOHOST_DATA_OK then
               log(ID_LOG_HDR, "ISS: TEST PASSED");
             else
@@ -146,18 +182,18 @@ begin
             end if;
             
             if SIGNATURE_FILE /= "" then
-              dump_signature(SIGNATURE_FILE, std_logic_vector(unsigned(C_SIGNATURE_ADDR) - unsigned(C_FIRMWARE_ADDR)), C_MEM_SIZE, mem);
+              dump_signature(SIGNATURE_FILE, std_logic_vector(unsigned(C_SIGNATURE_ADDR) - unsigned(C_BASE_ADDR)), C_SIZE, mem);
               if GOLDEN_FILE /= "" then
                 compare_signature(SIGNATURE_FILE, GOLDEN_FILE);
               end if;
             end if;
             sim_end <= true;
           else
-            write_mem(mem, dmem_ini.addr, dmem_ini.wdata, dmem_ini.be, VERBOSE);
+            write_mem(mem, dmem_ini.addr, dmem_ini.wdata, dmem_ini.be, VERBOSE, C_BASE_ADDR);
           end if;
         else
           -- Read
-          read_mem(mem, dmem_ini.addr, v_rdata, VERBOSE);
+          read_mem(mem, dmem_ini.addr, v_rdata, VERBOSE, C_BASE_ADDR);
           dmem_tgt.rdata <= v_rdata;
         end if;
         dmem_tgt.ready <= '1';
@@ -179,7 +215,7 @@ begin
     -- Wait for reset deassertion
     wait until arst_b_i = '1';
 
-    wait until sim_end for C_SIM_TIMEOUT;
+    wait until sim_end for C_TIMEOUT;
 
     if not sim_end 
     then

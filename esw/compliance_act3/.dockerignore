@@ -1,0 +1,5 @@
+# Only the Makefile and config/ are needed to build the image
+riscv-compliance-ws
+build
+benchs
+docker/*.tar.gz

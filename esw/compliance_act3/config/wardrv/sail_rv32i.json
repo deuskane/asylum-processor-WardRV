@@ -1,0 +1,254 @@
+// Sail configuration used to generate the reference signatures of the ACT3 tests.
+// Override of the default RV32 configuration (sail_riscv_sim --rv32) : RV32I + Zicsr + Zifencei
+{
+  "base": {
+    "mstatus": {
+      "fs_legal_states": "ExtContext_Off",
+      "vs_legal_states": "ExtContext_Off"
+    }
+  },
+  "memory": {
+    "physaddr_bits": 32
+  },
+  "extensions": {
+    "M": {
+      "supported": false
+    },
+    "A": {
+      "supported": false
+    },
+    "F": {
+      "supported": false
+    },
+    "D": {
+      "supported": false
+    },
+    "B": {
+      "supported": false
+    },
+    "S": {
+      "supported": false
+    },
+    "U": {
+      "supported": false
+    },
+    "Zibi": {
+      "supported": false
+    },
+    "Zic64b": {
+      "supported": false
+    },
+    "Zicbom": {
+      "supported": false
+    },
+    "Zicbop": {
+      "supported": false
+    },
+    "Zicboz": {
+      "supported": false
+    },
+    "Ziccamoa": {
+      "supported": false
+    },
+    "Ziccamoc": {
+      "supported": false
+    },
+    "Ziccif": {
+      "supported": false
+    },
+    "Zicclsm": {
+      "supported": false
+    },
+    "Ziccrse": {
+      "supported": false
+    },
+    "Zicfilp": {
+      "supported": false
+    },
+    "Zicfiss": {
+      "supported": false
+    },
+    "Zicond": {
+      "supported": false
+    },
+    "Zicntr": {
+      "supported": false
+    },
+    "Zihintntl": {
+      "supported": false
+    },
+    "Zihintpause": {
+      "supported": false
+    },
+    "Zihpm": {
+      "supported": false
+    },
+    "Zimop": {
+      "supported": false
+    },
+    "Zabha": {
+      "supported": false
+    },
+    "Zacas": {
+      "supported": false
+    },
+    "Zama16b": {
+      "supported": false
+    },
+    "Zawrs": {
+      "supported": false
+    },
+    "Zfa": {
+      "supported": false
+    },
+    "Zfbfmin": {
+      "supported": false
+    },
+    "Zfh": {
+      "supported": false
+    },
+    "Zfhmin": {
+      "supported": false
+    },
+    "Zca": {
+      "supported": false
+    },
+    "Zcf": {
+      "supported": false
+    },
+    "Zcd": {
+      "supported": false
+    },
+    "Zcb": {
+      "supported": false
+    },
+    "Zcmop": {
+      "supported": false
+    },
+    "Zbc": {
+      "supported": false
+    },
+    "Zbkb": {
+      "supported": false
+    },
+    "Zbkc": {
+      "supported": false
+    },
+    "Zbkx": {
+      "supported": false
+    },
+    "Zknd": {
+      "supported": false
+    },
+    "Zkne": {
+      "supported": false
+    },
+    "Zknh": {
+      "supported": false
+    },
+    "Zkr": {
+      "supported": false
+    },
+    "Zksed": {
+      "supported": false
+    },
+    "Zksh": {
+      "supported": false
+    },
+    "Zkt": {
+      "supported": false
+    },
+    "Zvabd": {
+      "supported": false
+    },
+    "Zvfbfmin": {
+      "supported": false
+    },
+    "Zvfbfwma": {
+      "supported": false
+    },
+    "Zvfh": {
+      "supported": false
+    },
+    "Zvfhmin": {
+      "supported": false
+    },
+    "Zvbb": {
+      "supported": false
+    },
+    "Zvbc": {
+      "supported": false
+    },
+    "Zvkg": {
+      "supported": false
+    },
+    "Zvkned": {
+      "supported": false
+    },
+    "Zvknha": {
+      "supported": false
+    },
+    "Zvknhb": {
+      "supported": false
+    },
+    "Zvksed": {
+      "supported": false
+    },
+    "Zvksh": {
+      "supported": false
+    },
+    "Zvkt": {
+      "supported": false
+    },
+    "Ssccptr": {
+      "supported": false
+    },
+    "Sscofpmf": {
+      "supported": false
+    },
+    "Sscounterenw": {
+      "supported": false
+    },
+    "Sstc": {
+      "supported": false
+    },
+    "Sstvala": {
+      "supported": false
+    },
+    "Svade": {
+      "supported": false
+    },
+    "Svadu": {
+      "supported": false
+    },
+    "Svinval": {
+      "supported": false
+    },
+    "Smcntrpmf": {
+      "supported": false
+    },
+    "Svbare": {
+      "supported": false
+    },
+    "Sv32": {
+      "supported": false
+    },
+    "Ssqosid": {
+      "supported": false
+    },
+    "Svvptc": {
+      "supported": false
+    },
+    "V": {
+      "support_level": "Disabled"
+    },
+    "Stateen": {
+      "Smstateen": {
+        "supported": false
+      },
+      "Ssstateen": {
+        "supported": false
+      }
+    }
+  }
+}

@@ -52,7 +52,6 @@ architecture behavioural of WardRV_fsm_alu is
   signal res      : std_logic_vector(31 downto 0);
   signal carry    : std_logic;
   signal overflow : std_logic;
-  signal sign     : std_logic;
 begin
 
   process(all)
@@ -99,13 +98,12 @@ begin
     res      <= v_res;
     carry    <= v_carry;
     overflow <= v_ovf;
-    sign     <= v_res(31);
   end process;
 
   res_o   <= res;
   zero_o  <= '1' when res = x"00000000" else '0';
   -- N xor V : true signed less-than after ALU_SUB, even on signed overflow
-  sign_o  <= sign xor overflow;
+  sign_o  <= res(31) xor overflow;
   carry_o <= carry;
 
 end architecture behavioural;

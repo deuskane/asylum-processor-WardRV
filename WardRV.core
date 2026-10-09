@@ -18,7 +18,8 @@ CAPI=2:
 # 2026-09-15  0.0.3    mrosiere fsm : use ram2r1w
 # 2026-10-05  0.0.4    mrosiere fsm : fix CSRRC/CSRRCI and BLT/BGE on signed overflow
 #                               Compare compliance signature (SIGNATURE_FILE)
-#                               Fix default/lint_nxmap toplevel, add sim_directed_csr_branch
+#                               Fix default/lint_nxmap toplevel
+#                               Compliance : ACT3 (esw/compliance_act3) and ACT4 (esw/compliance_act4) suites
 #-----------------------------------------------------------------------------
 
 name        : asylum:processor:WardRV:0.0.4
@@ -74,12 +75,389 @@ filesets:
       - sim/tb_WardRV.vhd                                            
       - sim/tb_WardRV_iss.vhd                                        
       - esw/testcase/firmware.hex                                    : {file_type : user, copyto : firmware.hex}
-      - esw/compliance/benchs                                        : {file_type : user, copyto : benchs}
 
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
       
+  #---------------------------------------
+  # Compliance Testcases : one fileset per test
+  #---------------------------------------
+  files_act3_add_01:
+    files:
+      - esw/compliance_act3/benchs/add-01.hex       : {file_type : user, copyto : act3/add-01.hex}
+      - esw/compliance_act3/benchs/add-01.signature : {file_type : user, copyto : act3/add-01.signature}
+
+  files_act3_addi_01:
+    files:
+      - esw/compliance_act3/benchs/addi-01.hex       : {file_type : user, copyto : act3/addi-01.hex}
+      - esw/compliance_act3/benchs/addi-01.signature : {file_type : user, copyto : act3/addi-01.signature}
+
+  files_act3_and_01:
+    files:
+      - esw/compliance_act3/benchs/and-01.hex       : {file_type : user, copyto : act3/and-01.hex}
+      - esw/compliance_act3/benchs/and-01.signature : {file_type : user, copyto : act3/and-01.signature}
+
+  files_act3_andi_01:
+    files:
+      - esw/compliance_act3/benchs/andi-01.hex       : {file_type : user, copyto : act3/andi-01.hex}
+      - esw/compliance_act3/benchs/andi-01.signature : {file_type : user, copyto : act3/andi-01.signature}
+
+  files_act3_auipc_01:
+    files:
+      - esw/compliance_act3/benchs/auipc-01.hex       : {file_type : user, copyto : act3/auipc-01.hex}
+      - esw/compliance_act3/benchs/auipc-01.signature : {file_type : user, copyto : act3/auipc-01.signature}
+
+  files_act3_beq_01:
+    files:
+      - esw/compliance_act3/benchs/beq-01.hex       : {file_type : user, copyto : act3/beq-01.hex}
+      - esw/compliance_act3/benchs/beq-01.signature : {file_type : user, copyto : act3/beq-01.signature}
+
+  files_act3_bge_01:
+    files:
+      - esw/compliance_act3/benchs/bge-01.hex       : {file_type : user, copyto : act3/bge-01.hex}
+      - esw/compliance_act3/benchs/bge-01.signature : {file_type : user, copyto : act3/bge-01.signature}
+
+  files_act3_bgeu_01:
+    files:
+      - esw/compliance_act3/benchs/bgeu-01.hex       : {file_type : user, copyto : act3/bgeu-01.hex}
+      - esw/compliance_act3/benchs/bgeu-01.signature : {file_type : user, copyto : act3/bgeu-01.signature}
+
+  files_act3_blt_01:
+    files:
+      - esw/compliance_act3/benchs/blt-01.hex       : {file_type : user, copyto : act3/blt-01.hex}
+      - esw/compliance_act3/benchs/blt-01.signature : {file_type : user, copyto : act3/blt-01.signature}
+
+  files_act3_bltu_01:
+    files:
+      - esw/compliance_act3/benchs/bltu-01.hex       : {file_type : user, copyto : act3/bltu-01.hex}
+      - esw/compliance_act3/benchs/bltu-01.signature : {file_type : user, copyto : act3/bltu-01.signature}
+
+  files_act3_bne_01:
+    files:
+      - esw/compliance_act3/benchs/bne-01.hex       : {file_type : user, copyto : act3/bne-01.hex}
+      - esw/compliance_act3/benchs/bne-01.signature : {file_type : user, copyto : act3/bne-01.signature}
+
+  files_act3_fence_01:
+    files:
+      - esw/compliance_act3/benchs/fence-01.hex       : {file_type : user, copyto : act3/fence-01.hex}
+      - esw/compliance_act3/benchs/fence-01.signature : {file_type : user, copyto : act3/fence-01.signature}
+
+  files_act3_jal_01:
+    files:
+      - esw/compliance_act3/benchs/jal-01.hex       : {file_type : user, copyto : act3/jal-01.hex}
+      - esw/compliance_act3/benchs/jal-01.signature : {file_type : user, copyto : act3/jal-01.signature}
+
+  files_act3_jalr_01:
+    files:
+      - esw/compliance_act3/benchs/jalr-01.hex       : {file_type : user, copyto : act3/jalr-01.hex}
+      - esw/compliance_act3/benchs/jalr-01.signature : {file_type : user, copyto : act3/jalr-01.signature}
+
+  files_act3_lb_align_01:
+    files:
+      - esw/compliance_act3/benchs/lb-align-01.hex       : {file_type : user, copyto : act3/lb-align-01.hex}
+      - esw/compliance_act3/benchs/lb-align-01.signature : {file_type : user, copyto : act3/lb-align-01.signature}
+
+  files_act3_lbu_align_01:
+    files:
+      - esw/compliance_act3/benchs/lbu-align-01.hex       : {file_type : user, copyto : act3/lbu-align-01.hex}
+      - esw/compliance_act3/benchs/lbu-align-01.signature : {file_type : user, copyto : act3/lbu-align-01.signature}
+
+  files_act3_lh_align_01:
+    files:
+      - esw/compliance_act3/benchs/lh-align-01.hex       : {file_type : user, copyto : act3/lh-align-01.hex}
+      - esw/compliance_act3/benchs/lh-align-01.signature : {file_type : user, copyto : act3/lh-align-01.signature}
+
+  files_act3_lhu_align_01:
+    files:
+      - esw/compliance_act3/benchs/lhu-align-01.hex       : {file_type : user, copyto : act3/lhu-align-01.hex}
+      - esw/compliance_act3/benchs/lhu-align-01.signature : {file_type : user, copyto : act3/lhu-align-01.signature}
+
+  files_act3_lui_01:
+    files:
+      - esw/compliance_act3/benchs/lui-01.hex       : {file_type : user, copyto : act3/lui-01.hex}
+      - esw/compliance_act3/benchs/lui-01.signature : {file_type : user, copyto : act3/lui-01.signature}
+
+  files_act3_lw_align_01:
+    files:
+      - esw/compliance_act3/benchs/lw-align-01.hex       : {file_type : user, copyto : act3/lw-align-01.hex}
+      - esw/compliance_act3/benchs/lw-align-01.signature : {file_type : user, copyto : act3/lw-align-01.signature}
+
+  files_act3_misalign1_jalr_01:
+    files:
+      - esw/compliance_act3/benchs/misalign1-jalr-01.hex       : {file_type : user, copyto : act3/misalign1-jalr-01.hex}
+      - esw/compliance_act3/benchs/misalign1-jalr-01.signature : {file_type : user, copyto : act3/misalign1-jalr-01.signature}
+
+  files_act3_or_01:
+    files:
+      - esw/compliance_act3/benchs/or-01.hex       : {file_type : user, copyto : act3/or-01.hex}
+      - esw/compliance_act3/benchs/or-01.signature : {file_type : user, copyto : act3/or-01.signature}
+
+  files_act3_ori_01:
+    files:
+      - esw/compliance_act3/benchs/ori-01.hex       : {file_type : user, copyto : act3/ori-01.hex}
+      - esw/compliance_act3/benchs/ori-01.signature : {file_type : user, copyto : act3/ori-01.signature}
+
+  files_act3_sb_align_01:
+    files:
+      - esw/compliance_act3/benchs/sb-align-01.hex       : {file_type : user, copyto : act3/sb-align-01.hex}
+      - esw/compliance_act3/benchs/sb-align-01.signature : {file_type : user, copyto : act3/sb-align-01.signature}
+
+  files_act3_sh_align_01:
+    files:
+      - esw/compliance_act3/benchs/sh-align-01.hex       : {file_type : user, copyto : act3/sh-align-01.hex}
+      - esw/compliance_act3/benchs/sh-align-01.signature : {file_type : user, copyto : act3/sh-align-01.signature}
+
+  files_act3_sll_01:
+    files:
+      - esw/compliance_act3/benchs/sll-01.hex       : {file_type : user, copyto : act3/sll-01.hex}
+      - esw/compliance_act3/benchs/sll-01.signature : {file_type : user, copyto : act3/sll-01.signature}
+
+  files_act3_slli_01:
+    files:
+      - esw/compliance_act3/benchs/slli-01.hex       : {file_type : user, copyto : act3/slli-01.hex}
+      - esw/compliance_act3/benchs/slli-01.signature : {file_type : user, copyto : act3/slli-01.signature}
+
+  files_act3_slt_01:
+    files:
+      - esw/compliance_act3/benchs/slt-01.hex       : {file_type : user, copyto : act3/slt-01.hex}
+      - esw/compliance_act3/benchs/slt-01.signature : {file_type : user, copyto : act3/slt-01.signature}
+
+  files_act3_slti_01:
+    files:
+      - esw/compliance_act3/benchs/slti-01.hex       : {file_type : user, copyto : act3/slti-01.hex}
+      - esw/compliance_act3/benchs/slti-01.signature : {file_type : user, copyto : act3/slti-01.signature}
+
+  files_act3_sltiu_01:
+    files:
+      - esw/compliance_act3/benchs/sltiu-01.hex       : {file_type : user, copyto : act3/sltiu-01.hex}
+      - esw/compliance_act3/benchs/sltiu-01.signature : {file_type : user, copyto : act3/sltiu-01.signature}
+
+  files_act3_sltu_01:
+    files:
+      - esw/compliance_act3/benchs/sltu-01.hex       : {file_type : user, copyto : act3/sltu-01.hex}
+      - esw/compliance_act3/benchs/sltu-01.signature : {file_type : user, copyto : act3/sltu-01.signature}
+
+  files_act3_sra_01:
+    files:
+      - esw/compliance_act3/benchs/sra-01.hex       : {file_type : user, copyto : act3/sra-01.hex}
+      - esw/compliance_act3/benchs/sra-01.signature : {file_type : user, copyto : act3/sra-01.signature}
+
+  files_act3_srai_01:
+    files:
+      - esw/compliance_act3/benchs/srai-01.hex       : {file_type : user, copyto : act3/srai-01.hex}
+      - esw/compliance_act3/benchs/srai-01.signature : {file_type : user, copyto : act3/srai-01.signature}
+
+  files_act3_srl_01:
+    files:
+      - esw/compliance_act3/benchs/srl-01.hex       : {file_type : user, copyto : act3/srl-01.hex}
+      - esw/compliance_act3/benchs/srl-01.signature : {file_type : user, copyto : act3/srl-01.signature}
+
+  files_act3_srli_01:
+    files:
+      - esw/compliance_act3/benchs/srli-01.hex       : {file_type : user, copyto : act3/srli-01.hex}
+      - esw/compliance_act3/benchs/srli-01.signature : {file_type : user, copyto : act3/srli-01.signature}
+
+  files_act3_sub_01:
+    files:
+      - esw/compliance_act3/benchs/sub-01.hex       : {file_type : user, copyto : act3/sub-01.hex}
+      - esw/compliance_act3/benchs/sub-01.signature : {file_type : user, copyto : act3/sub-01.signature}
+
+  files_act3_sw_align_01:
+    files:
+      - esw/compliance_act3/benchs/sw-align-01.hex       : {file_type : user, copyto : act3/sw-align-01.hex}
+      - esw/compliance_act3/benchs/sw-align-01.signature : {file_type : user, copyto : act3/sw-align-01.signature}
+
+  files_act3_xor_01:
+    files:
+      - esw/compliance_act3/benchs/xor-01.hex       : {file_type : user, copyto : act3/xor-01.hex}
+      - esw/compliance_act3/benchs/xor-01.signature : {file_type : user, copyto : act3/xor-01.signature}
+
+  files_act3_xori_01:
+    files:
+      - esw/compliance_act3/benchs/xori-01.hex       : {file_type : user, copyto : act3/xori-01.hex}
+      - esw/compliance_act3/benchs/xori-01.signature : {file_type : user, copyto : act3/xori-01.signature}
+
+  files_act4_i_add_00:
+    files:
+      - esw/compliance_act4/benchs/I-add-00.hex : {file_type : user, copyto : act4/I-add-00.hex}
+
+  files_act4_i_addi_00:
+    files:
+      - esw/compliance_act4/benchs/I-addi-00.hex : {file_type : user, copyto : act4/I-addi-00.hex}
+
+  files_act4_i_and_00:
+    files:
+      - esw/compliance_act4/benchs/I-and-00.hex : {file_type : user, copyto : act4/I-and-00.hex}
+
+  files_act4_i_andi_00:
+    files:
+      - esw/compliance_act4/benchs/I-andi-00.hex : {file_type : user, copyto : act4/I-andi-00.hex}
+
+  files_act4_i_auipc_00:
+    files:
+      - esw/compliance_act4/benchs/I-auipc-00.hex : {file_type : user, copyto : act4/I-auipc-00.hex}
+
+  files_act4_i_beq_00:
+    files:
+      - esw/compliance_act4/benchs/I-beq-00.hex : {file_type : user, copyto : act4/I-beq-00.hex}
+
+  files_act4_i_bge_00:
+    files:
+      - esw/compliance_act4/benchs/I-bge-00.hex : {file_type : user, copyto : act4/I-bge-00.hex}
+
+  files_act4_i_bgeu_00:
+    files:
+      - esw/compliance_act4/benchs/I-bgeu-00.hex : {file_type : user, copyto : act4/I-bgeu-00.hex}
+
+  files_act4_i_blt_00:
+    files:
+      - esw/compliance_act4/benchs/I-blt-00.hex : {file_type : user, copyto : act4/I-blt-00.hex}
+
+  files_act4_i_bltu_00:
+    files:
+      - esw/compliance_act4/benchs/I-bltu-00.hex : {file_type : user, copyto : act4/I-bltu-00.hex}
+
+  files_act4_i_bne_00:
+    files:
+      - esw/compliance_act4/benchs/I-bne-00.hex : {file_type : user, copyto : act4/I-bne-00.hex}
+
+  files_act4_i_fence_00:
+    files:
+      - esw/compliance_act4/benchs/I-fence-00.hex : {file_type : user, copyto : act4/I-fence-00.hex}
+
+  files_act4_i_jal_00:
+    files:
+      - esw/compliance_act4/benchs/I-jal-00.hex : {file_type : user, copyto : act4/I-jal-00.hex}
+
+  files_act4_i_jalr_00:
+    files:
+      - esw/compliance_act4/benchs/I-jalr-00.hex : {file_type : user, copyto : act4/I-jalr-00.hex}
+
+  files_act4_i_lb_00:
+    files:
+      - esw/compliance_act4/benchs/I-lb-00.hex : {file_type : user, copyto : act4/I-lb-00.hex}
+
+  files_act4_i_lbu_00:
+    files:
+      - esw/compliance_act4/benchs/I-lbu-00.hex : {file_type : user, copyto : act4/I-lbu-00.hex}
+
+  files_act4_i_lh_00:
+    files:
+      - esw/compliance_act4/benchs/I-lh-00.hex : {file_type : user, copyto : act4/I-lh-00.hex}
+
+  files_act4_i_lhu_00:
+    files:
+      - esw/compliance_act4/benchs/I-lhu-00.hex : {file_type : user, copyto : act4/I-lhu-00.hex}
+
+  files_act4_i_lui_00:
+    files:
+      - esw/compliance_act4/benchs/I-lui-00.hex : {file_type : user, copyto : act4/I-lui-00.hex}
+
+  files_act4_i_lw_00:
+    files:
+      - esw/compliance_act4/benchs/I-lw-00.hex : {file_type : user, copyto : act4/I-lw-00.hex}
+
+  files_act4_i_nop_00:
+    files:
+      - esw/compliance_act4/benchs/I-nop-00.hex : {file_type : user, copyto : act4/I-nop-00.hex}
+
+  files_act4_i_or_00:
+    files:
+      - esw/compliance_act4/benchs/I-or-00.hex : {file_type : user, copyto : act4/I-or-00.hex}
+
+  files_act4_i_ori_00:
+    files:
+      - esw/compliance_act4/benchs/I-ori-00.hex : {file_type : user, copyto : act4/I-ori-00.hex}
+
+  files_act4_i_sb_00:
+    files:
+      - esw/compliance_act4/benchs/I-sb-00.hex : {file_type : user, copyto : act4/I-sb-00.hex}
+
+  files_act4_i_sh_00:
+    files:
+      - esw/compliance_act4/benchs/I-sh-00.hex : {file_type : user, copyto : act4/I-sh-00.hex}
+
+  files_act4_i_sll_00:
+    files:
+      - esw/compliance_act4/benchs/I-sll-00.hex : {file_type : user, copyto : act4/I-sll-00.hex}
+
+  files_act4_i_slli_00:
+    files:
+      - esw/compliance_act4/benchs/I-slli-00.hex : {file_type : user, copyto : act4/I-slli-00.hex}
+
+  files_act4_i_slt_00:
+    files:
+      - esw/compliance_act4/benchs/I-slt-00.hex : {file_type : user, copyto : act4/I-slt-00.hex}
+
+  files_act4_i_slti_00:
+    files:
+      - esw/compliance_act4/benchs/I-slti-00.hex : {file_type : user, copyto : act4/I-slti-00.hex}
+
+  files_act4_i_sltiu_00:
+    files:
+      - esw/compliance_act4/benchs/I-sltiu-00.hex : {file_type : user, copyto : act4/I-sltiu-00.hex}
+
+  files_act4_i_sltu_00:
+    files:
+      - esw/compliance_act4/benchs/I-sltu-00.hex : {file_type : user, copyto : act4/I-sltu-00.hex}
+
+  files_act4_i_sra_00:
+    files:
+      - esw/compliance_act4/benchs/I-sra-00.hex : {file_type : user, copyto : act4/I-sra-00.hex}
+
+  files_act4_i_srai_00:
+    files:
+      - esw/compliance_act4/benchs/I-srai-00.hex : {file_type : user, copyto : act4/I-srai-00.hex}
+
+  files_act4_i_srl_00:
+    files:
+      - esw/compliance_act4/benchs/I-srl-00.hex : {file_type : user, copyto : act4/I-srl-00.hex}
+
+  files_act4_i_srli_00:
+    files:
+      - esw/compliance_act4/benchs/I-srli-00.hex : {file_type : user, copyto : act4/I-srli-00.hex}
+
+  files_act4_i_sub_00:
+    files:
+      - esw/compliance_act4/benchs/I-sub-00.hex : {file_type : user, copyto : act4/I-sub-00.hex}
+
+  files_act4_i_sw_00:
+    files:
+      - esw/compliance_act4/benchs/I-sw-00.hex : {file_type : user, copyto : act4/I-sw-00.hex}
+
+  files_act4_i_xor_00:
+    files:
+      - esw/compliance_act4/benchs/I-xor-00.hex : {file_type : user, copyto : act4/I-xor-00.hex}
+
+  files_act4_i_xori_00:
+    files:
+      - esw/compliance_act4/benchs/I-xori-00.hex : {file_type : user, copyto : act4/I-xori-00.hex}
+
+  files_act4_zicsr_csrrc_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrc-00.hex : {file_type : user, copyto : act4/Zicsr-csrrc-00.hex}
+
+  files_act4_zicsr_csrrci_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrci-00.hex : {file_type : user, copyto : act4/Zicsr-csrrci-00.hex}
+
+  files_act4_zicsr_csrrs_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrs-00.hex : {file_type : user, copyto : act4/Zicsr-csrrs-00.hex}
+
+  files_act4_zicsr_csrrsi_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrsi-00.hex : {file_type : user, copyto : act4/Zicsr-csrrsi-00.hex}
+
+  files_act4_zicsr_csrrw_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrw-00.hex : {file_type : user, copyto : act4/Zicsr-csrrw-00.hex}
+
+  files_act4_zicsr_csrrwi_00:
+    files:
+      - esw/compliance_act4/benchs/Zicsr-csrrwi-00.hex : {file_type : user, copyto : act4/Zicsr-csrrwi-00.hex}
+
 #=========================================
 targets:
 #=========================================
@@ -133,202 +511,514 @@ targets:
       - VERBOSE=false
   
   #---------------------------------------
-  # Compliance Testcases
+  # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
   #---------------------------------------
-  sim_compliance_add_01:
+  sim_compliance_act3_add_01:
     << : *sim
-    description: Add-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/add-01.hex, GOLDEN_FILE=benchs/add-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_add_01]
+    description: ACT3 add-01 testcase
+    parameters: [FIRMWARE_FILE=act3/add-01.hex, GOLDEN_FILE=act3/add-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_addi_01:
+  sim_compliance_act3_addi_01:
     << : *sim
-    description: Addi-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/addi-01.hex, GOLDEN_FILE=benchs/addi-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_addi_01]
+    description: ACT3 addi-01 testcase
+    parameters: [FIRMWARE_FILE=act3/addi-01.hex, GOLDEN_FILE=act3/addi-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_and_01:
+  sim_compliance_act3_and_01:
     << : *sim
-    description: And-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/and-01.hex, GOLDEN_FILE=benchs/and-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_and_01]
+    description: ACT3 and-01 testcase
+    parameters: [FIRMWARE_FILE=act3/and-01.hex, GOLDEN_FILE=act3/and-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_andi_01:
+  sim_compliance_act3_andi_01:
     << : *sim
-    description: Andi-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/andi-01.hex, GOLDEN_FILE=benchs/andi-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_andi_01]
+    description: ACT3 andi-01 testcase
+    parameters: [FIRMWARE_FILE=act3/andi-01.hex, GOLDEN_FILE=act3/andi-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_auipc_01:
+  sim_compliance_act3_auipc_01:
     << : *sim
-    description: Auipc-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/auipc-01.hex, GOLDEN_FILE=benchs/auipc-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_auipc_01]
+    description: ACT3 auipc-01 testcase
+    parameters: [FIRMWARE_FILE=act3/auipc-01.hex, GOLDEN_FILE=act3/auipc-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_beq_01:
+  sim_compliance_act3_beq_01:
     << : *sim
-    description: Beq-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/beq-01.hex, GOLDEN_FILE=benchs/beq-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_beq_01]
+    description: ACT3 beq-01 testcase
+    parameters: [FIRMWARE_FILE=act3/beq-01.hex, GOLDEN_FILE=act3/beq-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_bge_01:
+  sim_compliance_act3_bge_01:
     << : *sim
-    description: Bge-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bge-01.hex, GOLDEN_FILE=benchs/bge-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_bge_01]
+    description: ACT3 bge-01 testcase
+    parameters: [FIRMWARE_FILE=act3/bge-01.hex, GOLDEN_FILE=act3/bge-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_bgeu_01:
+  sim_compliance_act3_bgeu_01:
     << : *sim
-    description: Bgeu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bgeu-01.hex, GOLDEN_FILE=benchs/bgeu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_bgeu_01]
+    description: ACT3 bgeu-01 testcase
+    parameters: [FIRMWARE_FILE=act3/bgeu-01.hex, GOLDEN_FILE=act3/bgeu-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_blt_01:
+  sim_compliance_act3_blt_01:
     << : *sim
-    description: Blt-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/blt-01.hex, GOLDEN_FILE=benchs/blt-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_blt_01]
+    description: ACT3 blt-01 testcase
+    parameters: [FIRMWARE_FILE=act3/blt-01.hex, GOLDEN_FILE=act3/blt-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_bltu_01:
+  sim_compliance_act3_bltu_01:
     << : *sim
-    description: Bltu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bltu-01.hex, GOLDEN_FILE=benchs/bltu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_bltu_01]
+    description: ACT3 bltu-01 testcase
+    parameters: [FIRMWARE_FILE=act3/bltu-01.hex, GOLDEN_FILE=act3/bltu-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_bne_01:
+  sim_compliance_act3_bne_01:
     << : *sim
-    description: Bne-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/bne-01.hex, GOLDEN_FILE=benchs/bne-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_bne_01]
+    description: ACT3 bne-01 testcase
+    parameters: [FIRMWARE_FILE=act3/bne-01.hex, GOLDEN_FILE=act3/bne-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_fence_01:
+  sim_compliance_act3_fence_01:
     << : *sim
-    description: Fence-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/fence-01.hex, GOLDEN_FILE=benchs/fence-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_fence_01]
+    description: ACT3 fence-01 testcase
+    parameters: [FIRMWARE_FILE=act3/fence-01.hex, GOLDEN_FILE=act3/fence-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_jal_01:
+  sim_compliance_act3_jal_01:
     << : *sim
-    description: Jal-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/jal-01.hex, GOLDEN_FILE=benchs/jal-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_jal_01]
+    description: ACT3 jal-01 testcase
+    parameters: [FIRMWARE_FILE=act3/jal-01.hex, GOLDEN_FILE=act3/jal-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_jalr_01:
+  sim_compliance_act3_jalr_01:
     << : *sim
-    description: Jalr-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/jalr-01.hex, GOLDEN_FILE=benchs/jalr-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_jalr_01]
+    description: ACT3 jalr-01 testcase
+    parameters: [FIRMWARE_FILE=act3/jalr-01.hex, GOLDEN_FILE=act3/jalr-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lb_align_01:
+  sim_compliance_act3_lb_align_01:
     << : *sim
-    description: Lb-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lb-align-01.hex, GOLDEN_FILE=benchs/lb-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lb_align_01]
+    description: ACT3 lb-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lb-align-01.hex, GOLDEN_FILE=act3/lb-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lbu_align_01:
+  sim_compliance_act3_lbu_align_01:
     << : *sim
-    description: Lbu-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lbu-align-01.hex, GOLDEN_FILE=benchs/lbu-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lbu_align_01]
+    description: ACT3 lbu-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lbu-align-01.hex, GOLDEN_FILE=act3/lbu-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lh_align_01:
+  sim_compliance_act3_lh_align_01:
     << : *sim
-    description: Lh-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lh-align-01.hex, GOLDEN_FILE=benchs/lh-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lh_align_01]
+    description: ACT3 lh-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lh-align-01.hex, GOLDEN_FILE=act3/lh-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lhu_align_01:
+  sim_compliance_act3_lhu_align_01:
     << : *sim
-    description: Lhu-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lhu-align-01.hex, GOLDEN_FILE=benchs/lhu-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lhu_align_01]
+    description: ACT3 lhu-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lhu-align-01.hex, GOLDEN_FILE=act3/lhu-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lui_01:
+  sim_compliance_act3_lui_01:
     << : *sim
-    description: Lui-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lui-01.hex, GOLDEN_FILE=benchs/lui-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lui_01]
+    description: ACT3 lui-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lui-01.hex, GOLDEN_FILE=act3/lui-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_lw_align_01:
+  sim_compliance_act3_lw_align_01:
     << : *sim
-    description: Lw-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/lw-align-01.hex, GOLDEN_FILE=benchs/lw-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_lw_align_01]
+    description: ACT3 lw-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/lw-align-01.hex, GOLDEN_FILE=act3/lw-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_misalign1_jalr_01:
+  sim_compliance_act3_misalign1_jalr_01:
     << : *sim
-    description: Misalign1-jalr-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/misalign1-jalr-01.hex, GOLDEN_FILE=benchs/misalign1-jalr-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_misalign1_jalr_01]
+    description: ACT3 misalign1-jalr-01 testcase
+    parameters: [FIRMWARE_FILE=act3/misalign1-jalr-01.hex, GOLDEN_FILE=act3/misalign1-jalr-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_or_01:
+  sim_compliance_act3_or_01:
     << : *sim
-    description: Or-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/or-01.hex, GOLDEN_FILE=benchs/or-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_or_01]
+    description: ACT3 or-01 testcase
+    parameters: [FIRMWARE_FILE=act3/or-01.hex, GOLDEN_FILE=act3/or-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_ori_01:
+  sim_compliance_act3_ori_01:
     << : *sim
-    description: Ori-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/ori-01.hex, GOLDEN_FILE=benchs/ori-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_ori_01]
+    description: ACT3 ori-01 testcase
+    parameters: [FIRMWARE_FILE=act3/ori-01.hex, GOLDEN_FILE=act3/ori-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sb_align_01:
+  sim_compliance_act3_sb_align_01:
     << : *sim
-    description: Sb-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sb-align-01.hex, GOLDEN_FILE=benchs/sb-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sb_align_01]
+    description: ACT3 sb-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sb-align-01.hex, GOLDEN_FILE=act3/sb-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sh_align_01:
+  sim_compliance_act3_sh_align_01:
     << : *sim
-    description: Sh-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sh-align-01.hex, GOLDEN_FILE=benchs/sh-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sh_align_01]
+    description: ACT3 sh-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sh-align-01.hex, GOLDEN_FILE=act3/sh-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sll_01:
+  sim_compliance_act3_sll_01:
     << : *sim
-    description: Sll-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sll-01.hex, GOLDEN_FILE=benchs/sll-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sll_01]
+    description: ACT3 sll-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sll-01.hex, GOLDEN_FILE=act3/sll-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_slli_01:
+  sim_compliance_act3_slli_01:
     << : *sim
-    description: Slli-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slli-01.hex, GOLDEN_FILE=benchs/slli-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_slli_01]
+    description: ACT3 slli-01 testcase
+    parameters: [FIRMWARE_FILE=act3/slli-01.hex, GOLDEN_FILE=act3/slli-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_slt_01:
+  sim_compliance_act3_slt_01:
     << : *sim
-    description: Slt-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slt-01.hex, GOLDEN_FILE=benchs/slt-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_slt_01]
+    description: ACT3 slt-01 testcase
+    parameters: [FIRMWARE_FILE=act3/slt-01.hex, GOLDEN_FILE=act3/slt-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_slti_01:
+  sim_compliance_act3_slti_01:
     << : *sim
-    description: Slti-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/slti-01.hex, GOLDEN_FILE=benchs/slti-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_slti_01]
+    description: ACT3 slti-01 testcase
+    parameters: [FIRMWARE_FILE=act3/slti-01.hex, GOLDEN_FILE=act3/slti-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sltiu_01:
+  sim_compliance_act3_sltiu_01:
     << : *sim
-    description: Sltiu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sltiu-01.hex, GOLDEN_FILE=benchs/sltiu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sltiu_01]
+    description: ACT3 sltiu-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sltiu-01.hex, GOLDEN_FILE=act3/sltiu-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sltu_01:
+  sim_compliance_act3_sltu_01:
     << : *sim
-    description: Sltu-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sltu-01.hex, GOLDEN_FILE=benchs/sltu-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sltu_01]
+    description: ACT3 sltu-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sltu-01.hex, GOLDEN_FILE=act3/sltu-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sra_01:
+  sim_compliance_act3_sra_01:
     << : *sim
-    description: Sra-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sra-01.hex, GOLDEN_FILE=benchs/sra-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sra_01]
+    description: ACT3 sra-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sra-01.hex, GOLDEN_FILE=act3/sra-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_srai_01:
+  sim_compliance_act3_srai_01:
     << : *sim
-    description: Srai-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srai-01.hex, GOLDEN_FILE=benchs/srai-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_srai_01]
+    description: ACT3 srai-01 testcase
+    parameters: [FIRMWARE_FILE=act3/srai-01.hex, GOLDEN_FILE=act3/srai-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_srl_01:
+  sim_compliance_act3_srl_01:
     << : *sim
-    description: Srl-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srl-01.hex, GOLDEN_FILE=benchs/srl-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_srl_01]
+    description: ACT3 srl-01 testcase
+    parameters: [FIRMWARE_FILE=act3/srl-01.hex, GOLDEN_FILE=act3/srl-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_srli_01:
+  sim_compliance_act3_srli_01:
     << : *sim
-    description: Srli-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/srli-01.hex, GOLDEN_FILE=benchs/srli-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_srli_01]
+    description: ACT3 srli-01 testcase
+    parameters: [FIRMWARE_FILE=act3/srli-01.hex, GOLDEN_FILE=act3/srli-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sub_01:
+  sim_compliance_act3_sub_01:
     << : *sim
-    description: Sub-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sub-01.hex, GOLDEN_FILE=benchs/sub-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sub_01]
+    description: ACT3 sub-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sub-01.hex, GOLDEN_FILE=act3/sub-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_sw_align_01:
+  sim_compliance_act3_sw_align_01:
     << : *sim
-    description: Sw-align-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/sw-align-01.hex, GOLDEN_FILE=benchs/sw-align-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_sw_align_01]
+    description: ACT3 sw-align-01 testcase
+    parameters: [FIRMWARE_FILE=act3/sw-align-01.hex, GOLDEN_FILE=act3/sw-align-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_xor_01:
+  sim_compliance_act3_xor_01:
     << : *sim
-    description: Xor-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/xor-01.hex, GOLDEN_FILE=benchs/xor-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_xor_01]
+    description: ACT3 xor-01 testcase
+    parameters: [FIRMWARE_FILE=act3/xor-01.hex, GOLDEN_FILE=act3/xor-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
 
-  sim_compliance_xori_01:
+  sim_compliance_act3_xori_01:
     << : *sim
-    description: Xori-01 testcase
-    parameters: [FIRMWARE_FILE=benchs/xori-01.hex, GOLDEN_FILE=benchs/xori-01.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+    filesets_append : [files_sim, files_act3_xori_01]
+    description: ACT3 xori-01 testcase
+    parameters: [FIRMWARE_FILE=act3/xori-01.hex, GOLDEN_FILE=act3/xori-01.signature, SIGNATURE_FILE=signature.output, TEST_ENV=ACT3, VERBOSE=false]
+
+  #---------------------------------------
+  # Compliance Testcases : ACT4 (riscv-arch-test 4.1.0, self-checking)
+  #---------------------------------------
+  sim_compliance_act4_i_add_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_add_00]
+    description: ACT4 I-add-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-add-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_addi_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_addi_00]
+    description: ACT4 I-addi-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-addi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_and_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_and_00]
+    description: ACT4 I-and-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-and-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_andi_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_andi_00]
+    description: ACT4 I-andi-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-andi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_auipc_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_auipc_00]
+    description: ACT4 I-auipc-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-auipc-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_beq_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_beq_00]
+    description: ACT4 I-beq-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-beq-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_bge_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_bge_00]
+    description: ACT4 I-bge-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-bge-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_bgeu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_bgeu_00]
+    description: ACT4 I-bgeu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-bgeu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_blt_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_blt_00]
+    description: ACT4 I-blt-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-blt-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_bltu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_bltu_00]
+    description: ACT4 I-bltu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-bltu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_bne_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_bne_00]
+    description: ACT4 I-bne-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-bne-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_fence_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_fence_00]
+    description: ACT4 I-fence-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-fence-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_jal_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_jal_00]
+    description: ACT4 I-jal-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-jal-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_jalr_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_jalr_00]
+    description: ACT4 I-jalr-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-jalr-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lb_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lb_00]
+    description: ACT4 I-lb-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lb-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lbu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lbu_00]
+    description: ACT4 I-lbu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lbu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lh_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lh_00]
+    description: ACT4 I-lh-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lh-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lhu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lhu_00]
+    description: ACT4 I-lhu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lhu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lui_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lui_00]
+    description: ACT4 I-lui-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lui-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_lw_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_lw_00]
+    description: ACT4 I-lw-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-lw-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_nop_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_nop_00]
+    description: ACT4 I-nop-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-nop-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_or_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_or_00]
+    description: ACT4 I-or-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-or-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_ori_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_ori_00]
+    description: ACT4 I-ori-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-ori-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sb_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sb_00]
+    description: ACT4 I-sb-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sb-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sh_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sh_00]
+    description: ACT4 I-sh-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sh-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sll_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sll_00]
+    description: ACT4 I-sll-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sll-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_slli_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_slli_00]
+    description: ACT4 I-slli-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-slli-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_slt_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_slt_00]
+    description: ACT4 I-slt-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-slt-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_slti_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_slti_00]
+    description: ACT4 I-slti-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-slti-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sltiu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sltiu_00]
+    description: ACT4 I-sltiu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sltiu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sltu_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sltu_00]
+    description: ACT4 I-sltu-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sltu-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sra_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sra_00]
+    description: ACT4 I-sra-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sra-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_srai_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_srai_00]
+    description: ACT4 I-srai-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-srai-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_srl_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_srl_00]
+    description: ACT4 I-srl-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-srl-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_srli_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_srli_00]
+    description: ACT4 I-srli-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-srli-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sub_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sub_00]
+    description: ACT4 I-sub-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sub-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_sw_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_sw_00]
+    description: ACT4 I-sw-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-sw-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_xor_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_xor_00]
+    description: ACT4 I-xor-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-xor-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_i_xori_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_i_xori_00]
+    description: ACT4 I-xori-00 testcase
+    parameters: [FIRMWARE_FILE=act4/I-xori-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrc_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrc_00]
+    description: ACT4 Zicsr-csrrc-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrc-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrci_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrci_00]
+    description: ACT4 Zicsr-csrrci-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrci-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrs_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrs_00]
+    description: ACT4 Zicsr-csrrs-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrs-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrsi_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrsi_00]
+    description: ACT4 Zicsr-csrrsi-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrsi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrw_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrw_00]
+    description: ACT4 Zicsr-csrrw-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrw-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+  sim_compliance_act4_zicsr_csrrwi_00:
+    << : *sim
+    filesets_append : [files_sim, files_act4_zicsr_csrrwi_00]
+    description: ACT4 Zicsr-csrrwi-00 testcase
+    parameters: [FIRMWARE_FILE=act4/Zicsr-csrrwi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
 
 #=========================================
 parameters :
@@ -350,6 +1040,12 @@ parameters :
     description : Signature dump file (signature area compared with GOLDEN_FILE at the end of the test)
     datatype    : str
     default     : signature.output
+    paramtype   : generic
+
+  TEST_ENV :
+    description : Test environment (ACT3 tohost + signature, ACT4 self-checking)
+    datatype    : str
+    default     : ACT3
     paramtype   : generic
 
   VERBOSE :
