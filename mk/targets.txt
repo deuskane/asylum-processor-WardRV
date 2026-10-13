@@ -1,89 +1,96 @@
-default                               : Default Target
-lint_nxmap                            : NanoXplore NG_MEDIUM Board
-sim                                   : default rule to sim (DON'T RUN)
-sim_basic                             : Basic testcase
-sim_compliance_act3_add_01            : ACT3 add-01 testcase
-sim_compliance_act3_addi_01           : ACT3 addi-01 testcase
-sim_compliance_act3_and_01            : ACT3 and-01 testcase
-sim_compliance_act3_andi_01           : ACT3 andi-01 testcase
-sim_compliance_act3_auipc_01          : ACT3 auipc-01 testcase
-sim_compliance_act3_beq_01            : ACT3 beq-01 testcase
-sim_compliance_act3_bge_01            : ACT3 bge-01 testcase
-sim_compliance_act3_bgeu_01           : ACT3 bgeu-01 testcase
-sim_compliance_act3_blt_01            : ACT3 blt-01 testcase
-sim_compliance_act3_bltu_01           : ACT3 bltu-01 testcase
-sim_compliance_act3_bne_01            : ACT3 bne-01 testcase
-sim_compliance_act3_fence_01          : ACT3 fence-01 testcase
-sim_compliance_act3_jal_01            : ACT3 jal-01 testcase
-sim_compliance_act3_jalr_01           : ACT3 jalr-01 testcase
-sim_compliance_act3_lb_align_01       : ACT3 lb-align-01 testcase
-sim_compliance_act3_lbu_align_01      : ACT3 lbu-align-01 testcase
-sim_compliance_act3_lh_align_01       : ACT3 lh-align-01 testcase
-sim_compliance_act3_lhu_align_01      : ACT3 lhu-align-01 testcase
-sim_compliance_act3_lui_01            : ACT3 lui-01 testcase
-sim_compliance_act3_lw_align_01       : ACT3 lw-align-01 testcase
-sim_compliance_act3_misalign1_jalr_01 : ACT3 misalign1-jalr-01 testcase
-sim_compliance_act3_or_01             : ACT3 or-01 testcase
-sim_compliance_act3_ori_01            : ACT3 ori-01 testcase
-sim_compliance_act3_sb_align_01       : ACT3 sb-align-01 testcase
-sim_compliance_act3_sh_align_01       : ACT3 sh-align-01 testcase
-sim_compliance_act3_sll_01            : ACT3 sll-01 testcase
-sim_compliance_act3_slli_01           : ACT3 slli-01 testcase
-sim_compliance_act3_slt_01            : ACT3 slt-01 testcase
-sim_compliance_act3_slti_01           : ACT3 slti-01 testcase
-sim_compliance_act3_sltiu_01          : ACT3 sltiu-01 testcase
-sim_compliance_act3_sltu_01           : ACT3 sltu-01 testcase
-sim_compliance_act3_sra_01            : ACT3 sra-01 testcase
-sim_compliance_act3_srai_01           : ACT3 srai-01 testcase
-sim_compliance_act3_srl_01            : ACT3 srl-01 testcase
-sim_compliance_act3_srli_01           : ACT3 srli-01 testcase
-sim_compliance_act3_sub_01            : ACT3 sub-01 testcase
-sim_compliance_act3_sw_align_01       : ACT3 sw-align-01 testcase
-sim_compliance_act3_xor_01            : ACT3 xor-01 testcase
-sim_compliance_act3_xori_01           : ACT3 xori-01 testcase
-sim_compliance_act4_i_add_00          : ACT4 I-add-00 testcase
-sim_compliance_act4_i_addi_00         : ACT4 I-addi-00 testcase
-sim_compliance_act4_i_and_00          : ACT4 I-and-00 testcase
-sim_compliance_act4_i_andi_00         : ACT4 I-andi-00 testcase
-sim_compliance_act4_i_auipc_00        : ACT4 I-auipc-00 testcase
-sim_compliance_act4_i_beq_00          : ACT4 I-beq-00 testcase
-sim_compliance_act4_i_bge_00          : ACT4 I-bge-00 testcase
-sim_compliance_act4_i_bgeu_00         : ACT4 I-bgeu-00 testcase
-sim_compliance_act4_i_blt_00          : ACT4 I-blt-00 testcase
-sim_compliance_act4_i_bltu_00         : ACT4 I-bltu-00 testcase
-sim_compliance_act4_i_bne_00          : ACT4 I-bne-00 testcase
-sim_compliance_act4_i_fence_00        : ACT4 I-fence-00 testcase
-sim_compliance_act4_i_jal_00          : ACT4 I-jal-00 testcase
-sim_compliance_act4_i_jalr_00         : ACT4 I-jalr-00 testcase
-sim_compliance_act4_i_lb_00           : ACT4 I-lb-00 testcase
-sim_compliance_act4_i_lbu_00          : ACT4 I-lbu-00 testcase
-sim_compliance_act4_i_lh_00           : ACT4 I-lh-00 testcase
-sim_compliance_act4_i_lhu_00          : ACT4 I-lhu-00 testcase
-sim_compliance_act4_i_lui_00          : ACT4 I-lui-00 testcase
-sim_compliance_act4_i_lw_00           : ACT4 I-lw-00 testcase
-sim_compliance_act4_i_nop_00          : ACT4 I-nop-00 testcase
-sim_compliance_act4_i_or_00           : ACT4 I-or-00 testcase
-sim_compliance_act4_i_ori_00          : ACT4 I-ori-00 testcase
-sim_compliance_act4_i_sb_00           : ACT4 I-sb-00 testcase
-sim_compliance_act4_i_sh_00           : ACT4 I-sh-00 testcase
-sim_compliance_act4_i_sll_00          : ACT4 I-sll-00 testcase
-sim_compliance_act4_i_slli_00         : ACT4 I-slli-00 testcase
-sim_compliance_act4_i_slt_00          : ACT4 I-slt-00 testcase
-sim_compliance_act4_i_slti_00         : ACT4 I-slti-00 testcase
-sim_compliance_act4_i_sltiu_00        : ACT4 I-sltiu-00 testcase
-sim_compliance_act4_i_sltu_00         : ACT4 I-sltu-00 testcase
-sim_compliance_act4_i_sra_00          : ACT4 I-sra-00 testcase
-sim_compliance_act4_i_srai_00         : ACT4 I-srai-00 testcase
-sim_compliance_act4_i_srl_00          : ACT4 I-srl-00 testcase
-sim_compliance_act4_i_srli_00         : ACT4 I-srli-00 testcase
-sim_compliance_act4_i_sub_00          : ACT4 I-sub-00 testcase
-sim_compliance_act4_i_sw_00           : ACT4 I-sw-00 testcase
-sim_compliance_act4_i_xor_00          : ACT4 I-xor-00 testcase
-sim_compliance_act4_i_xori_00         : ACT4 I-xori-00 testcase
-sim_compliance_act4_zicsr_csrrc_00    : ACT4 Zicsr-csrrc-00 testcase
-sim_compliance_act4_zicsr_csrrci_00   : ACT4 Zicsr-csrrci-00 testcase
-sim_compliance_act4_zicsr_csrrs_00    : ACT4 Zicsr-csrrs-00 testcase
-sim_compliance_act4_zicsr_csrrsi_00   : ACT4 Zicsr-csrrsi-00 testcase
-sim_compliance_act4_zicsr_csrrw_00    : ACT4 Zicsr-csrrw-00 testcase
-sim_compliance_act4_zicsr_csrrwi_00   : ACT4 Zicsr-csrrwi-00 testcase
+cosim_openocd                         : <No description>
+default                               : <No description>
+lint_ghdl_synth                       : <No description>
+lint_nxmap                            : <No description>
+sim                                   : <No description>
+sim_basic                             : <No description>
+sim_compliance_act3_add_01            : <No description>
+sim_compliance_act3_addi_01           : <No description>
+sim_compliance_act3_and_01            : <No description>
+sim_compliance_act3_andi_01           : <No description>
+sim_compliance_act3_auipc_01          : <No description>
+sim_compliance_act3_beq_01            : <No description>
+sim_compliance_act3_bge_01            : <No description>
+sim_compliance_act3_bgeu_01           : <No description>
+sim_compliance_act3_blt_01            : <No description>
+sim_compliance_act3_bltu_01           : <No description>
+sim_compliance_act3_bne_01            : <No description>
+sim_compliance_act3_fence_01          : <No description>
+sim_compliance_act3_jal_01            : <No description>
+sim_compliance_act3_jalr_01           : <No description>
+sim_compliance_act3_lb_align_01       : <No description>
+sim_compliance_act3_lbu_align_01      : <No description>
+sim_compliance_act3_lh_align_01       : <No description>
+sim_compliance_act3_lhu_align_01      : <No description>
+sim_compliance_act3_lui_01            : <No description>
+sim_compliance_act3_lw_align_01       : <No description>
+sim_compliance_act3_misalign1_jalr_01 : <No description>
+sim_compliance_act3_or_01             : <No description>
+sim_compliance_act3_ori_01            : <No description>
+sim_compliance_act3_sb_align_01       : <No description>
+sim_compliance_act3_sh_align_01       : <No description>
+sim_compliance_act3_sll_01            : <No description>
+sim_compliance_act3_slli_01           : <No description>
+sim_compliance_act3_slt_01            : <No description>
+sim_compliance_act3_slti_01           : <No description>
+sim_compliance_act3_sltiu_01          : <No description>
+sim_compliance_act3_sltu_01           : <No description>
+sim_compliance_act3_sra_01            : <No description>
+sim_compliance_act3_srai_01           : <No description>
+sim_compliance_act3_srl_01            : <No description>
+sim_compliance_act3_srli_01           : <No description>
+sim_compliance_act3_sub_01            : <No description>
+sim_compliance_act3_sw_align_01       : <No description>
+sim_compliance_act3_xor_01            : <No description>
+sim_compliance_act3_xori_01           : <No description>
+sim_compliance_act4_i_add_00          : <No description>
+sim_compliance_act4_i_addi_00         : <No description>
+sim_compliance_act4_i_and_00          : <No description>
+sim_compliance_act4_i_andi_00         : <No description>
+sim_compliance_act4_i_auipc_00        : <No description>
+sim_compliance_act4_i_beq_00          : <No description>
+sim_compliance_act4_i_bge_00          : <No description>
+sim_compliance_act4_i_bgeu_00         : <No description>
+sim_compliance_act4_i_blt_00          : <No description>
+sim_compliance_act4_i_bltu_00         : <No description>
+sim_compliance_act4_i_bne_00          : <No description>
+sim_compliance_act4_i_fence_00        : <No description>
+sim_compliance_act4_i_jal_00          : <No description>
+sim_compliance_act4_i_jalr_00         : <No description>
+sim_compliance_act4_i_lb_00           : <No description>
+sim_compliance_act4_i_lbu_00          : <No description>
+sim_compliance_act4_i_lh_00           : <No description>
+sim_compliance_act4_i_lhu_00          : <No description>
+sim_compliance_act4_i_lui_00          : <No description>
+sim_compliance_act4_i_lw_00           : <No description>
+sim_compliance_act4_i_nop_00          : <No description>
+sim_compliance_act4_i_or_00           : <No description>
+sim_compliance_act4_i_ori_00          : <No description>
+sim_compliance_act4_i_sb_00           : <No description>
+sim_compliance_act4_i_sh_00           : <No description>
+sim_compliance_act4_i_sll_00          : <No description>
+sim_compliance_act4_i_slli_00         : <No description>
+sim_compliance_act4_i_slt_00          : <No description>
+sim_compliance_act4_i_slti_00         : <No description>
+sim_compliance_act4_i_sltiu_00        : <No description>
+sim_compliance_act4_i_sltu_00         : <No description>
+sim_compliance_act4_i_sra_00          : <No description>
+sim_compliance_act4_i_srai_00         : <No description>
+sim_compliance_act4_i_srl_00          : <No description>
+sim_compliance_act4_i_srli_00         : <No description>
+sim_compliance_act4_i_sub_00          : <No description>
+sim_compliance_act4_i_sw_00           : <No description>
+sim_compliance_act4_i_xor_00          : <No description>
+sim_compliance_act4_i_xori_00         : <No description>
+sim_compliance_act4_zicsr_csrrc_00    : <No description>
+sim_compliance_act4_zicsr_csrrci_00   : <No description>
+sim_compliance_act4_zicsr_csrrs_00    : <No description>
+sim_compliance_act4_zicsr_csrrsi_00   : <No description>
+sim_compliance_act4_zicsr_csrrw_00    : <No description>
+sim_compliance_act4_zicsr_csrrwi_00   : <No description>
+sim_debug_dm                          : <No description>
+sim_debug_system                      : <No description>
+sim_debug_tap                         : <No description>
+sim_directed_csr_branch               : <No description>
+sim_directed_ebreak                   : <No description>
 

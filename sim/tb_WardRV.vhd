@@ -33,7 +33,11 @@ entity tb_WardRV is
     GOLDEN_FILE    : string  := "";
     VERBOSE        : boolean := false;
     MODEL          : string  := "FSM"; -- Options: "ISS", "FSM"
-    TEST_ENV       : string  := "ACT3" -- Options: "ACT3" (tohost + signature), "ACT4" (self-checking)
+    TEST_ENV       : string  := "ACT3"; -- Options: "ACT3" (tohost + signature), "ACT4" (self-checking)
+    -- WardRV_fsm debug options (no Debug Module connected)
+    DEBUG_ENABLE     : boolean := false;
+    NB_TRIGGERS      : natural := 0;
+    EBREAK_EXCEPTION : boolean := false
   );
 end tb_WardRV;
 
@@ -91,9 +95,12 @@ begin
   g_FSM : if MODEL = "FSM" generate
     dut : entity asylum.WardRV_fsm
       generic map (
-        HARTID     => C_HARTID,
-        RESET_ADDR => C_BASE_ADDR,
-        VERBOSE    => true
+        HARTID           => C_HARTID,
+        RESET_ADDR       => C_BASE_ADDR,
+        VERBOSE          => true,
+        DEBUG_ENABLE     => DEBUG_ENABLE,
+        NB_TRIGGERS      => NB_TRIGGERS,
+        EBREAK_EXCEPTION => EBREAK_EXCEPTION
       )
       port map (
         clk_i      => clk_i,

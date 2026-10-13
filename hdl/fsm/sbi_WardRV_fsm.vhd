@@ -12,6 +12,11 @@
 -- into a sequence of 8-bit SBI transactions.
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author   Description
+-- 2026-10-09  1.1      mrosiere Debug generics and ports (pass-through)
+-- 2026-10-10  1.2      mrosiere IADDR_ALIGN_BITS default 0 (IADDR_WIDTH=32 out of range with 2)
+-------------------------------------------------------------------------------
 
 library ieee;
 use     ieee.std_logic_1164.all;
@@ -20,6 +25,7 @@ use     ieee.numeric_std.all;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.sbi_pkg.all;
+use     asylum.WardRV_debug_pkg.all;
 
 entity sbi_WardRV_fsm is
   generic (
@@ -27,7 +33,13 @@ entity sbi_WardRV_fsm is
      HARTID            : std_logic_vector(31 downto 0) := (others => '0');
      RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0');
      IADDR_WIDTH       : natural := 32;
-     IADDR_ALIGN_BITS  : natural := 2
+     IADDR_ALIGN_BITS  : natural := 0;
+
+     -- Debug (see WardRV_fsm)
+     DEBUG_ENABLE        : boolean := false;
+     NB_TRIGGERS         : natural := 0;
+     EBREAK_EXCEPTION    : boolean := false;
+     RESETHALTREQ_ENABLE : boolean := false
   );
   port (
     clk_i            : in    std_logic;
@@ -45,7 +57,12 @@ entity sbi_WardRV_fsm is
 
     -- Interruption
     interrupt_i      : in    std_logic;
-    interrupt_ack_o  : out   std_logic
+    interrupt_ack_o  : out   std_logic;
+
+    -- Debug (DEBUG_ENABLE) : to / from WardRV_dbg_dm
+    dbg_hart_req_i   : in    dbg_hart_req_t := DBG_HART_REQ_NULL;
+    dbg_sbi_ini_o    : out   dbg_sbi_ini_t;
+    dbg_sbi_tgt_i    : in    dbg_sbi_tgt_t  := DBG_SBI_TGT_NULL
   );
 end entity sbi_WardRV_fsm;
 
@@ -78,8 +95,12 @@ begin
 
   ins_WardRV_fsm : entity work.WardRV_fsm
     generic map (
-      HARTID     => HARTID,
-      RESET_ADDR => RESET_ADDR
+      HARTID              => HARTID,
+      RESET_ADDR          => RESET_ADDR,
+      DEBUG_ENABLE        => DEBUG_ENABLE,
+      NB_TRIGGERS         => NB_TRIGGERS,
+      EBREAK_EXCEPTION    => EBREAK_EXCEPTION,
+      RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
     )
     port map (
       clk_i      => clk_i,
@@ -88,7 +109,10 @@ begin
       imem_tgt_i => imem_tgt,
       dmem_ini_o => dmem_ini,
       dmem_tgt_i => dmem_tgt,
-      meip_i     => interrupt_i
+      meip_i     => interrupt_i,
+      dbg_hart_req_i => dbg_hart_req_i,
+      dbg_sbi_ini_o  => dbg_sbi_ini_o,
+      dbg_sbi_tgt_i  => dbg_sbi_tgt_i
     );
 
   ins_dmem2sbi : entity work.dmem2sbi

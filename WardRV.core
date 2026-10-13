@@ -18,11 +18,17 @@ CAPI=2:
 # 2026-09-15  0.0.3    mrosiere fsm : use ram2r1w
 # 2026-10-05  0.0.4    mrosiere fsm : fix CSRRC/CSRRCI and BLT/BGE on signed overflow
 #                               Compare compliance signature (SIGNATURE_FILE)
-#                               Fix default/lint_nxmap toplevel
+#                               Fix default/lint_nxmap toplevel, add sim_directed_csr_branch
 #                               Compliance : ACT3 (esw/compliance_act3) and ACT4 (esw/compliance_act4) suites
+# 2026-10-09  0.0.5    mrosiere debug : RISC-V Debug Spec 1.0 debug unit (JTAG TAP/DTM, DMI CDC,
+#                               Debug Module, SBA), fsm : debug mode, triggers, EBREAK_EXCEPTION,
+#                               MRET effect only in WRITEBACK
+#                               Add sim_debug_tap, sim_debug_dm, sim_debug_system, sim_directed_ebreak
+#                               Add cosim_openocd (OpenOCD + GDB co-simulation, sim/docker image)
+#                               Add lint_ghdl_synth (ghdl --synth of syn/ghdl/WardRV_synth_top)
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.4
+name        : asylum:processor:WardRV:0.0.5
 description : WardRV - Academic RISCV processor
 
 #=========================================
@@ -36,6 +42,7 @@ filesets:
       - hdl/RV_pkg.vhd
       - hdl/WardRV_pkg.vhd
       - hdl/WardRV_stats_pkg.vhd
+      - hdl/debug/WardRV_debug_pkg.vhd
 
       # Bridge
       - hdl/bridge/dmem2sbi.vhd
@@ -45,9 +52,16 @@ filesets:
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
 
-      # Debug Version
-      #- hdl/debug/WardRV_debug_pkg.vhd
-      #- hdl/debug/WardRV_debug.vhd
+      # Debug Unit (RISC-V Debug Spec 1.0)
+      - hdl/debug/WardRV_dbg_rom_pkg.vhd
+      - hdl/debug/WardRV_dbg_tap.vhd
+      - hdl/debug/WardRV_dbg_dtm.vhd
+      - hdl/debug/WardRV_dbg_dmi_cdc.vhd
+      - hdl/debug/WardRV_dbg_jtag.vhd
+      - hdl/debug/WardRV_dbg_dm_mem.vhd
+      - hdl/debug/WardRV_dbg_sba.vhd
+      - hdl/debug/WardRV_dbg_dm.vhd
+      - hdl/debug/WardRV_debug.vhd
 
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
@@ -57,6 +71,8 @@ filesets:
       - hdl/fsm/WardRV_fsm_regfile.vhd
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm_csr.vhd
+      - hdl/fsm/WardRV_fsm_trigger.vhd
+      - hdl/fsm/WardRV_fsm_debug.vhd
       - hdl/fsm/WardRV_fsm.vhd
       - hdl/fsm/sbi_WardRV_fsm.vhd
 
@@ -65,6 +81,7 @@ filesets:
     depend       :
       - ">=asylum:utils:pkg:1.0.0"
       - ">=asylum:component:ram:1.0.0"
+      - ">=asylum:target:techmap:1.0.0"
 
   #---------------------------------------
   files_sim:
@@ -75,11 +92,50 @@ filesets:
       - sim/tb_WardRV.vhd                                            
       - sim/tb_WardRV_iss.vhd                                        
       - esw/testcase/firmware.hex                                    : {file_type : user, copyto : firmware.hex}
+      - esw/directed                                                 : {file_type : user, copyto : directed}
 
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
-      
+
+  #---------------------------------------
+  files_sim_debug:
+  #---------------------------------------
+    files        :
+      - sim/tb_WardRV_dbg_jtag.vhd
+      - sim/tb_WardRV_dbg_dm.vhd
+      - sim/tb_WardRV_debug.vhd
+      - esw/debug/debug_fw.hex                                       : {file_type : user, copyto : debug/debug_fw.hex}
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
+  files_sim_openocd:
+  #---------------------------------------
+    files        :
+      - sim/openocd/rbb_pkg.vhd
+      - sim/tb_WardRV_openocd.vhd
+      - sim/openocd/remote_bitbang.c                                 : {file_type : user, copyto : openocd/remote_bitbang.c}
+      - sim/openocd/wardrv_sim.cfg                                   : {file_type : user, copyto : openocd/wardrv_sim.cfg}
+      - sim/openocd/scenario.py                                      : {file_type : user, copyto : openocd/scenario.py}
+      - sim/openocd/launch.sh                                        : {file_type : user, copyto : openocd/launch.sh}
+      - sim/openocd/check.sh                                         : {file_type : user, copyto : openocd/check.sh}
+      - esw/openocd/fw.elf                                           : {file_type : user, copyto : openocd/fw.elf}
+      - esw/openocd/fw.hex                                           : {file_type : user, copyto : openocd/fw.hex}
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
+  # Synthesis check (lint_ghdl_synth) : top in library work
+  #---------------------------------------
+  files_syn_ghdl:
+  #---------------------------------------
+    files        :
+      - syn/ghdl/WardRV_synth_top.vhd
+      - syn/ghdl/ghdl_synth.sh                                       : {file_type : user, copyto : ghdl_synth.sh}
+
+    file_type    : vhdlSource-2008
+
   #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
@@ -502,6 +558,24 @@ targets:
     toplevel     : sbi_WardRV_fsm
 
   #---------------------------------------
+  # ghdl --synth of WardRV_synth_top (core + debug unit) in 6 configurations :
+  # the run step elaborates the top (ghdl -m, empty simulation), the post_run
+  # hook synthesizes it (syn/ghdl/ghdl_synth.sh)
+  #---------------------------------------
+  lint_ghdl_synth:
+  #---------------------------------------
+    << : *default
+    description     : Synthesis check, ghdl --synth of WardRV_synth_top (core + debug unit), 6 configurations
+    toplevel        : WardRV_synth_top
+    filesets_append : [files_syn_ghdl]
+    tools :
+      ghdl :
+        analyze_options : ["-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--ieee-asserts=disable"]
+    hooks :
+      post_run      : [ghdl_synth]
+
+  #---------------------------------------
   sim_basic:
   #---------------------------------------
     << : *sim
@@ -510,6 +584,58 @@ targets:
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
   
+  #---------------------------------------
+  sim_directed_csr_branch:
+  #---------------------------------------
+    << : *sim
+    description     : Directed test - Zicsr (CSRRW/S/C and immediate variants) and signed/unsigned compare corner cases (signed overflow)
+    parameters      : [FIRMWARE_FILE=directed/csr_branch.hex, GOLDEN_FILE=directed/csr_branch.signature, SIGNATURE_FILE=signature.output, VERBOSE=false]
+
+  #---------------------------------------
+  sim_directed_ebreak:
+  #---------------------------------------
+    << : *sim
+    description     : Directed test - EBREAK breakpoint exception (EBREAK_EXCEPTION=true) mcause / mepc / mtval, mret
+    parameters      : [FIRMWARE_FILE=directed/ebreak.hex, GOLDEN_FILE=directed/ebreak.signature, SIGNATURE_FILE=signature.output, EBREAK_EXCEPTION=true, VERBOSE=false]
+
+  #---------------------------------------
+  # Debug Unit
+  #---------------------------------------
+  sim_debug_tap:
+    << : *sim
+    description     : Debug - JTAG TAP + DTM + DMI CDC unit test (IEEE 1149.1 TAP, dtmcs, dmi busy / failed / dmireset / dmihardreset, slow and fast clk)
+    toplevel        : tb_WardRV_dbg_jtag
+    filesets_append : [files_sim, files_sim_debug]
+
+  sim_debug_dm:
+    << : *sim
+    description     : Debug - Debug Module unit test (DMI record, hart model, abstract commands, cmderr, abstractauto, SBA)
+    toplevel        : tb_WardRV_dbg_dm
+    filesets_append : [files_sim, files_sim_debug]
+
+  sim_debug_system:
+    << : *sim
+    description     : Debug - System test, WardRV_fsm + WardRV_debug driven through JTAG (halt, registers, memory, step, ebreak, triggers, resethaltreq)
+    toplevel        : tb_WardRV_debug
+    filesets_append : [files_sim, files_sim_debug]
+    parameters      : [FIRMWARE_FILE=debug/debug_fw.hex, VERBOSE=false]
+
+  #---------------------------------------
+  # Debug Unit : OpenOCD + GDB co-simulation. Not a sim_ target (not in
+  # nonreg_sim nor in the CI) : needs openocd and gdb-multiarch, run it in
+  # the sim/docker image (make -C sim/docker run MAKE_ARGS=cosim_openocd)
+  #---------------------------------------
+  cosim_openocd:
+    << : *sim
+    description     : Debug - OpenOCD + GDB co-simulation, WardRV_fsm + WardRV_debug (SBA) driven by OpenOCD (remote_bitbang, VHPIDIRECT) and a GDB scenario (sim/openocd)
+    toplevel        : tb_WardRV_openocd
+    filesets_append : [files_sim, files_sim_openocd]
+    parameters      : [FIRMWARE_FILE=openocd/fw.hex, VERBOSE=false]
+    hooks :
+      pre_build     : [rbb_build]
+      pre_run       : [openocd_launch]
+      post_run      : [openocd_check]
+
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
   #---------------------------------------
@@ -1021,6 +1147,25 @@ targets:
     parameters: [FIRMWARE_FILE=act4/Zicsr-csrrwi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
 
 #=========================================
+scripts :
+#=========================================
+# Hooks of cosim_openocd (cwd = work_root, files copied in openocd/)
+
+  rbb_build :
+    cmd : [gcc, -shared, -fPIC, -O2, -Wall, -o, librbb.so, openocd/remote_bitbang.c]
+
+  openocd_launch :
+    cmd : [bash, openocd/launch.sh]
+
+  openocd_check :
+    cmd : [bash, openocd/check.sh]
+
+# Hook of lint_ghdl_synth (cwd = work_root)
+
+  ghdl_synth :
+    cmd : [bash, ghdl_synth.sh]
+
+#=========================================
 parameters :
 #=========================================
 
@@ -1052,4 +1197,10 @@ parameters :
     description : Verbose mode
     datatype    : bool
     default     : true
+    paramtype   : generic
+
+  EBREAK_EXCEPTION :
+    description : WardRV_fsm - EBREAK raises a breakpoint exception
+    datatype    : bool
+    default     : false
     paramtype   : generic

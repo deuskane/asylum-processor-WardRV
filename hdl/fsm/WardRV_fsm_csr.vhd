@@ -15,6 +15,7 @@
 -- Date        Version  Author   Description
 -- 2026-05-01  1.0      mrosiere Created
 -- 2026-10-09  1.1      mrosiere mepc[1:0] read-only zero (IALIGN=32)
+-- 2026-10-09  1.2      mrosiere inst_is_mret_i : one cycle pulse (WRITEBACK)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -49,7 +50,8 @@ entity WardRV_fsm_csr is
     trap_pc_i           : in  std_logic_vector(31 downto 0);
     trap_mtval_i        : in  std_logic_vector(31 downto 0);
 
-    -- MRET Instruction
+    -- MRET Instruction : one cycle pulse at the end of the instruction
+    -- (WRITEBACK), MIE <= MPIE and MPIE <= 1 applied once
     inst_is_mret_i      : in  std_logic;
 
     meip_i              : in  std_logic;
