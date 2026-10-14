@@ -20,9 +20,15 @@ CAPI=2:
 #                               Compare compliance signature (SIGNATURE_FILE)
 #                               Fix default/lint_nxmap toplevel
 #                               Compliance : ACT3 (esw/compliance_act3) and ACT4 (esw/compliance_act4) suites
+# 2026-10-09  0.0.5    mrosiere debug : RISC-V Debug Spec 1.0 debug unit (JTAG TAP/DTM, DMI CDC,
+#                               Debug Module, SBA), fsm : debug mode, triggers, EBREAK_EXCEPTION,
+#                               MRET effect only in WRITEBACK
+#                               Add sim_debug_tap, sim_debug_dm, sim_debug_system
+#                               Add cosim_openocd (OpenOCD + GDB co-simulation)
+#                               Add lint_ghdl_synth (ghdl --synth of syn/ghdl/WardRV_synth_top)
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.4
+name        : asylum:processor:WardRV:0.0.5
 description : WardRV - Academic RISCV processor
 
 #=========================================
