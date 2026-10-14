@@ -13,6 +13,7 @@
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
 -- 2026-03-21  1.1      mrosiere Updated with new instruction types and names
+-- 2026-10-09  1.2      mrosiere Add DRET, trigger and debug mode CSR addresses
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -83,6 +84,7 @@ package RV_pkg is
   constant F12_EBREAK   : bit_vector(11 downto 0) := "000000000001";
   constant F12_MRET     : bit_vector(11 downto 0) := "001100000010";
   constant F12_WFI      : bit_vector(11 downto 0) := "000100000101";
+  constant F12_DRET     : bit_vector(11 downto 0) := "011110110010"; -- Debug Spec : return from debug mode
 
   -- ===========================================================================
   -- RISC-V Compressed Opcodes (RV32C)
@@ -158,5 +160,18 @@ package RV_pkg is
   constant CSR_MCAUSE     : std_logic_vector(11 downto 0) := x"342";
   constant CSR_MTVAL      : std_logic_vector(11 downto 0) := x"343";
   constant CSR_MIP        : std_logic_vector(11 downto 0) := x"344";
+
+  -- Trigger Module (Sdtrig, accessible in M-mode)
+  constant CSR_TSELECT    : std_logic_vector(11 downto 0) := x"7A0";
+  constant CSR_TDATA1     : std_logic_vector(11 downto 0) := x"7A1";
+  constant CSR_TDATA2     : std_logic_vector(11 downto 0) := x"7A2";
+  constant CSR_TDATA3     : std_logic_vector(11 downto 0) := x"7A3";
+  constant CSR_TINFO      : std_logic_vector(11 downto 0) := x"7A4";
+
+  -- Debug Mode Registers (Sdext, accessible in debug mode only)
+  constant CSR_DCSR       : std_logic_vector(11 downto 0) := x"7B0";
+  constant CSR_DPC        : std_logic_vector(11 downto 0) := x"7B1";
+  constant CSR_DSCRATCH0  : std_logic_vector(11 downto 0) := x"7B2";
+  constant CSR_DSCRATCH1  : std_logic_vector(11 downto 0) := x"7B3";
 
 end RV_pkg;
