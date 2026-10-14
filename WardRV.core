@@ -119,6 +119,17 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  # Synthesis check (lint_ghdl_synth) : top in library work
+  #---------------------------------------
+  files_syn_ghdl:
+  #---------------------------------------
+    files        :
+      - syn/ghdl/WardRV_synth_top.vhd
+      - syn/ghdl/ghdl_synth.sh                                       : {file_type : user, copyto : ghdl_synth.sh}
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
   files_act3_add_01:
@@ -538,6 +549,24 @@ targets:
         program      : False
         logical_name : asylum
     toplevel     : sbi_WardRV_fsm
+
+  #---------------------------------------
+  # ghdl --synth of WardRV_synth_top (core + debug unit) in 6 configurations :
+  # the run step elaborates the top (ghdl -m, empty simulation), the post_run
+  # hook synthesizes it (syn/ghdl/ghdl_synth.sh)
+  #---------------------------------------
+  lint_ghdl_synth:
+  #---------------------------------------
+    << : *default
+    description     : Synthesis check, ghdl --synth of WardRV_synth_top (core + debug unit), 6 configurations
+    toplevel        : WardRV_synth_top
+    filesets_append : [files_syn_ghdl]
+    tools :
+      ghdl :
+        analyze_options : ["-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--ieee-asserts=disable"]
+    hooks :
+      post_run      : [ghdl_synth]
 
   #---------------------------------------
   sim_basic:
@@ -1108,6 +1137,11 @@ scripts :
 
   openocd_check :
     cmd : [bash, openocd/check.sh]
+
+# Hook of lint_ghdl_synth (cwd = work_root)
+
+  ghdl_synth :
+    cmd : [bash, ghdl_synth.sh]
 
 #=========================================
 parameters :
