@@ -47,10 +47,14 @@ filesets:
       - hdl/iss/WardRV_iss.vhd
 
       # Debug Unit (RISC-V Debug Spec 1.0)
+      - hdl/debug/WardRV_dbg_rom_pkg.vhd
       - hdl/debug/WardRV_dbg_tap.vhd
       - hdl/debug/WardRV_dbg_dtm.vhd
       - hdl/debug/WardRV_dbg_dmi_cdc.vhd
       - hdl/debug/WardRV_dbg_jtag.vhd
+      - hdl/debug/WardRV_dbg_dm_mem.vhd
+      - hdl/debug/WardRV_dbg_sba.vhd
+      - hdl/debug/WardRV_dbg_dm.vhd
 
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
@@ -89,6 +93,7 @@ filesets:
   #---------------------------------------
     files        :
       - sim/tb_WardRV_dbg_jtag.vhd
+      - sim/tb_WardRV_dbg_dm.vhd
 
     file_type    : vhdlSource-2008
 
@@ -529,6 +534,12 @@ targets:
     << : *sim
     description     : Debug - JTAG TAP + DTM + DMI CDC unit test (IEEE 1149.1 TAP, dtmcs, dmi busy / failed / dmireset / dmihardreset, slow and fast clk)
     toplevel        : tb_WardRV_dbg_jtag
+    filesets_append : [files_sim, files_sim_debug]
+
+  sim_debug_dm:
+    << : *sim
+    description     : Debug - Debug Module unit test (DMI record, hart model, abstract commands, cmderr, abstractauto, SBA)
+    toplevel        : tb_WardRV_dbg_dm
     filesets_append : [files_sim, files_sim_debug]
 
   #---------------------------------------
