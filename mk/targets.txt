@@ -1,3 +1,4 @@
+cosim_openocd                         : Debug - OpenOCD + GDB co-simulation, WardRV_fsm + WardRV_debug (SBA) driven by OpenOCD (remote_bitbang, VHPIDIRECT) and a GDB scenario (sim/openocd)
 default                               : Default Target
 lint_nxmap                            : NanoXplore NG_MEDIUM Board
 sim                                   : default rule to sim (DON'T RUN)

@@ -103,6 +103,22 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  files_sim_openocd:
+  #---------------------------------------
+    files        :
+      - sim/openocd/rbb_pkg.vhd
+      - sim/tb_WardRV_openocd.vhd
+      - sim/openocd/remote_bitbang.c                                 : {file_type : user, copyto : openocd/remote_bitbang.c}
+      - sim/openocd/wardrv_sim.cfg                                   : {file_type : user, copyto : openocd/wardrv_sim.cfg}
+      - sim/openocd/scenario.py                                      : {file_type : user, copyto : openocd/scenario.py}
+      - sim/openocd/launch.sh                                        : {file_type : user, copyto : openocd/launch.sh}
+      - sim/openocd/check.sh                                         : {file_type : user, copyto : openocd/check.sh}
+      - esw/openocd/fw.elf                                           : {file_type : user, copyto : openocd/fw.elf}
+      - esw/openocd/fw.hex                                           : {file_type : user, copyto : openocd/fw.hex}
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
   files_act3_add_01:
@@ -553,6 +569,21 @@ targets:
     toplevel        : tb_WardRV_debug
     filesets_append : [files_sim, files_sim_debug]
     parameters      : [FIRMWARE_FILE=debug/debug_fw.hex, VERBOSE=false]
+
+  #---------------------------------------
+  # Debug Unit : OpenOCD + GDB co-simulation. Not a sim_ target (not in
+  # nonreg_sim nor in the CI) : needs openocd and gdb-multiarch in the PATH
+  #---------------------------------------
+  cosim_openocd:
+    << : *sim
+    description     : Debug - OpenOCD + GDB co-simulation, WardRV_fsm + WardRV_debug (SBA) driven by OpenOCD (remote_bitbang, VHPIDIRECT) and a GDB scenario (sim/openocd)
+    toplevel        : tb_WardRV_openocd
+    filesets_append : [files_sim, files_sim_openocd]
+    parameters      : [FIRMWARE_FILE=openocd/fw.hex, VERBOSE=false]
+    hooks :
+      pre_build     : [rbb_build]
+      pre_run       : [openocd_launch]
+      post_run      : [openocd_check]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1063,6 +1094,20 @@ targets:
     filesets_append : [files_sim, files_act4_zicsr_csrrwi_00]
     description: ACT4 Zicsr-csrrwi-00 testcase
     parameters: [FIRMWARE_FILE=act4/Zicsr-csrrwi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
+
+#=========================================
+scripts :
+#=========================================
+# Hooks of cosim_openocd (cwd = work_root, files copied in openocd/)
+
+  rbb_build :
+    cmd : [gcc, -shared, -fPIC, -O2, -Wall, -o, librbb.so, openocd/remote_bitbang.c]
+
+  openocd_launch :
+    cmd : [bash, openocd/launch.sh]
+
+  openocd_check :
+    cmd : [bash, openocd/check.sh]
 
 #=========================================
 parameters :
