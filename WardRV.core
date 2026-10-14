@@ -46,6 +46,12 @@ filesets:
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
 
+      # Debug Unit (RISC-V Debug Spec 1.0)
+      - hdl/debug/WardRV_dbg_tap.vhd
+      - hdl/debug/WardRV_dbg_dtm.vhd
+      - hdl/debug/WardRV_dbg_dmi_cdc.vhd
+      - hdl/debug/WardRV_dbg_jtag.vhd
+
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
       - hdl/fsm/WardRV_fsm_fetch.vhd
@@ -62,6 +68,7 @@ filesets:
     depend       :
       - ">=asylum:utils:pkg:1.0.0"
       - ">=asylum:component:ram:1.0.0"
+      - ">=asylum:target:techmap:1.0.0"
 
   #---------------------------------------
   files_sim:
@@ -76,7 +83,15 @@ filesets:
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
-      
+
+  #---------------------------------------
+  files_sim_debug:
+  #---------------------------------------
+    files        :
+      - sim/tb_WardRV_dbg_jtag.vhd
+
+    file_type    : vhdlSource-2008
+
   #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
@@ -507,6 +522,15 @@ targets:
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
   
+  #---------------------------------------
+  # Debug Unit
+  #---------------------------------------
+  sim_debug_tap:
+    << : *sim
+    description     : Debug - JTAG TAP + DTM + DMI CDC unit test (IEEE 1149.1 TAP, dtmcs, dmi busy / failed / dmireset / dmihardreset, slow and fast clk)
+    toplevel        : tb_WardRV_dbg_jtag
+    filesets_append : [files_sim, files_sim_debug]
+
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
   #---------------------------------------
