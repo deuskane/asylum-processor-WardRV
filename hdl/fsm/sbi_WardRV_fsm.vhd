@@ -15,6 +15,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-10-09  1.1      mrosiere Debug generics and ports (pass-through)
+-- 2026-10-10  1.2      mrosiere IADDR_ALIGN_BITS default 0 (IADDR_WIDTH=32 out of range with 2)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -32,7 +33,7 @@ entity sbi_WardRV_fsm is
      HARTID            : std_logic_vector(31 downto 0) := (others => '0');
      RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0');
      IADDR_WIDTH       : natural := 32;
-     IADDR_ALIGN_BITS  : natural := 2;
+     IADDR_ALIGN_BITS  : natural := 0;
 
      -- Debug (see WardRV_fsm)
      DEBUG_ENABLE        : boolean := false;
