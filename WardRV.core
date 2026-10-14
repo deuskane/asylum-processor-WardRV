@@ -64,6 +64,8 @@ filesets:
       - hdl/fsm/WardRV_fsm_regfile.vhd
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm_csr.vhd
+      - hdl/fsm/WardRV_fsm_trigger.vhd
+      - hdl/fsm/WardRV_fsm_debug.vhd
       - hdl/fsm/WardRV_fsm.vhd
       - hdl/fsm/sbi_WardRV_fsm.vhd
 
@@ -1084,4 +1086,10 @@ parameters :
     description : Verbose mode
     datatype    : bool
     default     : true
+    paramtype   : generic
+
+  EBREAK_EXCEPTION :
+    description : WardRV_fsm - EBREAK raises a breakpoint exception
+    datatype    : bool
+    default     : false
     paramtype   : generic

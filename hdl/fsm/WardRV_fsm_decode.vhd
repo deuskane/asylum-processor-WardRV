@@ -16,6 +16,7 @@
 -- Date        Version  Author   Description
 -- 2026-04-06  1.0      mrosiere Created
 -- 2026-10-05  1.1      mrosiere CSRRC / CSRRCI use ALU_CLR (csr and not rs1/zimm)
+-- 2026-10-09  1.2      mrosiere Decode EBREAK and DRET
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -72,6 +73,8 @@ entity WardRV_fsm_decode is
 
     -- Instruction Metadata (for logging/FSM)
     inst_is_mret_o           : out std_logic;
+    inst_is_ebreak_o         : out std_logic;
+    inst_is_dret_o           : out std_logic;
     inst_type_o              : out inst_type_t
   );
 end entity WardRV_fsm_decode;
@@ -127,6 +130,8 @@ begin
     csr_addr_o               <= inst_i(31 downto 20); -- Adresse CSR par défaut
 
     inst_is_mret_o           <= '0';
+    inst_is_ebreak_o         <= '0';
+    inst_is_dret_o           <= '0';
     case opcode is
       when OPC_LUI =>
         rd_we_o         <= '1'; 
@@ -318,6 +323,12 @@ begin
                 inst_is_mret_o  <= '1';
 
                 inst_type_o <= I_MRET;
+              when F12_EBREAK =>
+                inst_is_ebreak_o <= '1';
+                inst_type_o      <= I_EBREAK;
+              when F12_DRET =>
+                inst_is_dret_o   <= '1';
+                inst_type_o      <= I_DRET;
               when others =>
                 inst_type_o <= I_UNKNOWN;
             end case;
