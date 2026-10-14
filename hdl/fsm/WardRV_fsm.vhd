@@ -19,6 +19,7 @@
 -- 2026-02-01  1.0      mrosiere Created
 -- 2026-04-06  1.1      mrosiere Move decode into specific module
 --                               Add instruction type to report
+-- 2026-10-09  1.2      mrosiere MRET effect only in WRITEBACK
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -159,6 +160,7 @@ architecture behavioural of WardRV_fsm is
   signal dec_csr_addr               : std_logic_vector(11 downto 0);
   signal dec_inst_type              : inst_type_t;
   signal dec_inst_is_mret           : std_logic;
+  signal inst_is_mret               : std_logic;
      
   -- CSR Signals
   signal csr_we                     : std_logic; -- Write enable for CSRs
@@ -252,7 +254,9 @@ begin
   --------------------------------------------------------------------
   -- CSR Instance
   --------------------------------------------------------------------
-  csr_we                <= dec_csr_we and state_is_writeback;
+  -- CSR write and MRET effect only at the end of the instruction (WRITEBACK)
+  csr_we                <= dec_csr_we       and state_is_writeback;
+  inst_is_mret          <= dec_inst_is_mret and state_is_writeback;
 
   csr_inst : entity work.WardRV_fsm_csr
   generic map (
@@ -274,7 +278,7 @@ begin
     trap_pc_i           => trap_pc,
     trap_mtval_i        => trap_mtval,
   
-    inst_is_mret_i      => dec_inst_is_mret,
+    inst_is_mret_i      => inst_is_mret,
     
     meip_i              => meip_i,
     trap_mirq_o         => trap_mirq
