@@ -55,6 +55,7 @@ filesets:
       - hdl/debug/WardRV_dbg_dm_mem.vhd
       - hdl/debug/WardRV_dbg_sba.vhd
       - hdl/debug/WardRV_dbg_dm.vhd
+      - hdl/debug/WardRV_debug.vhd
 
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
@@ -96,6 +97,8 @@ filesets:
     files        :
       - sim/tb_WardRV_dbg_jtag.vhd
       - sim/tb_WardRV_dbg_dm.vhd
+      - sim/tb_WardRV_debug.vhd
+      - esw/debug/debug_fw.hex                                       : {file_type : user, copyto : debug/debug_fw.hex}
 
     file_type    : vhdlSource-2008
 
@@ -543,6 +546,13 @@ targets:
     description     : Debug - Debug Module unit test (DMI record, hart model, abstract commands, cmderr, abstractauto, SBA)
     toplevel        : tb_WardRV_dbg_dm
     filesets_append : [files_sim, files_sim_debug]
+
+  sim_debug_system:
+    << : *sim
+    description     : Debug - System test, WardRV_fsm + WardRV_debug driven through JTAG (halt, registers, memory, step, ebreak, triggers, resethaltreq)
+    toplevel        : tb_WardRV_debug
+    filesets_append : [files_sim, files_sim_debug]
+    parameters      : [FIRMWARE_FILE=debug/debug_fw.hex, VERBOSE=false]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
