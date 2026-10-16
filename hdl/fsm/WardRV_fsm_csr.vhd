@@ -72,6 +72,10 @@ architecture behavioural of WardRV_fsm_csr is
   signal mie_r      : std_logic_vector(31 downto 0);
   signal mip_r      : std_logic_vector(31 downto 0);
 
+  -- Interrupt enables after the CSR write of the current instruction
+  signal mstatus_mie : std_logic;
+  signal mie_meie    : std_logic;
+
 begin
 
   -- Read Logic
@@ -138,8 +142,16 @@ begin
     end if;
   end process;
 
+  -- Interrupt enables seen by the trap request : an explicit write of
+  -- mstatus / mie (WRITEBACK) is taken into account at once, as the trap
+  -- conditions must be evaluated immediately after it (priv spec 3.1.9) :
+  -- no trap after the instruction that clears MIE / MEIE, a trap right after
+  -- the instruction that sets them while the interrupt is pending
+  mstatus_mie <= csr_wdata_i(3)  when csr_we_i = '1' and csr_addr_i = CSR_MSTATUS else mstatus_r(3);
+  mie_meie    <= csr_wdata_i(11) when csr_we_i = '1' and csr_addr_i = CSR_MIE     else mie_r(11);
+
   -- Trap signal output for the pipeline
-  trap_mirq_o <= '1' when mip_r(11) = '1' and mie_r(11) = '1' and mstatus_r(3) = '1' and inst_is_mret_i = '0' else '0';
+  trap_mirq_o <= '1' when mip_r(11) = '1' and mie_meie = '1' and mstatus_mie = '1' and inst_is_mret_i = '0' else '0';
 
   -- CSR Outputs
   csr_mtvec_o <= mtvec_r;
