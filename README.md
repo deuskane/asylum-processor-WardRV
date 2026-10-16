@@ -349,7 +349,7 @@ Programmer-visible state: 32 general-purpose registers `x0`..`x31` (`x0` = 0), t
 |-----|---------|-------|-------|
 | `mstatus` | `0x300` | `0x00001800` | MPP = 11; MIE (bit 3) / MPIE (bit 7) updated on trap and MRET |
 | `mie` | `0x304` | `0` | MEIE (bit 11) enables the external interrupt |
-| `mtvec` | `0x305` | `0` | Trap address (direct mode) |
+| `mtvec` | `0x305` | `0` | Trap address, MODE (bits 1..0) read-only zero (direct mode only) |
 | `mscratch` | `0x340` | `0` | Scratch |
 | `mepc` | `0x341` | `0` | Return address (MRET), bits 1..0 read-only zero |
 | `mcause` | `0x342` | `0` | `0x8000000B` on external interrupt |

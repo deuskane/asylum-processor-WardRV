@@ -127,7 +127,7 @@ begin
           when CSR_MSTATUS  => mstatus_r  <= csr_wdata_i;
           when CSR_MIE      => mie_r      <= csr_wdata_i;
         --when CSR_MIP      => mip_r      <= csr_wdata_i;
-          when CSR_MTVEC    => mtvec_r    <= csr_wdata_i;
+          when CSR_MTVEC    => mtvec_r    <= csr_wdata_i(31 downto 2) & "00"; -- MODE = 0 (direct only, WARL)
           when CSR_MSCRATCH => mscratch_r <= csr_wdata_i;
           when CSR_MEPC     => mepc_r     <= csr_wdata_i(31 downto 2) & "00"; -- IALIGN=32
           when CSR_MCAUSE   => mcause_r   <= csr_wdata_i;
