@@ -4,6 +4,7 @@ lint_ghdl_synth                       : Synthesis check, ghdl --synth of WardRV_
 lint_nxmap                            : NanoXplore NG_MEDIUM Board
 sim                                   : default rule to sim (DON'T RUN)
 sim_basic                             : Basic testcase
+sim_bridge_imem2sbi                   : Bridge - imem2sbi fetching from sbi_ram (asynchronous and synchronous read)
 sim_compliance_act3_add_01            : ACT3 add-01 testcase
 sim_compliance_act3_addi_01           : ACT3 addi-01 testcase
 sim_compliance_act3_and_01            : ACT3 and-01 testcase

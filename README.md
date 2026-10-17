@@ -247,7 +247,7 @@ Same interfaces as `WardRV_fsm` without `meip_i`; generics `RESET_ADDR`, `HARTID
 | `sbi_ini_o` | out | sbi_ini_t | SBI byte access; address = `addr(SBI_ADDR_WIDTH-1 downto 2) & byte index` (dmem) or word address + byte counter (imem) |
 | `sbi_tgt_i` | in | sbi_tgt_t | SBI response |
 
-`dmem2sbi` (IDLE / TRANSFER / DONE) skips disabled bytes and shifts the write data register by one byte per lane; read bytes are accumulated in the same register. `imem2sbi` always performs four reads.
+`dmem2sbi` (IDLE / TRANSFER / DONE) skips disabled bytes and shifts the write data register by one byte per lane; read bytes are accumulated in the same register. `imem2sbi` always performs four reads (`cs` = `re` in TRANSFER).
 
 ### WardRV_fsm sub-modules
 
@@ -381,6 +381,7 @@ With `EBREAK_EXCEPTION`, EBREAK (when not handled by the debug mode) traps with 
 | [sim/tb_WardRV_dbg_dm.vhd](sim/tb_WardRV_dbg_dm.vhd) | `WardRV_dbg_dm` | DMI record + behavioural hart model on the debug memory + `sbi_ram` on the SBA: dmcontrol / dmstatus, dmactive, ndmreset, halt / resume, abstract commands, cmderr (busy, not supported, exception, halt / resume), abstractauto, postincrement, resethaltreq, SBA (8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror) |
 | [sim/tb_WardRV_debug.vhd](sim/tb_WardRV_debug.vhd) | `WardRV_fsm` + `WardRV_debug` | Full system driven through JTAG like a debugger (firmware `esw/debug/debug_fw.hex`): halt, dcsr / dpc, GPR / CSR access, cmderr, abstractauto, memory through the program buffer, single step, software breakpoint, execute / store / load triggers, resume, resethaltreq with ndmreset |
 | [sim/tb_WardRV_openocd.vhd](sim/tb_WardRV_openocd.vhd) | `WardRV_fsm` + `WardRV_debug` (SBA) | Co-simulation with OpenOCD and GDB (target `cosim_openocd`): remote_bitbang server called every `TCK_DIV` clock cycles (VHPIDIRECT `rbb_tick`), RAM of 64 KB at `0x80000000` loaded with `esw/openocd/fw.hex` and shared by the core and the 8-bit SBA, `ndmreset_o` resets the core, end when OpenOCD quits, watchdog `TIMEOUT_US` (250 ms of simulated time), see [OpenOCD + GDB co-simulation](#openocd--gdb-co-simulation) |
+| [sim/tb_imem2sbi.vhd](sim/tb_imem2sbi.vhd) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with `SYNC_READ = false` / `true`): the RAM is filled through SBI, then the bridge fetches words (aligned, unaligned, address bits above the SBI width) and the instruction is checked; `cs` of the bridge must equal `re` |
 | [sim/WardRV_vips.vhd](sim/WardRV_vips.vhd) | - | VIP package: reset pulse, JTAG procedures (init, clock, idle, reset, shift LSB first, IR / DR scans, IDCODE, dtmcs, DMI scan with status, DMI access with busy retry and dmireset, DMI read / write), TCK period as parameter |
 | sim/save/tb_WardRV.vhd | - | Older copy of `tb_WardRV` (`SIGNATURE_FILE := "signature.output"`), not in the core |
 
@@ -400,6 +401,7 @@ Software:
 | `lint_nxmap` | `sbi_WardRV_fsm` | NanoXplore nxmap on NG-MEDIUM (`program: False`, flag `TARGET = NANOXPLORE_NG_MEDIUM`) |
 | `lint_ghdl_synth` | `WardRV_synth_top` | `ghdl --synth` of the core + debug unit in 6 configurations (hook `post_run`, see [Synthesis](#synthesis)) |
 | `sim_basic` | `tb_WardRV` | `esw/testcase` firmware (`FIRMWARE_FILE=firmware.hex`, `VERBOSE=false`) |
+| `sim_bridge_imem2sbi` | `tb_imem2sbi` | `imem2sbi` fetching from `sbi_ram` (asynchronous and synchronous read) |
 | `sim_debug_tap` | `tb_WardRV_dbg_jtag` | Debug unit: JTAG TAP + DTM + CDC |
 | `sim_debug_dm` | `tb_WardRV_dbg_dm` | Debug unit: Debug Module (with SBA) |
 | `sim_debug_system` | `tb_WardRV_debug` | Debug unit: system test through JTAG (`FIRMWARE_FILE=debug/debug_fw.hex`) |
@@ -511,6 +513,7 @@ asylum-processor-WardRV/
 │   ├── tb_WardRV_dbg_dm.vhd     # Debug : Debug Module unit test
 │   ├── tb_WardRV_debug.vhd      # Debug : system test
 │   ├── tb_WardRV_openocd.vhd    # Debug : OpenOCD + GDB co-simulation (cosim_openocd)
+│   ├── tb_imem2sbi.vhd          # Bridge : imem2sbi + sbi_ram (sim_bridge_imem2sbi)
 │   ├── openocd/                # remote_bitbang.c, rbb_pkg.vhd, wardrv_sim.cfg, scenario.py, launch.sh, check.sh
 │   ├── WardRV_vips.vhd
 │   └── save/tb_WardRV.vhd      # Old testbench (not in the core)

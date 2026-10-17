@@ -125,6 +125,14 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  files_sim_bridge:
+  #---------------------------------------
+    files        :
+      - sim/tb_imem2sbi.vhd
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
   # Synthesis check (lint_ghdl_synth) : top in library work
   #---------------------------------------
   files_syn_ghdl:
@@ -582,6 +590,15 @@ targets:
     parameters      :
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
+
+  #---------------------------------------
+  # Bridge
+  #---------------------------------------
+  sim_bridge_imem2sbi:
+    << : *sim
+    description     : Bridge - imem2sbi fetching from sbi_ram (asynchronous and synchronous read)
+    toplevel        : tb_imem2sbi
+    filesets_append : [files_sim, files_sim_bridge]
   
   #---------------------------------------
   # Debug Unit
