@@ -87,6 +87,14 @@ filesets:
       - esw/irq/irq_fw.hex                                           : {file_type : user, copyto : irq/irq_fw.hex}
 
   #---------------------------------------
+  files_sim_bridge:
+  #---------------------------------------
+    files        :
+      - sim/tb_imem2sbi.vhd
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
   syn:
   #---------------------------------------
     files        :
@@ -577,6 +585,15 @@ targets:
     parameters      :
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
+
+  #---------------------------------------
+  # Bridge
+  #---------------------------------------
+  sim_bridge_imem2sbi:
+    << : *sim
+    description     : Bridge - imem2sbi fetching from sbi_ram (asynchronous and synchronous read)
+    toplevel        : tb_imem2sbi
+    filesets_append : [files_sim, files_sim_bridge]
   
   #---------------------------------------
   # Interrupt : meip_i driven by the program (tb_WardRV, C_MEIP_ADDR)

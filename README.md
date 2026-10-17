@@ -216,7 +216,7 @@ Same interfaces as `WardRV_fsm` without `meip_i`; generics `RESET_ADDR`, `HARTID
 | `sbi_ini_o` | out | sbi_ini_t | SBI byte access; address = `addr(SBI_ADDR_WIDTH-1 downto 2) & byte index` (dmem) or word address + byte counter (imem) |
 | `sbi_tgt_i` | in | sbi_tgt_t | SBI response |
 
-`dmem2sbi` (IDLE / TRANSFER / DONE) skips disabled bytes and shifts the write data register by one byte per lane; read bytes are accumulated in the same register. `imem2sbi` always performs four reads.
+`dmem2sbi` (IDLE / TRANSFER / DONE) skips disabled bytes and shifts the write data register by one byte per lane; read bytes are accumulated in the same register. `imem2sbi` always performs four reads (`cs` = `re` in TRANSFER).
 
 ### WardRV_fsm sub-modules
 
@@ -260,6 +260,7 @@ Programmer-visible state: 32 general-purpose registers `x0`..`x31` (`x0` = 0), t
 | [sim/tb_WardRV.vhd](sim/tb_WardRV.vhd) + [sim/tb_WardRV_pkg.vhd](sim/tb_WardRV_pkg.vhd) | `WardRV_fsm` (`MODEL = "FSM"`, default) or `WardRV_iss` (`MODEL = "ISS"`) | UVVM testbench, answers `imem` / `dmem` requests in one cycle (`HARTID = 0x900DC0DE`). `TEST_ENV = "ACT3"` (default): loads `FIRMWARE_FILE` (hex) in a memory at `0x80000000` (`RESET_ADDR`), ends when the program writes `tohost` (`0x80200000`): `1` = TEST PASSED, other = TEST FAILED. When `SIGNATURE_FILE` and `GOLDEN_FILE` are set (ACT3 compliance and directed targets), dumps the signature area (`0x80202104`..`0x80203000`) to `SIGNATURE_FILE` and compares it word by word with `GOLDEN_FILE` (`TB_ERROR` on the first mismatch). Timeout 500 us at 10 ns. `TEST_ENV = "ACT4"`: memory of 512 KB at `0x00004000`, the bytes written at `0x10000000` are printed (console), ends when the program writes `0x20000000`: `123456789` = TEST PASSED, other = TEST FAILED. Timeout 10 ms A write at `0x80300000` (`C_MEIP_ADDR`) sets `meip_i` to `wdata(0)` at the next instruction fetch (the interrupt is pending during the instruction after the store). |
 | [sim/tb_WardRV_iss.vhd](sim/tb_WardRV_iss.vhd) | `iss_t` (procedural) | Same memory model driving the ISS protected type directly from a process (no target uses it as toplevel) |
 | [sim/WardRV_vips.vhd](sim/WardRV_vips.vhd) | - | VIP package: reset pulse, JTAG procedures (init, reset, shift, read IDCODE, write IR, DMI read / write) |
+| [sim/tb_imem2sbi.vhd](sim/tb_imem2sbi.vhd) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with `SYNC_READ = false` / `true`): the RAM is filled through SBI, then the bridge fetches words (aligned, unaligned, address bits above the SBI width) and the instruction is checked; `cs` of the bridge must equal `re` |
 | sim/save/tb_WardRV.vhd | - | Older copy of `tb_WardRV` (`SIGNATURE_FILE := "signature.output"`), not in the core |
 
 Software:
@@ -284,6 +285,7 @@ Software:
 | `sim_basic` | `tb_WardRV` | `esw/testcase` firmware (`FIRMWARE_FILE=firmware.hex`, `VERBOSE=false`) |
 | `sim_directed_csr_branch` | `tb_WardRV` | `esw/directed` test (`FIRMWARE_FILE=directed/csr_branch.hex`, `GOLDEN_FILE=directed/csr_branch.signature`, `SIGNATURE_FILE=signature.output`): Zicsr and signed / unsigned compare corner cases |
 | `sim_irq` | `tb_WardRV` | Machine external interrupt masked / unmasked by the CSR instruction during which it becomes pending (`FIRMWARE_FILE=irq/irq_fw.hex`) |
+| `sim_bridge_imem2sbi` | `tb_imem2sbi` | `imem2sbi` fetching from `sbi_ram` (asynchronous and synchronous read) |
 | `sim_compliance_act4_<test>` (45 targets) | `tb_WardRV` | `FIRMWARE_FILE=act4/<test>.hex`, `TEST_ENV=ACT4`, `VERBOSE=false`; `<test>` = `i_<instruction>_00` (39 tests: the RV32I instructions, `fence` and `nop`) and `zicsr_<instruction>_00` (`csrrc`, `csrrci`, `csrrs`, `csrrsi`, `csrrw`, `csrrwi`) |
 | `sim_compliance_act3_<test>` (39 targets) | `tb_WardRV` | `FIRMWARE_FILE=act3/<test>.hex`, `GOLDEN_FILE=act3/<test>.signature`, `SIGNATURE_FILE=signature.output`, `TEST_ENV=ACT3`, `VERBOSE=false`; `<test>` = `add_01`, `addi_01`, `and_01`, `andi_01`, `auipc_01`, `beq_01`, `bge_01`, `bgeu_01`, `blt_01`, `bltu_01`, `bne_01`, `fence_01`, `jal_01`, `jalr_01`, `lb_align_01`, `lbu_align_01`, `lh_align_01`, `lhu_align_01`, `lui_01`, `lw_align_01`, `misalign1_jalr_01`, `or_01`, `ori_01`, `sb_align_01`, `sh_align_01`, `sll_01`, `slli_01`, `slt_01`, `slti_01`, `sltiu_01`, `sltu_01`, `sra_01`, `srai_01`, `srl_01`, `srli_01`, `sub_01`, `sw_align_01`, `xor_01`, `xori_01` |
 
@@ -374,6 +376,7 @@ asylum-processor-WardRV/
 │   ├── tb_WardRV.vhd
 │   ├── tb_WardRV_pkg.vhd
 │   ├── tb_WardRV_iss.vhd
+│   ├── tb_imem2sbi.vhd          # Bridge : imem2sbi + sbi_ram (sim_bridge_imem2sbi)
 │   ├── WardRV_vips.vhd
 │   └── save/tb_WardRV.vhd      # Old testbench (not in the core)
 ├── syn/
