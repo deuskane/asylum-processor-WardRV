@@ -62,6 +62,9 @@ architecture rtl of tb_WardRV is
   signal dmem_ini  : dmem_ini_t;
   signal dmem_tgt  : dmem_tgt_t;
 
+  -- Machine external interrupt (WardRV_fsm), written by the program at C_MEIP_ADDR
+  signal meip      : std_logic := '0';
+
 begin
 
   -- Clock Generation
@@ -109,7 +112,7 @@ begin
         imem_tgt_i => imem_tgt,
         dmem_ini_o  => dmem_ini,
         dmem_tgt_i  => dmem_tgt,
-        meip_i     => '0'
+        meip_i     => meip
       );
   end generate g_FSM;
 
@@ -118,6 +121,8 @@ begin
     variable v_rdata   : std_logic_vector(31 downto 0);
     variable v_console : line;
     variable v_char    : character;
+    variable v_meip    : std_logic := '0';
+    variable v_meip_we : boolean   := false;
   begin
     assert TEST_ENV = "ACT3" or TEST_ENV = "ACT4"
       report "Unknown TEST_ENV " & TEST_ENV severity failure;
@@ -143,6 +148,11 @@ begin
       
       -- Handle Instruction Fetch
       if imem_ini.valid = '1' then
+        -- meip_i written by the previous instruction : pending from this fetch
+        if v_meip_we then
+          meip      <= v_meip;
+          v_meip_we := false;
+        end if;
         if unsigned(imem_ini.addr) >= unsigned(C_BASE_ADDR) and unsigned(imem_ini.addr) < unsigned(C_BASE_ADDR) + C_SIZE - 3 then
           read_mem(mem, imem_ini.addr, v_rdata, VERBOSE, C_BASE_ADDR);
         else
@@ -185,7 +195,7 @@ begin
             if dmem_ini.wdata = C_TOHOST_DATA_OK then
               log(ID_LOG_HDR, "ISS: TEST PASSED");
             else
-              alert(TB_ERROR, "ISS: TEST FAILED");
+              alert(TB_ERROR, "ISS: TEST FAILED (tohost = 0x" & to_hstring(dmem_ini.wdata) & ")");
             end if;
             
             if SIGNATURE_FILE /= "" then
@@ -195,6 +205,11 @@ begin
               end if;
             end if;
             sim_end <= true;
+          elsif dmem_ini.addr = C_MEIP_ADDR then
+            -- meip_i <= wdata(0) at the next instruction fetch, so that the
+            -- interrupt is pending during the instruction after the store
+            v_meip    := dmem_ini.wdata(0);
+            v_meip_we := true;
           else
             write_mem(mem, dmem_ini.addr, dmem_ini.wdata, dmem_ini.be, VERBOSE, C_BASE_ADDR);
           end if;

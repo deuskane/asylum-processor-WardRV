@@ -109,6 +109,12 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  files_sim_irq:
+  #---------------------------------------
+    files        :
+      - esw/irq/irq_fw.hex                                           : {file_type : user, copyto : irq/irq_fw.hex}
+
+  #---------------------------------------
   files_sim_openocd:
   #---------------------------------------
     files        :
@@ -604,6 +610,15 @@ targets:
     toplevel        : tb_WardRV_debug
     filesets_append : [files_sim, files_sim_debug]
     parameters      : [FIRMWARE_FILE=debug/debug_fw.hex, VERBOSE=false]
+
+  #---------------------------------------
+  # Interrupt : meip_i driven by the program (tb_WardRV, C_MEIP_ADDR)
+  #---------------------------------------
+  sim_irq:
+    << : *sim
+    description     : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
+    filesets_append : [files_sim, files_sim_irq]
+    parameters      : [FIRMWARE_FILE=irq/irq_fw.hex, VERBOSE=false]
 
   #---------------------------------------
   # Debug Unit : OpenOCD + GDB co-simulation. Not a sim_ target (not in

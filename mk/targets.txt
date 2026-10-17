@@ -91,4 +91,5 @@ sim_compliance_act4_zicsr_csrrwi_00   : ACT4 Zicsr-csrrwi-00 testcase
 sim_debug_dm                          : Debug - Debug Module unit test (DMI record, hart model, abstract commands, cmderr, abstractauto, SBA)
 sim_debug_system                      : Debug - System test, WardRV_fsm + WardRV_debug driven through JTAG (halt, registers, memory, step, ebreak, triggers, resethaltreq)
 sim_debug_tap                         : Debug - JTAG TAP + DTM + DMI CDC unit test (IEEE 1149.1 TAP, dtmcs, dmi busy / failed / dmireset / dmihardreset, slow and fast clk)
+sim_irq                               : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
 
