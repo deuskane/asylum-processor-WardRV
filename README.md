@@ -398,7 +398,8 @@ Software:
 | `default` | `sbi_WardRV_fsm` | HDL fileset only |
 | `sim` | `tb_WardRV` | Base of the simulation targets, "DON'T RUN" (GHDL `-Wall -fsynopsys -frelaxed --no-vital-checks`, `--ieee-asserts=disable`) |
 | `lint_nxmap` | `sbi_WardRV_fsm` | NanoXplore nxmap on NG-MEDIUM (`program: False`, flag `TARGET = NANOXPLORE_NG_MEDIUM`) |
-| `lint_ghdl_synth` | `WardRV_synth_top` | `ghdl --synth` of the core + debug unit in 6 configurations (hook `post_run`, see [Synthesis](#synthesis)) |
+| `lint_ghdl` | `WardRV_synth_top` | Lint: GHDL `-Wall` analysis and elaboration (empty simulation) of the core + debug unit (`-Wall -fsynopsys -frelaxed --no-vital-checks`) |
+| `lint_ghdl_synth` | `WardRV_synth_top` | Synthesis check: `lint_ghdl`, then `ghdl --synth -Wall` of the core + debug unit in 6 configurations (hook `post_run`, see [Synthesis](#synthesis)), fails on a synthesis error or an inferred latch |
 | `sim_basic` | `tb_WardRV` | `esw/testcase` firmware (`FIRMWARE_FILE=firmware.hex`, `VERBOSE=false`) |
 | `sim_debug_tap` | `tb_WardRV_dbg_jtag` | Debug unit: JTAG TAP + DTM + CDC |
 | `sim_debug_dm` | `tb_WardRV_dbg_dm` | Debug unit: Debug Module (with SBA) |
@@ -418,7 +419,9 @@ make help                          # variables, rules and target list (mk/target
 make sim_basic                     # run one target (log in log/)
 make nonreg_sim                    # run every sim_* target
 make TARGETS_FILTER=^sim_compliance_act4 nonreg_sim   # run a filtered subset
-make nonreg_lint                   # run lint_nxmap and lint_ghdl_synth
+make lint_ghdl                     # GHDL -Wall lint
+make lint_ghdl_synth               # GHDL -Wall lint + ghdl --synth -Wall check
+make nonreg_lint                   # run lint_ghdl, lint_ghdl_synth and lint_nxmap
 make clean                         # remove build/ and log/
 ```
 
@@ -455,7 +458,8 @@ make -C esw/openocd                # rebuild the firmware (RISC-V toolchain)
 ## Synthesis
 
 - `lint_nxmap` runs NanoXplore nxmap for the NG-MEDIUM FPGA with the synthesizable `sbi_WardRV_fsm` as toplevel (the `files_hdl` fileset still contains the behavioural ISS and the simulation-only statistics package, which are not instantiated by the FSM core).
-- `lint_ghdl_synth` runs `ghdl --synth` (GHDL 6.0.0, no vendor tool) on [syn/ghdl/WardRV_synth_top.vhd](syn/ghdl/WardRV_synth_top.vhd): `sbi_WardRV_fsm` (default `IADDR_*` generics) + `WardRV_debug` connected as in a SoC, with flat constrained ports (`sbi_WardRV_fsm` has unconstrained SBI ports and cannot be a synthesis top). The run step elaborates the top (`ghdl -m`, empty simulation), then the `post_run` hook [syn/ghdl/ghdl_synth.sh](syn/ghdl/ghdl_synth.sh) synthesizes 6 configurations (no debug; debug without trigger; 2 triggers; SBA; 2 triggers + SBA + `EBREAK_EXCEPTION` + `RESETHALTREQ_ENABLE`; 4 triggers, `PROGBUF_SIZE=8`, `DATA_COUNT=12`) and fails if a synthesis fails or infers a latch. Netlists and logs: `synth_<config>.vhd/.log` in the work root.
+- `lint_ghdl` analyzes (`-Wall`) and elaborates the same top (empty simulation).
+- `lint_ghdl_synth` runs `ghdl --synth -Wall` (GHDL 6.0.0, no vendor tool) on [syn/ghdl/WardRV_synth_top.vhd](syn/ghdl/WardRV_synth_top.vhd): `sbi_WardRV_fsm` (default `IADDR_*` generics) + `WardRV_debug` connected as in a SoC, with flat constrained ports (`sbi_WardRV_fsm` has unconstrained SBI ports and cannot be a synthesis top). The run step elaborates the top (`ghdl -m`, empty simulation), then the `post_run` hook [syn/ghdl/ghdl_synth.sh](syn/ghdl/ghdl_synth.sh) synthesizes 6 configurations (no debug; debug without trigger; 2 triggers; SBA; 2 triggers + SBA + `EBREAK_EXCEPTION` + `RESETHALTREQ_ENABLE`; 4 triggers, `PROGBUF_SIZE=8`, `DATA_COUNT=12`) and fails if a synthesis fails or infers a latch; it prints the number of warnings (and the warning lines) of each configuration. Netlists and logs: `synth_<config>.vhd/.log` in the work root.
 - The synthesizable core is `WardRV_fsm` / `sbi_WardRV_fsm`: plain RTL, register file in `ram_2r1w`, the execution trace process is enclosed in `synthesis translate_off / translate_on`. It is synthesized in the PicoSoC emulation targets (`emu_ng_medium_soc*_wardrv_fsm*` for NanoXplore NG-MEDIUM, `emu_basys_soc1_wardrv_fsm_c_identity` for Digilent Basys) of `asylum:soc:PicoSoC`.
 
 ## Design Notes
@@ -515,7 +519,7 @@ asylum-processor-WardRV/
 │   ├── WardRV_vips.vhd
 │   └── save/tb_WardRV.vhd      # Old testbench (not in the core)
 ├── syn/
-│   └── ghdl/                   # WardRV_synth_top.vhd, ghdl_synth.sh (lint_ghdl_synth)
+│   └── ghdl/                   # WardRV_synth_top.vhd, ghdl_synth.sh (lint_ghdl, lint_ghdl_synth)
 ├── esw/                        # FUSESOC_IGNORE
 │   ├── testcase/               # start.S, main.c, link.ld, Makefile, firmware.hex/.lst
 │   ├── debug_rom/              # debug_rom.S, gen_rom.py, Makefile (-> hdl/debug/WardRV_dbg_rom_pkg.vhd)

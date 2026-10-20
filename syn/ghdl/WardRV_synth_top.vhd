@@ -6,7 +6,7 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description:
--- Synthesis check top (lint_ghdl_synth) : sbi_WardRV_fsm + WardRV_debug
+-- Synthesis check top (lint_ghdl, lint_ghdl_synth) : sbi_WardRV_fsm + WardRV_debug
 -- connected as in a SoC, with flat and constrained ports (sbi_WardRV_fsm has
 -- unconstrained SBI ports and cannot be a synthesis top).
 -- The hart is reset by arst_b_i and by ndmreset (illustration only : a SoC

@@ -1,6 +1,6 @@
 #!/bin/bash
 #-----------------------------------------------------------------------------
-# Title      : Synthesis check of WardRV with ghdl --synth (post_run hook)
+# Title      : Synthesis check of WardRV with ghdl --synth -Wall (post_run hook)
 # Project    : Asylum
 #-----------------------------------------------------------------------------
 # File       : ghdl_synth.sh
@@ -8,21 +8,22 @@
 #-----------------------------------------------------------------------------
 # Description: post_run hook of the lint_ghdl_synth target (cwd = fusesoc
 #              work_root, after the run step : the ghdl -m of edalize has
-#              analyzed WardRV_synth_top (library work) and library asylum).
-#              Synthesizes WardRV_synth_top (core + debug unit) for each
-#              configuration below. Writes synth_<config>.vhd (netlist) and
-#              synth_<config>.log, fails if a synthesis fails or infers a
-#              latch.
+#              analyzed (-Wall) WardRV_synth_top (library work) and library
+#              asylum). Synthesizes WardRV_synth_top (core + debug unit) for
+#              each configuration below. Writes synth_<config>.vhd (netlist)
+#              and synth_<config>.log, prints the warnings of each
+#              configuration, fails if a synthesis fails or infers a latch.
 #-----------------------------------------------------------------------------
 # Copyright (c) 2026
 #-----------------------------------------------------------------------------
 # Revisions  :
 # Date        Version  Author   Description
 # 2026-10-10  1.0      mrosiere Created
+# 2026-10-20  1.1      mrosiere -Wall, print the warnings of each configuration
 #-----------------------------------------------------------------------------
 
 TOP=WardRV_synth_top
-GHDL_OPT="--std=08 -fsynopsys -frelaxed -P./asylum"
+GHDL_OPT="--std=08 -Wall -fsynopsys -frelaxed -P./asylum"
 
 # name : generics
 CONFIGS=(
@@ -51,10 +52,13 @@ for config in "${CONFIGS[@]}"; do
         status="PASS"
     fi
     [ "$status" = "PASS" ] || nb_fail=$((nb_fail + 1))
+    nb_warn=$(grep -ci "warning" "synth_${name}.log")
 
-    printf "ghdl --synth %-12s : %s\n" "$name" "$status"
+    printf "ghdl --synth %-14s : %s (%d warnings)\n" "$name" "$status" "$nb_warn"
     if [ "$status" != "PASS" ]; then
         sed 's/^/    /' "synth_${name}.log"
+    elif [ "$nb_warn" -ne 0 ]; then
+        grep -i "warning" "synth_${name}.log" | sed 's/^/    /'
     fi
 done
 
