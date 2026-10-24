@@ -25,7 +25,7 @@ CAPI=2:
 #                               MRET effect only in WRITEBACK
 #                               Add sim_debug_tap, sim_debug_dm, sim_debug_system
 #                               Add cosim_openocd (OpenOCD + GDB co-simulation)
-#                               Add lint_ghdl_synth (ghdl --synth of syn/ghdl/WardRV_synth_top)
+#                               Add lint_ghdl_synth_* (ghdl --synth of syn/WardRV_wrapper)
 #-----------------------------------------------------------------------------
 
 name        : asylum:processor:WardRV:0.0.5
@@ -125,15 +125,14 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
-  # Lint and synthesis check (lint_ghdl, lint_ghdl_synth) : top in library work
-  #---------------------------------------
-  files_syn_ghdl:
+  syn:
   #---------------------------------------
     files        :
-      - syn/ghdl/WardRV_synth_top.vhd
-      - syn/ghdl/ghdl_synth.sh                                       : {file_type : user, copyto : ghdl_synth.sh}
-
+      - syn/WardRV_wrapper.vhd
     file_type    : vhdlSource-2008
+    logical_name : asylum
+    depend       :
+      - ">=asylum:utils:generators:2.8.0"
 
   #---------------------------------------
   # Compliance Testcases : one fileset per test
@@ -558,14 +557,14 @@ targets:
 
   #---------------------------------------
   # Lint : -Wall analysis and elaboration (empty simulation) of
-  # WardRV_synth_top (core + debug unit)
+  # WardRV_wrapper (core + debug unit)
   #---------------------------------------
-  lint_ghdl:
+  lint_ghdl : &lint_ghdl
   #---------------------------------------
     << : *default
-    description     : Lint with GHDL (-Wall analysis and elaboration of WardRV_synth_top, core + debug unit)
-    toplevel        : WardRV_synth_top
-    filesets_append : [files_syn_ghdl]
+    description     : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper, core + debug unit)
+    toplevel        : asylum.WardRV_wrapper
+    filesets_append : [syn]
     default_tool    : ghdl
     tools :
       ghdl :
@@ -573,22 +572,73 @@ targets:
         run_options     : ["--ieee-asserts=disable"]
 
   #---------------------------------------
-  # ghdl --synth -Wall of WardRV_synth_top (core + debug unit) in 6 configurations :
-  # the run step elaborates the top (ghdl -m, empty simulation), the post_run
-  # hook synthesizes it (syn/ghdl/ghdl_synth.sh)
+  # Synthesis check : -Wall analysis, ghdl --synth -Wall and elaboration
+  # (no simulation) of WardRV_wrapper with the generics of the target.
+  # The pre_run hook (ghdl_synth.sh of asylum:utils:generators) adds
+  # ghdl_synth.mk to the edalize Makefile.
+  # FuseSoC merges tools in depth : analyze_options comes from lint_ghdl.
   #---------------------------------------
-  lint_ghdl_synth:
-  #---------------------------------------
-    << : *default
-    description     : Synthesis check, ghdl --synth -Wall of WardRV_synth_top (core + debug unit), 6 configurations
-    toplevel        : WardRV_synth_top
-    filesets_append : [files_syn_ghdl]
+  lint_ghdl_synth_nodebug : &lint_ghdl_synth
+    << : *lint_ghdl
+    description     : Synthesis check of WardRV_wrapper, without debug unit
+    parameters      :
+      - DEBUG_ENABLE=false
     tools :
       ghdl :
-        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
-        run_options     : ["--ieee-asserts=disable"]
+        run_options     : ["--no-run"]
     hooks :
-      post_run      : [ghdl_synth]
+      pre_run : [ghdl_synth]
+
+  #---------------------------------------
+  lint_ghdl_synth_debug :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit without trigger
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=0
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_trig2 :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit with 2 triggers
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=2
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_sba :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit with system bus access
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=0
+      - SBA_ENABLE=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_full :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, every option
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=2
+      - SBA_ENABLE=true
+      - EBREAK_EXCEPTION=true
+      - RESETHALTREQ_ENABLE=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_large :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, 4 triggers, large program buffer
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=4
+      - PROGBUF_SIZE=8
+      - DATA_COUNT=12
 
   #---------------------------------------
   sim_basic:
@@ -1160,7 +1210,7 @@ scripts :
   openocd_check :
     cmd : [bash, openocd/check.sh]
 
-# Hook of lint_ghdl_synth (cwd = work_root)
+# pre_run hook of lint_ghdl_synth_* (cwd = work_root)
 
   ghdl_synth :
     cmd : [bash, ghdl_synth.sh]
@@ -1203,4 +1253,43 @@ parameters :
     description : WardRV_fsm - EBREAK raises a breakpoint exception
     datatype    : bool
     default     : false
+    paramtype   : generic
+
+  #---------------------------------------
+  # Generics of WardRV_wrapper (lint_ghdl_synth_*)
+  #---------------------------------------
+  DEBUG_ENABLE :
+    description : true, debug unit (WardRV_debug) instantiated
+    datatype    : bool
+    default     : true
+    paramtype   : generic
+
+  NB_TRIGGERS :
+    description : Number of triggers
+    datatype    : int
+    default     : 2
+    paramtype   : generic
+
+  SBA_ENABLE :
+    description : true, system bus access
+    datatype    : bool
+    default     : false
+    paramtype   : generic
+
+  RESETHALTREQ_ENABLE :
+    description : true, halt on reset request supported
+    datatype    : bool
+    default     : false
+    paramtype   : generic
+
+  PROGBUF_SIZE :
+    description : Size of the program buffer (words)
+    datatype    : int
+    default     : 2
+    paramtype   : generic
+
+  DATA_COUNT :
+    description : Number of data registers
+    datatype    : int
+    default     : 2
     paramtype   : generic

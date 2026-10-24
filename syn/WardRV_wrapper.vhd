@@ -2,11 +2,11 @@
 -- Title      : WardRV
 -- Project    :
 -------------------------------------------------------------------------------
--- File       : WardRV_synth_top.vhd
+-- File       : WardRV_wrapper.vhd
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description:
--- Synthesis check top (lint_ghdl, lint_ghdl_synth) : sbi_WardRV_fsm + WardRV_debug
+-- Wrapper (lint_ghdl, lint_ghdl_synth_*) : sbi_WardRV_fsm + WardRV_debug
 -- connected as in a SoC, with flat and constrained ports (sbi_WardRV_fsm has
 -- unconstrained SBI ports and cannot be a synthesis top).
 -- The hart is reset by arst_b_i and by ndmreset (illustration only : a SoC
@@ -17,6 +17,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-10-10  1.0      mrosiere Created
+-- 2026-10-24  1.1      mrosiere Was WardRV_synth_top, library asylum
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -26,7 +27,7 @@ use asylum.sbi_pkg.all;
 use asylum.WardRV_pkg.all;
 use asylum.WardRV_debug_pkg.all;
 
-entity WardRV_synth_top is
+entity WardRV_wrapper is
   generic (
     DEBUG_ENABLE        : boolean := true;
     NB_TRIGGERS         : natural := 2;
@@ -77,9 +78,9 @@ entity WardRV_synth_top is
     -- Non-debug module reset request
     ndmreset_o    : out std_logic
   );
-end entity WardRV_synth_top;
+end entity WardRV_wrapper;
 
-architecture rtl of WardRV_synth_top is
+architecture rtl of WardRV_wrapper is
 
   signal hart_rst_b    : std_logic;
   signal ndmreset      : std_logic;

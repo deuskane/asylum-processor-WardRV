@@ -1,7 +1,12 @@
 cosim_openocd                         : Debug - OpenOCD + GDB co-simulation, WardRV_fsm + WardRV_debug (SBA) driven by OpenOCD (remote_bitbang, VHPIDIRECT) and a GDB scenario (sim/openocd)
 default                               : Default Target
-lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_synth_top, core + debug unit)
-lint_ghdl_synth                       : Synthesis check, ghdl --synth -Wall of WardRV_synth_top (core + debug unit), 6 configurations
+lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper, core + debug unit)
+lint_ghdl_synth_debug                 : Synthesis check of WardRV_wrapper, debug unit without trigger
+lint_ghdl_synth_debug_full            : Synthesis check of WardRV_wrapper, debug unit, every option
+lint_ghdl_synth_debug_large           : Synthesis check of WardRV_wrapper, debug unit, 4 triggers, large program buffer
+lint_ghdl_synth_debug_sba             : Synthesis check of WardRV_wrapper, debug unit with system bus access
+lint_ghdl_synth_debug_trig2           : Synthesis check of WardRV_wrapper, debug unit with 2 triggers
+lint_ghdl_synth_nodebug               : Synthesis check of WardRV_wrapper, without debug unit
 lint_nxmap                            : NanoXplore NG_MEDIUM Board
 sim                                   : default rule to sim (DON'T RUN)
 sim_basic                             : Basic testcase
