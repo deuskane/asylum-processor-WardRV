@@ -276,6 +276,7 @@ Software:
 | `default` | `sbi_WardRV_fsm` | HDL fileset only |
 | `sim` | `tb_WardRV` | Base of the simulation targets, "DON'T RUN" (GHDL `-Wall -fsynopsys -frelaxed --no-vital-checks`, `--ieee-asserts=disable`) |
 | `lint_nxmap` | `sbi_WardRV_fsm` | NanoXplore nxmap on NG-MEDIUM (`program: False`, flag `TARGET = NANOXPLORE_NG_MEDIUM`) |
+| `lint_ghdl` | `asylum.WardRV_wrapper` | Lint: GHDL `-Wall` analysis and elaboration (empty simulation) of [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd) (`-Wall -fsynopsys -frelaxed --no-vital-checks`) |
 | `sim_basic` | `tb_WardRV` | `esw/testcase` firmware (`FIRMWARE_FILE=firmware.hex`, `VERBOSE=false`) |
 | `sim_directed_csr_branch` | `tb_WardRV` | `esw/directed` test (`FIRMWARE_FILE=directed/csr_branch.hex`, `GOLDEN_FILE=directed/csr_branch.signature`, `SIGNATURE_FILE=signature.output`): Zicsr and signed / unsigned compare corner cases |
 | `sim_compliance_act4_<test>` (45 targets) | `tb_WardRV` | `FIRMWARE_FILE=act4/<test>.hex`, `TEST_ENV=ACT4`, `VERBOSE=false`; `<test>` = `i_<instruction>_00` (39 tests: the RV32I instructions, `fence` and `nop`) and `zicsr_<instruction>_00` (`csrrc`, `csrrci`, `csrrs`, `csrrsi`, `csrrw`, `csrrwi`) |
@@ -292,7 +293,8 @@ make help                          # variables, rules and target list (mk/target
 make sim_basic                     # run one target (log in log/)
 make nonreg_sim                    # run every sim_* target
 make TARGETS_FILTER=^sim_compliance_act4 nonreg_sim   # run a filtered subset
-make nonreg_lint                   # run lint_nxmap
+make lint_ghdl                     # GHDL -Wall lint
+make nonreg_lint                   # run every lint_* target (lint_ghdl, lint_nxmap)
 make clean                         # remove build/ and log/
 ```
 
@@ -307,6 +309,7 @@ The firmware and reference files are committed (`esw/directed` is regenerated wi
 ## Synthesis
 
 - `lint_nxmap` runs NanoXplore nxmap for the NG-MEDIUM FPGA with the synthesizable `sbi_WardRV_fsm` as toplevel (the `files_hdl` fileset still contains the behavioural ISS and the simulation-only statistics package, which are not instantiated by the FSM core).
+- `lint_ghdl` analyzes (`-Wall`) and elaborates (empty simulation) [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd): `sbi_WardRV_fsm` with flat constrained ports (`sbi_WardRV_fsm` has unconstrained SBI ports and cannot be a synthesis top), word address of the whole 32-bit space by default (`IADDR_WIDTH = 30`, `IADDR_ALIGN_BITS = 2`).
 - The synthesizable core is `WardRV_fsm` / `sbi_WardRV_fsm`: plain RTL, register file in `ram_2r1w`, the execution trace process is enclosed in `synthesis translate_off / translate_on`. It is synthesized in the PicoSoC emulation targets (`emu_ng_medium_soc*_wardrv_fsm*` for NanoXplore NG-MEDIUM, `emu_basys_soc1_wardrv_fsm_c_identity` for Digilent Basys) of `asylum:soc:PicoSoC`.
 
 ## Design Notes
@@ -359,6 +362,8 @@ asylum-processor-WardRV/
 │   ├── tb_WardRV_iss.vhd
 │   ├── WardRV_vips.vhd
 │   └── save/tb_WardRV.vhd      # Old testbench (not in the core)
+├── syn/
+│   └── WardRV_wrapper.vhd      # Lint / synthesis check wrapper (lint_ghdl*)
 ├── esw/                        # FUSESOC_IGNORE
 │   ├── testcase/               # start.S, main.c, link.ld, Makefile, firmware.hex/.lst
 │   ├── directed/               # gen_csr_branch.py + csr_branch.hex/.lst/.signature

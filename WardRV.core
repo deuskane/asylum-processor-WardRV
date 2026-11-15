@@ -79,7 +79,15 @@ filesets:
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
-      
+
+  #---------------------------------------
+  syn:
+  #---------------------------------------
+    files        :
+      - syn/WardRV_wrapper.vhd
+    file_type    : vhdlSource-2008
+    logical_name : asylum
+
   #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
@@ -500,6 +508,22 @@ targets:
         program      : False
         logical_name : asylum
     toplevel     : sbi_WardRV_fsm
+
+  #---------------------------------------
+  # Lint : -Wall analysis and elaboration (empty simulation) of
+  # WardRV_wrapper (sbi_WardRV_fsm with flat SBI ports)
+  #---------------------------------------
+  lint_ghdl : &lint_ghdl
+  #---------------------------------------
+    << : *default
+    description     : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
+    toplevel        : asylum.WardRV_wrapper
+    filesets_append : [syn]
+    default_tool    : ghdl
+    tools :
+      ghdl :
+        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--ieee-asserts=disable"]
 
   #---------------------------------------
   sim_basic:
