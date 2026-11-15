@@ -1,4 +1,8 @@
 default                               : Default Target
+lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
+lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte address on 32 bits
+lint_ghdl_synth_default               : Synthesis check of WardRV_wrapper, word address on 32 bits (default generics)
+lint_ghdl_synth_picosoc               : Synthesis check of WardRV_wrapper, PicoSoC (word address, ROM of 1024 words)
 lint_nxmap                            : NanoXplore NG_MEDIUM Board
 sim                                   : default rule to sim (DON'T RUN)
 sim_basic                             : Basic testcase
