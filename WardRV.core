@@ -87,6 +87,9 @@ filesets:
       - syn/WardRV_wrapper.vhd
     file_type    : vhdlSource-2008
     logical_name : asylum
+    # ghdl_synth.sh / ghdl_synth.mk (pre_run hook of lint_ghdl_synth_*)
+    depend       :
+      - asylum:utils:ghdl_synth
 
   #---------------------------------------
   # Compliance Testcases : one fileset per test
@@ -524,6 +527,41 @@ targets:
       ghdl :
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--ieee-asserts=disable"]
+
+  #---------------------------------------
+  # Synthesis check : -Wall analysis, ghdl --synth -Wall and elaboration
+  # (no simulation) of WardRV_wrapper with the generics of the target.
+  # The pre_run hook (ghdl_synth.sh of asylum:utils:ghdl_synth) adds
+  # ghdl_synth.mk to the edalize Makefile.
+  # FuseSoC merges tools in depth : analyze_options comes from lint_ghdl.
+  #---------------------------------------
+  lint_ghdl_synth_default : &lint_ghdl_synth
+  #---------------------------------------
+    << : *lint_ghdl
+    description     : Synthesis check of WardRV_wrapper, word address on 32 bits (default generics)
+    tools :
+      ghdl :
+        run_options     : ["--no-run"]
+    hooks :
+      pre_run : [ghdl_synth]
+
+  #---------------------------------------
+  lint_ghdl_synth_byte_addr :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, byte address on 32 bits
+    parameters      :
+      - IADDR_WIDTH=32
+      - IADDR_ALIGN_BITS=0
+
+  #---------------------------------------
+  lint_ghdl_synth_picosoc :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, PicoSoC (word address, ROM of 1024 words)
+    parameters      :
+      - IADDR_WIDTH=10
+      - IADDR_ALIGN_BITS=2
 
   #---------------------------------------
   sim_basic:
@@ -1045,6 +1083,16 @@ targets:
     parameters: [FIRMWARE_FILE=act4/Zicsr-csrrwi-00.hex, TEST_ENV=ACT4, VERBOSE=false]
 
 #=========================================
+scripts :
+#=========================================
+
+  #---------------------------------------
+  # pre_run hook of lint_ghdl_synth_* (cwd = work_root)
+  #---------------------------------------
+  ghdl_synth :
+    cmd : [bash, ghdl_synth.sh]
+
+#=========================================
 parameters :
 #=========================================
 
@@ -1076,4 +1124,19 @@ parameters :
     description : Verbose mode
     datatype    : bool
     default     : true
+    paramtype   : generic
+
+  #---------------------------------------
+  # Generics of WardRV_wrapper (lint_ghdl_synth_*)
+  #---------------------------------------
+  IADDR_WIDTH :
+    description : Width of iaddr_o
+    datatype    : int
+    default     : 30
+    paramtype   : generic
+
+  IADDR_ALIGN_BITS :
+    description : Number of PC LSBs dropped on iaddr_o (2 = word address)
+    datatype    : int
+    default     : 2
     paramtype   : generic
