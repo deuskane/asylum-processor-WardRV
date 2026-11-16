@@ -40,7 +40,7 @@
 
 **Academic 32-bit RISC-V processor (RV32I + Zicsr, machine mode) with a multi-cycle FSM core, an SBI wrapper and a behavioural instruction-set simulator.**
 
-VLNV: `asylum:processor:WardRV:0.0.4`
+VLNV: `asylum:processor:WardRV:0.0.5`
 
 ## Table of Contents
 
@@ -316,7 +316,7 @@ make clean                         # remove build/ and log/
 Equivalent FuseSoC command:
 
 ```bash
-fusesoc --cores-root . run --build-root build --target sim_compliance_act3_add_01 asylum:processor:WardRV:0.0.4
+fusesoc --cores-root . run --build-root build --target sim_compliance_act3_add_01 asylum:processor:WardRV:0.0.5
 ```
 
 The firmware and reference files are committed (`esw/directed` is regenerated with `python3 esw/directed/gen_csr_branch.py`), so simulation only needs GHDL and UVVM (`bitvis:verification:uvvm`). Rebuilding them needs a RISC-V toolchain (`RISCV_PREFIX ?= riscv64-unknown-elf-`, see `esw/testcase/Makefile`); the compliance tests are regenerated with `make full` in `esw/compliance_act3` and `esw/compliance_act4`, which install their own pinned tools. Outside CI, GHDL writes a waveform `dut.fst`.
