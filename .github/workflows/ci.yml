@@ -502,6 +502,51 @@ jobs:
     with:
       name: sim_dbg_jtag_tap
 
+  sim_dbg_openocd_pb0_sba0_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba0_tr0
+
+  sim_dbg_openocd_pb0_sba0_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba0_tr2
+
+  sim_dbg_openocd_pb0_sba1_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba1_tr0
+
+  sim_dbg_openocd_pb0_sba1_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba1_tr2
+
+  sim_dbg_openocd_pb16_sba1_tr8:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb16_sba1_tr8
+
+  sim_dbg_openocd_pb2_sba0_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba0_tr0
+
+  sim_dbg_openocd_pb2_sba0_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba0_tr2
+
+  sim_dbg_openocd_pb2_sba1_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba1_tr0
+
+  sim_dbg_openocd_pb2_sba1_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba1_tr2
+
   sim_dbg_system_cmderr:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:

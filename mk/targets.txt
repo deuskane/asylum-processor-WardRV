@@ -1,5 +1,6 @@
 dbg_dm                                : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
 dbg_jtag                              : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
+dbg_openocd                           : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
 dbg_system                            : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
 default                               : Default Target
 lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
@@ -106,6 +107,15 @@ sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes 
 sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields
 sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
 sim_dbg_jtag_tap                      : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
+sim_dbg_openocd_pb0_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 0 triggers
+sim_dbg_openocd_pb0_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers
+sim_dbg_openocd_pb0_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 0, SBA, 0 triggers
+sim_dbg_openocd_pb0_sba1_tr2          : Debug - OpenOCD + GDB - program buffer 0, SBA, 2 triggers
+sim_dbg_openocd_pb16_sba1_tr8         : Debug - OpenOCD + GDB - maximum configuration, program buffer 16 (no impebreak), 12 data, SBA, 8 triggers
+sim_dbg_openocd_pb2_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 0 triggers
+sim_dbg_openocd_pb2_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
+sim_dbg_openocd_pb2_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
+sim_dbg_openocd_pb2_sba1_tr2          : Debug - OpenOCD + GDB - program buffer 2, SBA, 2 triggers
 sim_dbg_system_cmderr                 : Debug - System - register that does not exist, command while running
 sim_dbg_system_ebreak                 : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
 sim_dbg_system_exc_ebreak             : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode

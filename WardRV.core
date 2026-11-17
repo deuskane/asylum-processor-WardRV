@@ -117,6 +117,23 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  files_sim_openocd:
+  #---------------------------------------
+    files        :
+      - sim/openocd/rbb_pkg.vhd
+      - sim/tb_WardRV_openocd.vhd
+      - sim/openocd/remote_bitbang.c                                 : {file_type : user, copyto : openocd/remote_bitbang.c}
+      - sim/openocd/wardrv.cfg                                       : {file_type : user, copyto : openocd/wardrv.cfg}
+      - sim/openocd/scenario.py                                      : {file_type : user, copyto : openocd/scenario.py}
+      - sim/openocd/cosim.sh                                         : {file_type : user, copyto : openocd/cosim.sh}
+      - esw/openocd/start.S                                          : {file_type : user, copyto : openocd/fw/start.S}
+      - esw/openocd/main.c                                           : {file_type : user, copyto : openocd/fw/main.c}
+      - esw/openocd/link.ld                                          : {file_type : user, copyto : openocd/fw/link.ld}
+      - esw/openocd/Makefile                                         : {file_type : user, copyto : openocd/fw/Makefile}
+
+    file_type    : vhdlSource-2008
+
+  #---------------------------------------
   files_sim_bridge:
   #---------------------------------------
     files        :
@@ -786,6 +803,68 @@ targets:
     parameters      : [TEST=exc_trigger, EBREAK_EXCEPTION=true]
 
   #---------------------------------------
+  # OpenOCD + GDB co-simulation : one target per configuration of the debug
+  # unit (program buffer, System Bus Access, triggers). Needs openocd and
+  # gdb-multiarch (sim/openocd/cosim.sh, hooks run in the work root).
+  #---------------------------------------
+  dbg_openocd: &dbg_openocd
+  #---------------------------------------
+    << : *dbg_jtag
+    description     : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
+    toplevel        : tb_WardRV_openocd
+    filesets_append : [files_sim, files_sim_openocd]
+    parameters      : [PROGBUF_SIZE, IMPEBREAK, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS]
+    hooks :
+      pre_build     : [cosim_build]
+      pre_run       : [cosim_start]
+      post_run      : [cosim_check]
+
+  sim_dbg_openocd_pb0_sba0_tr0:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 0, no SBA, 0 triggers
+    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=false, NB_TRIGGERS=0]
+
+  sim_dbg_openocd_pb0_sba0_tr2:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers
+    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=false, NB_TRIGGERS=2]
+
+  sim_dbg_openocd_pb0_sba1_tr0:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 0, SBA, 0 triggers
+    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=true, NB_TRIGGERS=0]
+
+  sim_dbg_openocd_pb0_sba1_tr2:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 0, SBA, 2 triggers
+    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=true, NB_TRIGGERS=2]
+
+  sim_dbg_openocd_pb2_sba0_tr0:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 2, no SBA, 0 triggers
+    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=false, NB_TRIGGERS=0]
+
+  sim_dbg_openocd_pb2_sba0_tr2:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
+    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=false, NB_TRIGGERS=2]
+
+  sim_dbg_openocd_pb2_sba1_tr0:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
+    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=true, NB_TRIGGERS=0]
+
+  sim_dbg_openocd_pb2_sba1_tr2:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - program buffer 2, SBA, 2 triggers
+    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=true, NB_TRIGGERS=2]
+
+  sim_dbg_openocd_pb16_sba1_tr8:
+    << : *dbg_openocd
+    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16 (no impebreak), 12 data, SBA, 8 triggers
+    parameters      : [PROGBUF_SIZE=16, IMPEBREAK=false, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8]
+
+  #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
   #---------------------------------------
   sim_compliance_act3_add_01:
@@ -1305,6 +1384,18 @@ scripts :
   ghdl_synth :
     cmd : [bash, ghdl_synth.sh]
 
+  #---------------------------------------
+  # Hooks of sim_dbg_openocd_* (cwd = work_root)
+  #---------------------------------------
+  cosim_build :
+    cmd : [bash, openocd/cosim.sh, build]
+
+  cosim_start :
+    cmd : [bash, openocd/cosim.sh, start]
+
+  cosim_check :
+    cmd : [bash, openocd/cosim.sh, check]
+
 #=========================================
 parameters :
 #=========================================
@@ -1356,6 +1447,30 @@ parameters :
 
   PROGBUF_SIZE :
     description : Debug Module - program buffer size in words
+    datatype    : int
+    default     : 2
+    paramtype   : generic
+
+  IMPEBREAK :
+    description : Debug Module - implicit ebreak after the program buffer (dmstatus.impebreak)
+    datatype    : bool
+    default     : true
+    paramtype   : generic
+
+  DATA_COUNT :
+    description : Debug Module - number of data registers
+    datatype    : int
+    default     : 2
+    paramtype   : generic
+
+  SBA_ENABLE :
+    description : Debug Module - System Bus Access
+    datatype    : bool
+    default     : true
+    paramtype   : generic
+
+  NB_TRIGGERS :
+    description : WardRV_fsm - number of triggers
     datatype    : int
     default     : 2
     paramtype   : generic
