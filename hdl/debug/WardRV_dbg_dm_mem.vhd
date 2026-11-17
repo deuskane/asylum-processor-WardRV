@@ -132,6 +132,9 @@ architecture rtl of WardRV_dbg_dm_mem is
 
 begin  -- architecture rtl
 
+  assert DBG_ROM_CONTENT'length <= WI_HALTED
+    report "WardRV_dbg_dm_mem : the debug ROM overlaps HALTED" severity failure;
+
   wi       <= to_integer(unsigned(dbg_mem_ini_i.addr(DBG_MEM_AWIDTH-1 downto 2)));
   write    <= dbg_mem_ini_i.valid and dbg_mem_ini_i.we;
   abstract <= abstract_program(cmd_i);

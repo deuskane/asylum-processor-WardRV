@@ -97,8 +97,7 @@ package WardRV_debug_pkg is
   constant DBG_MEM_BASE      : std_logic_vector(32-1 downto 0) := x"FFFFF800";
   constant DBG_MEM_AWIDTH    : natural := 11;
 
-  -- Byte offsets                                              -- Core access
-  constant DBG_ROM           : natural := 16#000#;  -- R   : debug ROM, halt entry
+  -- Byte offsets (debug ROM, halt entry : 0x000)            -- Core access
   constant DBG_HALTED        : natural := 16#100#;  -- W   : the hart is parked in the ROM
   constant DBG_RESUMING      : natural := 16#104#;  -- W   : the hart resumes
   constant DBG_GO            : natural := 16#108#;  -- R   : 1 = execute the abstract command
@@ -107,7 +106,6 @@ package WardRV_debug_pkg is
   constant DBG_PROGBUF       : natural := 16#214#;  -- R   : program buffer, then ebreak
   constant DBG_DATA          : natural := 16#300#;  -- R/W : data registers
 
-  constant DBG_ROM_MAX       : natural := 64;       -- Words
   constant DBG_ABSTRACT_SIZE : natural := 5;        -- Words
   constant DBG_PROGBUF_MAX   : natural := 16;       -- Words
   constant DBG_DATA_MAX      : natural := 12;       -- Words
