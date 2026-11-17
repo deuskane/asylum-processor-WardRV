@@ -11,6 +11,8 @@
 //       (mepc, mcause, mstatus.MPIE = 1)
 //   4 : csrc  mie, MEIE with the interrupt pending : no trap
 //   5 : csrs  mie, MEIE with the interrupt pending : trap right after it
+//   6 : mtvec written with MODE = 3 reads back the aligned handler address
+//       (MODE is read-only zero), and the next trap enters the handler
 //
 // Build : make (needs a RISC-V toolchain), irq_fw.hex / irq_fw.lst committed
 // ----------------------------------------------------------------------------
@@ -92,6 +94,17 @@ ret5:
     bne   s6, a6, fail            // mepc
     bne   s7, a7, fail            // mstatus in the handler
     bne   s8, s2, fail            // mcause
+
+    // 6 : mtvec.MODE is read-only zero
+    li    t6, 6
+    addi  a6, a2, 3               // handler | MODE = 3
+    csrw  mtvec, a6
+    csrr  s3, mtvec
+    bne   s3, a2, fail            // read back : handler, MODE = 0
+    sw    a3, 0(a0)               // meip_i = 1 during the next instruction
+    nop                           // trap : enters the aligned handler
+    li    a5, 3
+    bne   s4, a5, fail            // third trap
 
 pass:
     sw    a3, 0(a1)               // tohost = 1 : pass
