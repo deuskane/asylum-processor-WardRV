@@ -20,9 +20,12 @@ CAPI=2:
 #                               Compare compliance signature (SIGNATURE_FILE)
 #                               Fix default/lint_nxmap toplevel
 #                               Compliance : ACT3 (esw/compliance_act3) and ACT4 (esw/compliance_act4) suites
+# 2026-11-16  0.0.5    mrosiere fsm : mtvec.MODE read-only zero, interrupt evaluated with
+#                               the mstatus / mie being written, imem2sbi cs,
+#                               sbi_WardRV_fsm IADDR_ALIGN_BITS default 0
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.4
+name        : asylum:processor:WardRV:0.0.5
 description : WardRV - Academic RISCV processor
 
 #=========================================
@@ -85,6 +88,14 @@ filesets:
   #---------------------------------------
     files        :
       - esw/irq/irq_fw.hex                                           : {file_type : user, copyto : irq/irq_fw.hex}
+
+  #---------------------------------------
+  files_sim_bridge:
+  #---------------------------------------
+    files        :
+      - sim/tb_imem2sbi.vhd
+
+    file_type    : vhdlSource-2008
 
   #---------------------------------------
   syn:
@@ -577,6 +588,15 @@ targets:
     parameters      :
       - FIRMWARE_FILE=firmware.hex
       - VERBOSE=false
+
+  #---------------------------------------
+  # Bridge
+  #---------------------------------------
+  sim_bridge_imem2sbi:
+    << : *sim
+    description     : Bridge - imem2sbi fetching from sbi_ram (asynchronous and synchronous read)
+    toplevel        : tb_imem2sbi
+    filesets_append : [files_sim, files_sim_bridge]
   
   #---------------------------------------
   # Interrupt : meip_i driven by the program (tb_WardRV, C_MEIP_ADDR)

@@ -53,7 +53,6 @@ architecture behavioural of imem2sbi is
 
   -- Internal registers to buffer the request address and accumulate instruction bytes
   signal addr_r       : std_logic_vector(31 downto 0);
-  signal addr_r_word  : std_logic_vector(31 downto 0);
   signal inst_r       : std_logic_vector(31 downto 0);
   
   -- Counter to sequence through the 4 bytes
@@ -132,12 +131,13 @@ begin
   --------------------------------------------------------------------
   -- SBI Output Mapping
   --------------------------------------------------------------------
-  -- Address sequencing: word-aligned address + byte offset
-  addr_r_word     <= addr_r(31 downto 2) & "00"; -- Word-aligned address
-  sbi_ini_o.addr  <= std_logic_vector(resize(unsigned(addr_r_word) + unsigned(byte_cnt_r), SBI_ADDR_WIDTH));
+  -- Address sequencing: word-aligned address with the byte offset
+  -- concatenated as the two LSBs (no adder, as in dmem2sbi)
+  sbi_ini_o.addr  <= std_logic_vector(resize(unsigned(addr_r(SBI_ADDR_WIDTH-1 downto 2)) & byte_cnt_r, SBI_ADDR_WIDTH));
   sbi_ini_o.wdata <= (others => '0'); -- No writes in imem bridge
   sbi_ini_o.we    <= '0';             -- Read only
   sbi_ini_o.re    <= '1' when state_r = S_TRANSFER else '0';
+  sbi_ini_o.cs    <= '1' when state_r = S_TRANSFER else '0';
 
   --------------------------------------------------------------------
   -- imem Output Mapping
