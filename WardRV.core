@@ -24,9 +24,14 @@ CAPI=2:
 #                               the mstatus / mie being written, imem2sbi cs,
 #                               sbi_WardRV_fsm IADDR_ALIGN_BITS default 0,
 #                               MRET effect applied once (WRITEBACK)
+# 2026-11-18  1.0.0    mrosiere debug : RISC-V Debug Spec 1.0 debug unit (WardRV_debug : JTAG TAP / DTM,
+#                               DMI CDC, Debug Module with SBA, aarpostincrement), fsm : debug mode,
+#                               triggers (address ranges), EBREAK_EXCEPTION (generics, off by default),
+#                               debug ROM and firmwares in assembly, sim_dbg_* (unit, system,
+#                               OpenOCD + GDB co-simulation), lint_ghdl_synth debug configurations
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:0.0.5
+name        : asylum:processor:WardRV:1.0.0
 description : WardRV - Academic RISCV processor
 
 #=========================================
