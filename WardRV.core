@@ -515,21 +515,6 @@ targets:
         run_options     : ["--fst=dut.fst","--ieee-asserts=disable"]
 
   #---------------------------------------
-  lint_nxmap:
-  #- --------------------------------------
-    << : *default
-    description  : NanoXplore NG_MEDIUM Board
-    default_tool : nxmap
-    flags :
-      TARGET  : NANOXPLORE_NG_MEDIUM
-    tools:
-      nxmap:
-        fpga         : NG-MEDIUM
-        program      : False
-        logical_name : asylum
-    toplevel     : sbi_WardRV_fsm
-
-  #---------------------------------------
   # Lint : -Wall analysis and elaboration (empty simulation) of
   # WardRV_wrapper (sbi_WardRV_fsm with flat SBI ports)
   #---------------------------------------
