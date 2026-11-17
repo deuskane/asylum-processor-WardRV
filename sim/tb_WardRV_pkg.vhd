@@ -31,6 +31,7 @@ package tb_WardRV_pkg is
   constant C_MEM_SIZE           : integer := to_integer(unsigned(C_SIGNATURE_END_ADDR) - unsigned(C_FIRMWARE_ADDR));
   constant C_TOHOST_DATA_OK     : std_logic_vector(31 downto 0) := x"00000001";
   constant C_HARTID             : std_logic_vector(31 downto 0) := x"900DC0DE";
+  constant C_MEIP_ADDR          : std_logic_vector(31 downto 0) := x"80300000"; -- meip_i <= wdata(0) at the next instruction fetch
 
   -- ACT4 environment (see esw/compliance_act4/config/wardrv : link.ld and rvmodel_macros.h)
   -- Self-checking tests : no signature, the test writes its status at C_ACT4_HALT_ADDR
