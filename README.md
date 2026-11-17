@@ -72,7 +72,7 @@ WardRV is a small RISC-V processor written for teaching and for the Asylum SoC. 
 - Byte / half-word / word loads and stores with byte enables and sign / zero extension
 - Configurable reset address (`RESET_ADDR`) and instruction address width / alignment in the SBI wrapper
 - Simulation-only execution trace (`exec_fsm.log`, `exec_iss.log`) and instruction statistics
-- Verified with a self-checking C test, a directed Zicsr / compare corner-case test and the RISC-V architecture (compliance) tests: 39 ACT3 tests (riscv-arch-test 3.10.0) with signature comparison and 45 ACT4 self-checking tests (riscv-arch-test 4.1.0, I and Zicsr)
+- Verified with a self-checking C test, an interrupt test and the RISC-V architecture (compliance) tests: 39 ACT3 tests (riscv-arch-test 3.10.0) with signature comparison and 45 ACT4 self-checking tests (riscv-arch-test 4.1.0, I and Zicsr)
 
 ## Block Diagram
 
@@ -88,7 +88,7 @@ Diagram: [doc/WardRV.drawio](doc/WardRV.drawio) (open with diagrams.net or the V
 
 Top-level entity: **`sbi_WardRV_fsm`** ([hdl/fsm/sbi_WardRV_fsm.vhd](hdl/fsm/sbi_WardRV_fsm.vhd)), library `asylum` (no component declaration, instantiate with `entity asylum.sbi_WardRV_fsm`).
 
-The `default` and `lint_nxmap` targets of [WardRV.core](WardRV.core) use `sbi_WardRV_fsm` as toplevel; it is also the entity instantiated by the PicoSoC.
+The `default` target of [WardRV.core](WardRV.core) uses `sbi_WardRV_fsm` as toplevel; it is also the entity instantiated by the PicoSoC.
 
 ### Parameters
 
@@ -257,7 +257,7 @@ Programmer-visible state: 32 general-purpose registers `x0`..`x31` (`x0` = 0), t
 
 | File | DUT | Description |
 |------|-----|-------------|
-| [sim/tb_WardRV.vhd](sim/tb_WardRV.vhd) + [sim/tb_WardRV_pkg.vhd](sim/tb_WardRV_pkg.vhd) | `WardRV_fsm` (`MODEL = "FSM"`, default) or `WardRV_iss` (`MODEL = "ISS"`) | UVVM testbench, answers `imem` / `dmem` requests in one cycle (`HARTID = 0x900DC0DE`). `TEST_ENV = "ACT3"` (default): loads `FIRMWARE_FILE` (hex) in a memory at `0x80000000` (`RESET_ADDR`), ends when the program writes `tohost` (`0x80200000`): `1` = TEST PASSED, other = TEST FAILED. When `SIGNATURE_FILE` and `GOLDEN_FILE` are set (ACT3 compliance and directed targets), dumps the signature area (`0x80202104`..`0x80203000`) to `SIGNATURE_FILE` and compares it word by word with `GOLDEN_FILE` (`TB_ERROR` on the first mismatch). Timeout 500 us at 10 ns. `TEST_ENV = "ACT4"`: memory of 512 KB at `0x00004000`, the bytes written at `0x10000000` are printed (console), ends when the program writes `0x20000000`: `123456789` = TEST PASSED, other = TEST FAILED. Timeout 10 ms A write at `0x80300000` (`C_MEIP_ADDR`) sets `meip_i` to `wdata(0)` at the next instruction fetch (the interrupt is pending during the instruction after the store). |
+| [sim/tb_WardRV.vhd](sim/tb_WardRV.vhd) + [sim/tb_WardRV_pkg.vhd](sim/tb_WardRV_pkg.vhd) | `WardRV_fsm` (`MODEL = "FSM"`, default) or `WardRV_iss` (`MODEL = "ISS"`) | UVVM testbench, answers `imem` / `dmem` requests in one cycle (`HARTID = 0x900DC0DE`). `TEST_ENV = "ACT3"` (default): loads `FIRMWARE_FILE` (hex) in a memory at `0x80000000` (`RESET_ADDR`), ends when the program writes `tohost` (`0x80200000`): `1` = TEST PASSED, other = TEST FAILED. When `SIGNATURE_FILE` and `GOLDEN_FILE` are set (ACT3 compliance targets), dumps the signature area (`0x80202104`..`0x80203000`) to `SIGNATURE_FILE` and compares it word by word with `GOLDEN_FILE` (`TB_ERROR` on the first mismatch). Timeout 500 us at 10 ns. `TEST_ENV = "ACT4"`: memory of 512 KB at `0x00004000`, the bytes written at `0x10000000` are printed (console), ends when the program writes `0x20000000`: `123456789` = TEST PASSED, other = TEST FAILED. Timeout 10 ms A write at `0x80300000` (`C_MEIP_ADDR`) sets `meip_i` to `wdata(0)` at the next instruction fetch (the interrupt is pending during the instruction after the store). |
 | [sim/tb_WardRV_iss.vhd](sim/tb_WardRV_iss.vhd) | `iss_t` (procedural) | Same memory model driving the ISS protected type directly from a process (no target uses it as toplevel) |
 | [sim/WardRV_vips.vhd](sim/WardRV_vips.vhd) | - | VIP package: reset pulse, JTAG procedures (init, reset, shift, read IDCODE, write IR, DMI read / write) |
 | [sim/tb_imem2sbi.vhd](sim/tb_imem2sbi.vhd) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with `SYNC_READ = false` / `true`): the RAM is filled through SBI, then the bridge fetches words (aligned, unaligned, address bits above the SBI width) and the instruction is checked; `cs` of the bridge must equal `re` |
@@ -267,7 +267,6 @@ Software:
 
 - [esw/irq/](esw/irq/): firmware of `sim_irq` in assembly, [irq.S](esw/irq/irq.S), built by its `Makefile` with a RISC-V toolchain (`irq_fw.hex` / `irq_fw.lst` committed, the simulation does not need the toolchain): `meip_i` pending during `csrci mstatus` / `csrc mie` (no trap) and during `csrsi mstatus` / `csrs mie` (trap right after the instruction: `mepc`, `mcause`, `mstatus.MPIE` checked), `mtvec` written with `MODE = 3` read back with `MODE = 0` and the next trap entering the aligned handler, `tohost` = 1 or the number of the failing check.
 - [esw/testcase/](esw/testcase/): `start.S` + `main.c` (RV32I arithmetic, shifts, comparisons, immediates, loads / stores of every width, `check()` writing `tohost`), `link.ld` (128 KB at `0x80000000`), `Makefile` (`riscv64-unknown-elf-gcc`, `-march=rv32i_zicsr -mabi=ilp32`); the prebuilt `firmware.hex` / `firmware.lst` are committed.
-- [esw/directed/](esw/directed/): directed test `csr_branch` (no toolchain needed): [gen_csr_branch.py](esw/directed/gen_csr_branch.py) is a small RV32I / Zicsr assembler plus a Python reference model that writes `csr_branch.hex`, `csr_branch.lst` and the expected signature `csr_branch.signature` (135 words): CSRRW / CSRRS / CSRRC / CSRRWI / CSRRSI / CSRRCI on `mscratch` (old value and new value, `rs1 = x0` / `zimm = 0` no-write cases), BEQ / BNE / BLT / BGE / BLTU / BGEU and SLT / SLTU on 12 operand pairs including signed-overflow cases (`0x80000000` vs `1`, `0x7FFFFFFF` vs `-1`, ...), a backward taken BLT, SLTI / SLTIU with sign-extended immediates. Same memory map as the compliance tests (signature at `0x80202104`, `tohost` at `0x80200000`).
 - [esw/compliance_act3/](esw/compliance_act3/): ACT3 flow (riscv-arch-test 3.10.0, `rv32i_m/I`, `-march=rv32i`). `make full` downloads the pinned tools in `riscv-compliance-ws/` (xPack GCC 13.3.0-1 / binutils 2.42, Sail 0.13.1), builds the 39 tests into `.hex` / `.lst`, runs them on Sail (RV32I, [config/wardrv/sail_rv32i.json](esw/compliance_act3/config/wardrv/sail_rv32i.json)) to get the reference `.signature`, and compares everything with the committed `benchs/` (byte identical). DUT configuration in [config/wardrv/](esw/compliance_act3/config/wardrv/) (`link.ld`, `model_test.h`). `docker/` builds an Ubuntu 24.04 image containing all the tools, so that the generation does not depend on the host distribution nor on the network: `make build` (network needed once), `make generate` (runs `make full` without network), `make save` / `make load` (keep the image in a `.tar.gz`); `ENGINE=docker` (default) or `ENGINE=podman` (rootless podman).
 - [esw/compliance_act4/](esw/compliance_act4/): ACT4 flow (riscv-arch-test 4.1.0, extensions `I,Zicsr`). `make full` downloads the pinned tools in `riscv-compliance-ws/` (xPack GCC 15.2.0-1 / binutils 2.45, Sail 0.13.1, mise for uv / Python / Ruby), generates the 45 self-checking ELFs, converts them into `.hex` / `.lst` (debug information removed) and compares with the committed `benchs/`. DUT configuration in [config/wardrv/](esw/compliance_act4/config/wardrv/) (UDB `wardrv.yaml`: I 2.1, Zicsr 2.0, Sm 1.13.0, MXLEN 32; `sail.json`, `test_config.yaml`, `link.ld`, `rvmodel_macros.h`). `docker/` builds an Ubuntu 24.04 image containing all the tools, so that the generation does not depend on the host distribution nor on the network: `make build` (network needed once), `make generate` (runs `make full` without network), `make save` / `make load` (keep the image in a `.tar.gz`); `ENGINE=docker` (default) or `ENGINE=podman` (rootless podman).
 
@@ -277,13 +276,11 @@ Software:
 |--------|----------|-------------|
 | `default` | `sbi_WardRV_fsm` | HDL fileset only |
 | `sim` | `tb_WardRV` | Base of the simulation targets, "DON'T RUN" (GHDL `-Wall -fsynopsys -frelaxed --no-vital-checks`, `--ieee-asserts=disable`) |
-| `lint_nxmap` | `sbi_WardRV_fsm` | NanoXplore nxmap on NG-MEDIUM (`program: False`, flag `TARGET = NANOXPLORE_NG_MEDIUM`) |
 | `lint_ghdl` | `asylum.WardRV_wrapper` | Lint: GHDL `-Wall` analysis and elaboration (empty simulation) of [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd) (`-Wall -fsynopsys -frelaxed --no-vital-checks`) |
 | `lint_ghdl_synth_default` | `asylum.WardRV_wrapper` | Synthesis check (see below), word address on 32 bits (default generics: `IADDR_WIDTH = 30`, `IADDR_ALIGN_BITS = 2`) |
 | `lint_ghdl_synth_byte_addr` | `asylum.WardRV_wrapper` | Synthesis check, byte address on 32 bits: `IADDR_WIDTH=32`, `IADDR_ALIGN_BITS=0` |
 | `lint_ghdl_synth_picosoc` | `asylum.WardRV_wrapper` | Synthesis check, PicoSoC (word address, ROM of 1024 words, `addr_width` of `rvcc_gen`): `IADDR_WIDTH=10`, `IADDR_ALIGN_BITS=2` |
 | `sim_basic` | `tb_WardRV` | `esw/testcase` firmware (`FIRMWARE_FILE=firmware.hex`, `VERBOSE=false`) |
-| `sim_directed_csr_branch` | `tb_WardRV` | `esw/directed` test (`FIRMWARE_FILE=directed/csr_branch.hex`, `GOLDEN_FILE=directed/csr_branch.signature`, `SIGNATURE_FILE=signature.output`): Zicsr and signed / unsigned compare corner cases |
 | `sim_irq` | `tb_WardRV` | Machine external interrupt masked / unmasked by the CSR instruction during which it becomes pending (`FIRMWARE_FILE=irq/irq_fw.hex`) |
 | `sim_bridge_imem2sbi` | `tb_imem2sbi` | `imem2sbi` fetching from `sbi_ram` (asynchronous and synchronous read) |
 | `sim_compliance_act4_<test>` (45 targets) | `tb_WardRV` | `FIRMWARE_FILE=act4/<test>.hex`, `TEST_ENV=ACT4`, `VERBOSE=false`; `<test>` = `i_<instruction>_00` (39 tests: the RV32I instructions, `fence` and `nop`) and `zicsr_<instruction>_00` (`csrrc`, `csrrci`, `csrrs`, `csrrsi`, `csrrw`, `csrrwi`) |
@@ -296,7 +293,7 @@ A `lint_ghdl_synth_*` target is `lint_ghdl` with the generics of its configurati
 
 To add a configuration, add a target with its `parameters` (the generics are declared in the `parameters` section of `WardRV.core`).
 
-The core parameters are `FIRMWARE_FILE`, `GOLDEN_FILE`, `SIGNATURE_FILE`, `TEST_ENV` and `VERBOSE` (generics). The ACT3 compliance and directed targets set `SIGNATURE_FILE`, so a test passes only if it writes `tohost = 1` and its signature matches the reference (the `riscv-arch-test` programs always write `tohost = 1`; the result comes from the signature). The ACT4 tests check their results themselves and write PASS / FAIL at `0x20000000`. Each compliance target has its own fileset (`files_act3_<test>` / `files_act4_<test>`) so only its `.hex` (and `.signature`) is copied in the build directory.
+The core parameters are `FIRMWARE_FILE`, `GOLDEN_FILE`, `SIGNATURE_FILE`, `TEST_ENV` and `VERBOSE` (generics). The ACT3 compliance targets set `SIGNATURE_FILE`, so a test passes only if it writes `tohost = 1` and its signature matches the reference (the `riscv-arch-test` programs always write `tohost = 1`; the result comes from the signature). The ACT4 tests check their results themselves and write PASS / FAIL at `0x20000000`. Each compliance target has its own fileset (`files_act3_<test>` / `files_act4_<test>`) so only its `.hex` (and `.signature`) is copied in the build directory.
 
 ### How to Run
 
@@ -309,7 +306,7 @@ make nonreg_sim                    # run every sim_* target
 make TARGETS_FILTER=^sim_compliance_act4 nonreg_sim   # run a filtered subset
 make lint_ghdl                     # GHDL -Wall lint
 make lint_ghdl_synth_default       # GHDL -Wall lint + ghdl --synth -Wall check of one configuration
-make nonreg_lint                   # run every lint_* target (lint_ghdl, lint_ghdl_synth_*, lint_nxmap)
+make nonreg_lint                   # run every lint_* target (lint_ghdl, lint_ghdl_synth_*)
 make clean                         # remove build/ and log/
 ```
 
@@ -319,11 +316,10 @@ Equivalent FuseSoC command:
 fusesoc --cores-root . run --build-root build --target sim_compliance_act3_add_01 asylum:processor:WardRV:0.0.5
 ```
 
-The firmware and reference files are committed (`esw/directed` is regenerated with `python3 esw/directed/gen_csr_branch.py`), so simulation only needs GHDL and UVVM (`bitvis:verification:uvvm`). Rebuilding them needs a RISC-V toolchain (`RISCV_PREFIX ?= riscv64-unknown-elf-`, see `esw/testcase/Makefile`); the compliance tests are regenerated with `make full` in `esw/compliance_act3` and `esw/compliance_act4`, which install their own pinned tools. Outside CI, GHDL writes a waveform `dut.fst`.
+The firmware and reference files are committed, so simulation only needs GHDL and UVVM (`bitvis:verification:uvvm`). Rebuilding them needs a RISC-V toolchain (`RISCV_PREFIX ?= riscv64-unknown-elf-`, see `esw/testcase/Makefile` and `esw/irq/Makefile`); the compliance tests are regenerated with `make full` in `esw/compliance_act3` and `esw/compliance_act4`, which install their own pinned tools. Outside CI, GHDL writes a waveform `dut.fst`.
 
 ## Synthesis
 
-- `lint_nxmap` runs NanoXplore nxmap for the NG-MEDIUM FPGA with the synthesizable `sbi_WardRV_fsm` as toplevel (the `files_hdl` fileset still contains the behavioural ISS and the simulation-only statistics package, which are not instantiated by the FSM core).
 - `lint_ghdl` analyzes (`-Wall`) and elaborates (empty simulation) [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd): `sbi_WardRV_fsm` with flat constrained ports (`sbi_WardRV_fsm` has unconstrained SBI ports and cannot be a synthesis top), word address of the whole 32-bit space by default (`IADDR_WIDTH = 30`, `IADDR_ALIGN_BITS = 2`).
 - `lint_ghdl_synth_*` run `ghdl --synth -Wall` (GHDL 6.0.0, no vendor tool) on the same wrapper, one target per configuration (word address on 32 bits, byte address on 32 bits, PicoSoC, see [Targets](#targets)): the run step synthesizes the wrapper with the generics of the target (`WardRV_wrapper_synth.vhd/.log` in the work root, warnings printed, fails on a synthesis error or an inferred latch), then elaborates it (`ghdl -r --no-run`).
 - The synthesizable core is `WardRV_fsm` / `sbi_WardRV_fsm`: plain RTL, register file in `ram_2r1w`, the execution trace process is enclosed in `synthesis translate_off / translate_on`. It is synthesized in the PicoSoC emulation targets (`emu_ng_medium_soc*_wardrv_fsm*` for NanoXplore NG-MEDIUM, `emu_basys_soc1_wardrv_fsm_c_identity` for Digilent Basys) of `asylum:soc:PicoSoC`.
@@ -360,7 +356,7 @@ asylum-processor-WardRV/
 ├── mk/
 │   ├── defs.mk                 # FILE_CORE, default TARGET and TOOL
 │   └── targets.txt             # Target list (generated from the .core)
-├── .github/workflows/ci.yml    # CI: sim_basic, sim_directed_csr_branch and sim_compliance_* jobs
+├── .github/workflows/ci.yml    # CI: one job per sim_* target
 ├── doc/
 │   └── WardRV.drawio           # Block diagram
 ├── hdl/
@@ -383,7 +379,6 @@ asylum-processor-WardRV/
 │   └── WardRV_wrapper.vhd      # Lint / synthesis check wrapper (lint_ghdl*)
 ├── esw/                        # FUSESOC_IGNORE
 │   ├── testcase/               # start.S, main.c, link.ld, Makefile, firmware.hex/.lst
-│   ├── directed/               # gen_csr_branch.py + csr_branch.hex/.lst/.signature
 │   ├── irq/                    # irq.S + Makefile + irq_fw.hex/.lst (sim_irq)
 │   ├── compliance_act3/        # Makefile, config/wardrv/, docker/, benchs/ (39 x .hex/.lst/.signature)
 │   └── compliance_act4/        # Makefile, config/wardrv/, docker/, benchs/ (45 x .hex/.lst)
