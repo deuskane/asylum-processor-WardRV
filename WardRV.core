@@ -68,6 +68,9 @@ filesets:
       - hdl/fsm/WardRV_fsm_regfile.vhd
       - hdl/fsm/WardRV_fsm_memory.vhd
       - hdl/fsm/WardRV_fsm_csr.vhd
+      - hdl/fsm/WardRV_fsm_trigger.vhd
+      - hdl/fsm/WardRV_fsm_debug.vhd
+      - hdl/fsm/WardRV_fsm_debug_bus.vhd
       - hdl/fsm/WardRV_fsm.vhd
       - hdl/fsm/sbi_WardRV_fsm.vhd
 
