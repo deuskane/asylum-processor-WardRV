@@ -1,3 +1,4 @@
+dbg_dm                                : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
 dbg_jtag                              : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
 default                               : Default Target
 lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
@@ -91,6 +92,14 @@ sim_compliance_act4_zicsr_csrrs_00    : ACT4 Zicsr-csrrs-00 testcase
 sim_compliance_act4_zicsr_csrrsi_00   : ACT4 Zicsr-csrrsi-00 testcase
 sim_compliance_act4_zicsr_csrrw_00    : ACT4 Zicsr-csrrw-00 testcase
 sim_compliance_act4_zicsr_csrrwi_00   : ACT4 Zicsr-csrrwi-00 testcase
+sim_dbg_dm_abstract                   : Debug - Debug Module - abstract command programs (GPR / CSR read and write), postexec, program buffer, data registers
+sim_dbg_dm_autoexec                   : Debug - Debug Module - abstractauto on data and program buffer accesses
+sim_dbg_dm_cmderr                     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
+sim_dbg_dm_dmcontrol                  : Debug - Debug Module - dmactive, dmstatus, hartinfo, abstractcs, ackhavereset, ndmreset
+sim_dbg_dm_halt_resume                : Debug - Debug Module - haltreq, halted, resumereq, resumeack
+sim_dbg_dm_progbuf0                   : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
+sim_dbg_dm_resethaltreq               : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
+sim_dbg_dm_sba                        : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
 sim_dbg_jtag_busy                     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
 sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
 sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields

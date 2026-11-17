@@ -1,0 +1,25 @@
+
+build/debug_rom.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+fffff800 <_start>:
+fffff800:	7b241073          	csrw	dscratch0,s0
+fffff804:	90002023          	sw	zero,-1792(zero) # fffff900 <HALTED>
+
+fffff808 <poll>:
+fffff808:	90802403          	lw	s0,-1784(zero) # fffff908 <GO>
+fffff80c:	00041863          	bnez	s0,fffff81c <go>
+fffff810:	90c02403          	lw	s0,-1780(zero) # fffff90c <RESUME>
+fffff814:	00041863          	bnez	s0,fffff824 <resume>
+fffff818:	ff1ff06f          	j	fffff808 <poll>
+
+fffff81c <go>:
+fffff81c:	7b202473          	csrr	s0,dscratch0
+fffff820:	a0000067          	jr	-1536(zero) # fffffa00 <ABSTRACT>
+
+fffff824 <resume>:
+fffff824:	90002223          	sw	zero,-1788(zero) # fffff904 <RESUMING>
+fffff828:	7b202473          	csrr	s0,dscratch0
+fffff82c:	7b200073          	dret

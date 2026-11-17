@@ -437,6 +437,46 @@ jobs:
     with:
       name: sim_compliance_act4_zicsr_csrrwi_00
 
+  sim_dbg_dm_abstract:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_abstract
+
+  sim_dbg_dm_autoexec:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_autoexec
+
+  sim_dbg_dm_cmderr:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_cmderr
+
+  sim_dbg_dm_dmcontrol:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_dmcontrol
+
+  sim_dbg_dm_halt_resume:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_halt_resume
+
+  sim_dbg_dm_progbuf0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_progbuf0
+
+  sim_dbg_dm_resethaltreq:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_resethaltreq
+
+  sim_dbg_dm_sba:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_sba
+
   sim_dbg_jtag_busy:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:

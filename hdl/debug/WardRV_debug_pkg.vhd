@@ -114,6 +114,7 @@ package WardRV_debug_pkg is
 
   type dbg_words_t is array (natural range <>) of std_logic_vector(32-1 downto 0);
 
-  constant DBG_MEM_TGT_NULL  : dmem_tgt_t := (ready => '0', rdata => (others => '0'), err => '0');
+  -- Idle dmem target (default of the unconnected debug ports)
+  constant DMEM_TGT_NULL     : dmem_tgt_t := (ready => '0', rdata => (others => '0'), err => '0');
 
 end package WardRV_debug_pkg;

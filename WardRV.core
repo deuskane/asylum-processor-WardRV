@@ -55,6 +55,10 @@ filesets:
       - hdl/debug/WardRV_dbg_dtm.vhd
       - hdl/debug/WardRV_dbg_dmi_cdc.vhd
       - hdl/debug/WardRV_dbg_jtag.vhd
+      - hdl/debug/WardRV_dbg_rom_pkg.vhd
+      - hdl/debug/WardRV_dbg_dm_mem.vhd
+      - hdl/debug/WardRV_dbg_sba.vhd
+      - hdl/debug/WardRV_dbg_dm.vhd
 
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
@@ -100,6 +104,8 @@ filesets:
     files        :
       - sim/tb_WardRV_dbg_jtag_pkg.vhd
       - sim/tb_WardRV_dbg_jtag.vhd
+      - sim/tb_WardRV_dbg_dm_pkg.vhd
+      - sim/tb_WardRV_dbg_dm.vhd
 
     file_type    : vhdlSource-2008
 
@@ -650,6 +656,54 @@ targets:
     << : *dbg_jtag
     description     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
     parameters      : [TEST=busy]
+
+  #---------------------------------------
+  dbg_dm: &dbg_dm
+  #---------------------------------------
+    << : *dbg_jtag
+    description     : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
+    toplevel        : tb_WardRV_dbg_dm
+    parameters      : [TEST, PROGBUF_SIZE, VERBOSE]
+
+  sim_dbg_dm_dmcontrol:
+    << : *dbg_dm
+    description     : Debug - Debug Module - dmactive, dmstatus, hartinfo, abstractcs, ackhavereset, ndmreset
+    parameters      : [TEST=dmcontrol]
+
+  sim_dbg_dm_halt_resume:
+    << : *dbg_dm
+    description     : Debug - Debug Module - haltreq, halted, resumereq, resumeack
+    parameters      : [TEST=halt_resume]
+
+  sim_dbg_dm_abstract:
+    << : *dbg_dm
+    description     : Debug - Debug Module - abstract command programs (GPR / CSR read and write), postexec, program buffer, data registers
+    parameters      : [TEST=abstract]
+
+  sim_dbg_dm_cmderr:
+    << : *dbg_dm
+    description     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
+    parameters      : [TEST=cmderr]
+
+  sim_dbg_dm_autoexec:
+    << : *dbg_dm
+    description     : Debug - Debug Module - abstractauto on data and program buffer accesses
+    parameters      : [TEST=autoexec]
+
+  sim_dbg_dm_resethaltreq:
+    << : *dbg_dm
+    description     : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
+    parameters      : [TEST=resethaltreq]
+
+  sim_dbg_dm_sba:
+    << : *dbg_dm
+    description     : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
+    parameters      : [TEST=sba]
+
+  sim_dbg_dm_progbuf0:
+    << : *dbg_dm
+    description     : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
+    parameters      : [TEST=progbuf0, PROGBUF_SIZE=0]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1212,6 +1266,12 @@ parameters :
     description : Scenario of the debug unit testbenches (run time)
     datatype    : str
     default     : ""
+    paramtype   : generic
+
+  PROGBUF_SIZE :
+    description : Debug Module - program buffer size in words
+    datatype    : int
+    default     : 2
     paramtype   : generic
 
   CLK_PERIOD_NS :

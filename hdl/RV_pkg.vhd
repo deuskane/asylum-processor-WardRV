@@ -176,7 +176,8 @@ package RV_pkg is
   constant CSR_DSCRATCH1  : std_logic_vector(11 downto 0) := x"7B3";
 
   -- ===========================================================================
-  -- Instruction encoders (rd / rs1 / rs2 : register numbers)
+  -- Instruction encoders (rd / rs1 / rs2 : register numbers, imm : 12 bits,
+  -- signed -2048..2047 or a CSR number 0..4095)
   -- ===========================================================================
   function rv_i_type(imm    : integer;
                      rs1    : natural;
@@ -200,10 +201,10 @@ package body RV_pkg is
                      rd     : natural;
                      opcode : bit_vector(6 downto 0)) return std_logic_vector is
   begin
-    return std_logic_vector(to_signed  (imm, 12)) &
-           std_logic_vector(to_unsigned(rs1,  5)) &
-           to_stdlogicvector(funct3)              &
-           std_logic_vector(to_unsigned(rd ,  5)) &
+    return std_logic_vector(to_unsigned(imm mod 2**12, 12)) &
+           std_logic_vector(to_unsigned(rs1,  5))           &
+           to_stdlogicvector(funct3)                        &
+           std_logic_vector(to_unsigned(rd ,  5))           &
            to_stdlogicvector(opcode);
   end function rv_i_type;
 
@@ -212,7 +213,7 @@ package body RV_pkg is
                      rs1    : natural;
                      funct3 : bit_vector(2 downto 0);
                      opcode : bit_vector(6 downto 0)) return std_logic_vector is
-    constant IMM12 : std_logic_vector(11 downto 0) := std_logic_vector(to_signed(imm, 12));
+    constant IMM12 : std_logic_vector(11 downto 0) := std_logic_vector(to_unsigned(imm mod 2**12, 12));
   begin
     return IMM12(11 downto 5)                     &
            std_logic_vector(to_unsigned(rs2,  5)) &
