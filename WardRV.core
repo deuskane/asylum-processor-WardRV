@@ -560,7 +560,8 @@ targets:
 
   #---------------------------------------
   # Lint : -Wall analysis and elaboration (empty simulation) of
-  # WardRV_wrapper (sbi_WardRV_fsm with flat SBI ports)
+  # WardRV_wrapper (sbi_WardRV_fsm with flat SBI ports, WardRV_debug
+  # with DEBUG_ENABLE)
   #---------------------------------------
   lint_ghdl : &lint_ghdl
   #---------------------------------------
@@ -608,6 +609,88 @@ targets:
     parameters      :
       - IADDR_WIDTH=10
       - IADDR_ALIGN_BITS=2
+
+  #---------------------------------------
+  lint_ghdl_synth_ebreak_exception :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, EBREAK_EXCEPTION without debug unit
+    parameters      :
+      - EBREAK_EXCEPTION=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, abstract commands and program buffer of 2 words, no trigger
+    parameters      :
+      - DEBUG_ENABLE=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_pb0 :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit without program buffer
+    parameters      :
+      - DEBUG_ENABLE=true
+      - PROGBUF_SIZE=0
+      - IMPEBREAK=false
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_trig2 :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, 2 triggers
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=2
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_sba :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, System Bus Access
+    parameters      :
+      - DEBUG_ENABLE=true
+      - SBA_ENABLE=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_full :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, 2 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=2
+      - SBA_ENABLE=true
+      - EBREAK_EXCEPTION=true
+      - RESETHALTREQ_ENABLE=true
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_large :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, 4 triggers, program buffer of 8 words, 12 data registers
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=4
+      - PROGBUF_SIZE=8
+      - DATA_COUNT=12
+
+  #---------------------------------------
+  lint_ghdl_synth_debug_max :
+  #---------------------------------------
+    << : *lint_ghdl_synth
+    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words without impebreak, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE)
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=8
+      - PROGBUF_SIZE=16
+      - IMPEBREAK=false
+      - DATA_COUNT=12
+      - SBA_ENABLE=true
+      - EBREAK_EXCEPTION=true
+      - RESETHALTREQ_ENABLE=true
 
   #---------------------------------------
   sim_basic:
@@ -1482,8 +1565,21 @@ parameters :
     paramtype   : generic
 
   #---------------------------------------
-  # Generics of WardRV_wrapper (lint_ghdl_synth_*)
+  # Generics of WardRV_wrapper (lint_ghdl_synth_*), the debug generics
+  # below are also used by the testbenches
   #---------------------------------------
+  DEBUG_ENABLE :
+    description : WardRV_fsm - debug mode (and WardRV_debug in WardRV_wrapper)
+    datatype    : bool
+    default     : false
+    paramtype   : generic
+
+  RESETHALTREQ_ENABLE :
+    description : WardRV_fsm and Debug Module - halt on reset request
+    datatype    : bool
+    default     : false
+    paramtype   : generic
+
   IADDR_WIDTH :
     description : Width of iaddr_o
     datatype    : int
