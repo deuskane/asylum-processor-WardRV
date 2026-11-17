@@ -27,7 +27,7 @@ entity sbi_WardRV_fsm is
      HARTID            : std_logic_vector(31 downto 0) := (others => '0');
      RESET_ADDR        : std_logic_vector(31 downto 0) := (others => '0');
      IADDR_WIDTH       : natural := 32;
-     IADDR_ALIGN_BITS  : natural := 2
+     IADDR_ALIGN_BITS  : natural := 0   -- byte address : IADDR_WIDTH + IADDR_ALIGN_BITS <= 32
   );
   port (
     clk_i            : in    std_logic;
