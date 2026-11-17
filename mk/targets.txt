@@ -1,3 +1,4 @@
+dbg_jtag                              : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
 default                               : Default Target
 lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
 lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte address on 32 bits
@@ -90,5 +91,10 @@ sim_compliance_act4_zicsr_csrrs_00    : ACT4 Zicsr-csrrs-00 testcase
 sim_compliance_act4_zicsr_csrrsi_00   : ACT4 Zicsr-csrrsi-00 testcase
 sim_compliance_act4_zicsr_csrrw_00    : ACT4 Zicsr-csrrw-00 testcase
 sim_compliance_act4_zicsr_csrrwi_00   : ACT4 Zicsr-csrrwi-00 testcase
+sim_dbg_jtag_busy                     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
+sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
+sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields
+sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
+sim_dbg_jtag_tap                      : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
 sim_irq                               : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
 

@@ -50,6 +50,12 @@ filesets:
       - hdl/iss/WardRV_iss_pkg.vhd
       - hdl/iss/WardRV_iss.vhd
 
+      # Debug unit (RISC-V Debug Spec 1.0)
+      - hdl/debug/WardRV_dbg_tap.vhd
+      - hdl/debug/WardRV_dbg_dtm.vhd
+      - hdl/debug/WardRV_dbg_dmi_cdc.vhd
+      - hdl/debug/WardRV_dbg_jtag.vhd
+
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
       - hdl/fsm/WardRV_fsm_fetch.vhd
@@ -66,6 +72,7 @@ filesets:
     depend       :
       - ">=asylum:utils:pkg:1.0.0"
       - ">=asylum:component:ram:1.0.0"
+      - ">=asylum:target:techmap:1.0.0"
 
   #---------------------------------------
   files_sim:
@@ -86,6 +93,15 @@ filesets:
   #---------------------------------------
     files        :
       - esw/irq/irq_fw.hex                                           : {file_type : user, copyto : irq/irq_fw.hex}
+
+  #---------------------------------------
+  files_sim_debug:
+  #---------------------------------------
+    files        :
+      - sim/tb_WardRV_dbg_jtag_pkg.vhd
+      - sim/tb_WardRV_dbg_jtag.vhd
+
+    file_type    : vhdlSource-2008
 
   #---------------------------------------
   files_sim_bridge:
@@ -589,6 +605,51 @@ targets:
     description     : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
     filesets_append : [files_sim, files_sim_irq]
     parameters      : [FIRMWARE_FILE=irq/irq_fw.hex, VERBOSE=false]
+
+  #---------------------------------------
+  # Debug unit : one sim_dbg_<testbench>_<scenario> target per scenario,
+  # chosen at run time by the generic TEST. The bases dbg_<testbench> are
+  # not sim_ targets (no CI job), they run any scenario :
+  #   fusesoc --cores-root . run --target dbg_jtag <VLNV> --TEST=<scenario>
+  # No waveform (long simulations) : add --fst=dut.fst to run_options.
+  #---------------------------------------
+  dbg_jtag: &dbg_jtag
+  #---------------------------------------
+    << : *default
+    description     : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
+    default_tool    : ghdl
+    toplevel        : tb_WardRV_dbg_jtag
+    filesets_append : [files_sim, files_sim_debug]
+    parameters      : [TEST, CLK_PERIOD_NS, VERBOSE]
+    tools :
+      ghdl :
+        analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
+        run_options     : ["--ieee-asserts=disable"]
+
+  sim_dbg_jtag_tap:
+    << : *dbg_jtag
+    description     : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
+    parameters      : [TEST=tap]
+
+  sim_dbg_jtag_dtmcs:
+    << : *dbg_jtag
+    description     : Debug - JTAG DTM - dtmcs fields
+    parameters      : [TEST=dtmcs]
+
+  sim_dbg_jtag_dmi:
+    << : *dbg_jtag
+    description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
+    parameters      : [TEST=dmi]
+
+  sim_dbg_jtag_slow_dmi:
+    << : *dbg_jtag
+    description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
+    parameters      : [TEST=dmi, CLK_PERIOD_NS=500]
+
+  sim_dbg_jtag_busy:
+    << : *dbg_jtag
+    description     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
+    parameters      : [TEST=busy]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1142,6 +1203,21 @@ parameters :
     description : Verbose mode
     datatype    : bool
     default     : true
+    paramtype   : generic
+
+  #---------------------------------------
+  # Debug unit testbenches
+  #---------------------------------------
+  TEST :
+    description : Scenario of the debug unit testbenches (run time)
+    datatype    : str
+    default     : ""
+    paramtype   : generic
+
+  CLK_PERIOD_NS :
+    description : tb_WardRV_dbg_jtag - clk period in ns (TCK period 50 ns)
+    datatype    : int
+    default     : 10
     paramtype   : generic
 
   #---------------------------------------
