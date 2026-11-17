@@ -88,7 +88,7 @@ Diagram: [doc/WardRV.drawio](doc/WardRV.drawio) (open with diagrams.net or the V
 
 Top-level entity: **`sbi_WardRV_fsm`** ([hdl/fsm/sbi_WardRV_fsm.vhd](hdl/fsm/sbi_WardRV_fsm.vhd)), library `asylum` (no component declaration, instantiate with `entity asylum.sbi_WardRV_fsm`).
 
-The `default` and `lint_nxmap` targets of [WardRV.core](WardRV.core) use `sbi_WardRV_fsm` as toplevel; it is also the entity instantiated by the PicoSoC.
+The `default` target of [WardRV.core](WardRV.core) uses `sbi_WardRV_fsm` as toplevel; it is also the entity instantiated by the PicoSoC.
 
 ### Parameters
 
@@ -277,7 +277,6 @@ Software:
 |--------|----------|-------------|
 | `default` | `sbi_WardRV_fsm` | HDL fileset only |
 | `sim` | `tb_WardRV` | Base of the simulation targets, "DON'T RUN" (GHDL `-Wall -fsynopsys -frelaxed --no-vital-checks`, `--ieee-asserts=disable`) |
-| `lint_nxmap` | `sbi_WardRV_fsm` | NanoXplore nxmap on NG-MEDIUM (`program: False`, flag `TARGET = NANOXPLORE_NG_MEDIUM`) |
 | `lint_ghdl` | `asylum.WardRV_wrapper` | Lint: GHDL `-Wall` analysis and elaboration (empty simulation) of [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd) (`-Wall -fsynopsys -frelaxed --no-vital-checks`) |
 | `lint_ghdl_synth_default` | `asylum.WardRV_wrapper` | Synthesis check (see below), word address on 32 bits (default generics: `IADDR_WIDTH = 30`, `IADDR_ALIGN_BITS = 2`) |
 | `lint_ghdl_synth_byte_addr` | `asylum.WardRV_wrapper` | Synthesis check, byte address on 32 bits: `IADDR_WIDTH=32`, `IADDR_ALIGN_BITS=0` |
@@ -309,7 +308,7 @@ make nonreg_sim                    # run every sim_* target
 make TARGETS_FILTER=^sim_compliance_act4 nonreg_sim   # run a filtered subset
 make lint_ghdl                     # GHDL -Wall lint
 make lint_ghdl_synth_default       # GHDL -Wall lint + ghdl --synth -Wall check of one configuration
-make nonreg_lint                   # run every lint_* target (lint_ghdl, lint_ghdl_synth_*, lint_nxmap)
+make nonreg_lint                   # run every lint_* target (lint_ghdl, lint_ghdl_synth_*)
 make clean                         # remove build/ and log/
 ```
 
@@ -323,7 +322,6 @@ The firmware and reference files are committed (`esw/directed` is regenerated wi
 
 ## Synthesis
 
-- `lint_nxmap` runs NanoXplore nxmap for the NG-MEDIUM FPGA with the synthesizable `sbi_WardRV_fsm` as toplevel (the `files_hdl` fileset still contains the behavioural ISS and the simulation-only statistics package, which are not instantiated by the FSM core).
 - `lint_ghdl` analyzes (`-Wall`) and elaborates (empty simulation) [syn/WardRV_wrapper.vhd](syn/WardRV_wrapper.vhd): `sbi_WardRV_fsm` with flat constrained ports (`sbi_WardRV_fsm` has unconstrained SBI ports and cannot be a synthesis top), word address of the whole 32-bit space by default (`IADDR_WIDTH = 30`, `IADDR_ALIGN_BITS = 2`).
 - `lint_ghdl_synth_*` run `ghdl --synth -Wall` (GHDL 6.0.0, no vendor tool) on the same wrapper, one target per configuration (word address on 32 bits, byte address on 32 bits, PicoSoC, see [Targets](#targets)): the run step synthesizes the wrapper with the generics of the target (`WardRV_wrapper_synth.vhd/.log` in the work root, warnings printed, fails on a synthesis error or an inferred latch), then elaborates it (`ghdl -r --no-run`).
 - The synthesizable core is `WardRV_fsm` / `sbi_WardRV_fsm`: plain RTL, register file in `ram_2r1w`, the execution trace process is enclosed in `synthesis translate_off / translate_on`. It is synthesized in the PicoSoC emulation targets (`emu_ng_medium_soc*_wardrv_fsm*` for NanoXplore NG-MEDIUM, `emu_basys_soc1_wardrv_fsm_c_identity` for Digilent Basys) of `asylum:soc:PicoSoC`.
