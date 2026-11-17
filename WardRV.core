@@ -59,6 +59,7 @@ filesets:
       - hdl/debug/WardRV_dbg_dm_mem.vhd
       - hdl/debug/WardRV_dbg_sba.vhd
       - hdl/debug/WardRV_dbg_dm.vhd
+      - hdl/debug/WardRV_debug.vhd
 
       # FSM Version
       - hdl/fsm/WardRV_decode_pkg.vhd
@@ -109,6 +110,9 @@ filesets:
       - sim/tb_WardRV_dbg_jtag.vhd
       - sim/tb_WardRV_dbg_dm_pkg.vhd
       - sim/tb_WardRV_dbg_dm.vhd
+      - sim/tb_WardRV_debug_pkg.vhd
+      - sim/tb_WardRV_debug.vhd
+      - esw/debug/debug_fw.hex                                       : {file_type : user, copyto : debug/debug_fw.hex}
 
     file_type    : vhdlSource-2008
 
@@ -709,6 +713,79 @@ targets:
     parameters      : [TEST=progbuf0, PROGBUF_SIZE=0]
 
   #---------------------------------------
+  dbg_system: &dbg_system
+  #---------------------------------------
+    << : *dbg_jtag
+    description     : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
+    toplevel        : tb_WardRV_debug
+    parameters      : [TEST, EBREAK_EXCEPTION, VERBOSE]
+
+  sim_dbg_system_halt_resume:
+    << : *dbg_system
+    description     : Debug - System - haltreq (cause 3, dpc), resume
+    parameters      : [TEST=halt_resume]
+
+  sim_dbg_system_registers:
+    << : *dbg_system
+    description     : Debug - System - GPR / CSR access with abstract commands, dpc write
+    parameters      : [TEST=registers]
+
+  sim_dbg_system_cmderr:
+    << : *dbg_system
+    description     : Debug - System - register that does not exist, command while running
+    parameters      : [TEST=cmderr]
+
+  sim_dbg_system_progbuf:
+    << : *dbg_system
+    description     : Debug - System - memory read / write through the program buffer
+    parameters      : [TEST=progbuf]
+
+  sim_dbg_system_step:
+    << : *dbg_system
+    description     : Debug - System - dcsr.step (cause 4, dpc of each instruction)
+    parameters      : [TEST=step]
+
+  sim_dbg_system_ebreak:
+    << : *dbg_system
+    description     : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
+    parameters      : [TEST=ebreak]
+
+  sim_dbg_system_trigger_execute:
+    << : *dbg_system
+    description     : Debug - System - tselect / tinfo / tdata1, execute trigger (cause 2, instruction not executed)
+    parameters      : [TEST=trigger_execute]
+
+  sim_dbg_system_trigger_store:
+    << : *dbg_system
+    description     : Debug - System - store trigger (cause 2, dpc of the store)
+    parameters      : [TEST=trigger_store]
+
+  sim_dbg_system_trigger_load:
+    << : *dbg_system
+    description     : Debug - System - load trigger (cause 2, dpc of the load)
+    parameters      : [TEST=trigger_load]
+
+  sim_dbg_system_resethaltreq:
+    << : *dbg_system
+    description     : Debug - System - ndmreset with resethaltreq (cause 5) and with haltreq (cause 3), dpc = reset address
+    parameters      : [TEST=resethaltreq]
+
+  sim_dbg_system_interrupt:
+    << : *dbg_system
+    description     : Debug - System - interrupt masked in debug mode, step without / with dcsr.stepie
+    parameters      : [TEST=interrupt]
+
+  sim_dbg_system_exc_ebreak:
+    << : *dbg_system
+    description     : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode
+    parameters      : [TEST=exc_ebreak, EBREAK_EXCEPTION=true]
+
+  sim_dbg_system_exc_trigger:
+    << : *dbg_system
+    description     : Debug - System - EBREAK_EXCEPTION, trigger of M-mode (dmode 0) raises a breakpoint exception
+    parameters      : [TEST=exc_trigger, EBREAK_EXCEPTION=true]
+
+  #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
   #---------------------------------------
   sim_compliance_act3_add_01:
@@ -1269,6 +1346,12 @@ parameters :
     description : Scenario of the debug unit testbenches (run time)
     datatype    : str
     default     : ""
+    paramtype   : generic
+
+  EBREAK_EXCEPTION :
+    description : tb_WardRV_debug - EBREAK raises a breakpoint exception
+    datatype    : bool
+    default     : false
     paramtype   : generic
 
   PROGBUF_SIZE :

@@ -1,5 +1,6 @@
 dbg_dm                                : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
 dbg_jtag                              : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
+dbg_system                            : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
 default                               : Default Target
 lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
 lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte address on 32 bits
@@ -105,5 +106,18 @@ sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes 
 sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields
 sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
 sim_dbg_jtag_tap                      : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
+sim_dbg_system_cmderr                 : Debug - System - register that does not exist, command while running
+sim_dbg_system_ebreak                 : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
+sim_dbg_system_exc_ebreak             : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode
+sim_dbg_system_exc_trigger            : Debug - System - EBREAK_EXCEPTION, trigger of M-mode (dmode 0) raises a breakpoint exception
+sim_dbg_system_halt_resume            : Debug - System - haltreq (cause 3, dpc), resume
+sim_dbg_system_interrupt              : Debug - System - interrupt masked in debug mode, step without / with dcsr.stepie
+sim_dbg_system_progbuf                : Debug - System - memory read / write through the program buffer
+sim_dbg_system_registers              : Debug - System - GPR / CSR access with abstract commands, dpc write
+sim_dbg_system_resethaltreq           : Debug - System - ndmreset with resethaltreq (cause 5) and with haltreq (cause 3), dpc = reset address
+sim_dbg_system_step                   : Debug - System - dcsr.step (cause 4, dpc of each instruction)
+sim_dbg_system_trigger_execute        : Debug - System - tselect / tinfo / tdata1, execute trigger (cause 2, instruction not executed)
+sim_dbg_system_trigger_load           : Debug - System - load trigger (cause 2, dpc of the load)
+sim_dbg_system_trigger_store          : Debug - System - store trigger (cause 2, dpc of the store)
 sim_irq                               : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
 
