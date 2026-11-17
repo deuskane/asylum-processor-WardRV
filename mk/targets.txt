@@ -113,7 +113,7 @@ sim_dbg_dm_sba                        : Debug - Debug Module - System Bus Access
 sim_dbg_jtag_busy                     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
 sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
 sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields
-sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
+sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 40x slower than TCK, busy retries, requests in the end of the handshake)
 sim_dbg_jtag_tap                      : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
 sim_dbg_openocd_pb0_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 0 triggers
 sim_dbg_openocd_pb0_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers

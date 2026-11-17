@@ -756,8 +756,8 @@ targets:
 
   sim_dbg_jtag_slow_dmi:
     << : *dbg_jtag
-    description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 10x slower than TCK, busy retries)
-    parameters      : [TEST=dmi, CLK_PERIOD_NS=500]
+    description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 40x slower than TCK, busy retries, requests in the end of the handshake)
+    parameters      : [TEST=dmi, CLK_PERIOD_NS=2000]
 
   sim_dbg_jtag_busy:
     << : *dbg_jtag
