@@ -489,13 +489,13 @@ package body tb_WardRV_dbg_dm_pkg is
   end procedure;
 
   -----------------------------------------------------------------------------
-  -- progbuf0 (PROGBUF_SIZE = 0, IMPEBREAK = false)
+  -- progbuf0 (PROGBUF_SIZE = 0)
   -----------------------------------------------------------------------------
   procedure test_progbuf0(signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t) is
   begin
     activate_and_halt(clk, ini, tgt);
     dmi_check(clk, ini, tgt, DM_ABSTRACTCS  , x"00000002", "abstractcs : progbufsize 0");
-    dmi_check(clk, ini, tgt, DM_DMSTATUS    , x"000C03A3", "dmstatus : no impebreak");
+    dmi_check(clk, ini, tgt, DM_DMSTATUS    , x"004C03A3", "dmstatus : impebreak also without program buffer");
     dmi_write(clk, ini, tgt, DM_PROGBUF0    , NOP);
     dmi_check(clk, ini, tgt, DM_PROGBUF0    , x"00000000", "no progbuf0");
     dmi_write(clk, ini, tgt, DM_ABSTRACTAUTO, x"FFFFFFFF");

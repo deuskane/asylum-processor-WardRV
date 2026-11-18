@@ -634,7 +634,6 @@ targets:
     parameters      :
       - DEBUG_ENABLE=true
       - PROGBUF_SIZE=0
-      - IMPEBREAK=false
 
   #---------------------------------------
   lint_ghdl_synth_debug_trig2 :
@@ -681,12 +680,11 @@ targets:
   lint_ghdl_synth_debug_max :
   #---------------------------------------
     << : *lint_ghdl_synth
-    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words without impebreak, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE)
+    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE)
     parameters      :
       - DEBUG_ENABLE=true
       - NB_TRIGGERS=8
       - PROGBUF_SIZE=16
-      - IMPEBREAK=false
       - DATA_COUNT=12
       - SBA_ENABLE=true
       - EBREAK_EXCEPTION=true
@@ -896,7 +894,7 @@ targets:
     description     : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
     toplevel        : tb_WardRV_openocd
     filesets_append : [files_sim, files_sim_openocd]
-    parameters      : [PROGBUF_SIZE, IMPEBREAK, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS]
+    parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS]
     hooks :
       pre_build     : [cosim_build]
       pre_run       : [cosim_start]
@@ -905,47 +903,47 @@ targets:
   sim_dbg_openocd_pb0_sba0_tr0:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 0, no SBA, 0 triggers
-    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=false, NB_TRIGGERS=0]
+    parameters      : [PROGBUF_SIZE=0, SBA_ENABLE=false, NB_TRIGGERS=0]
 
   sim_dbg_openocd_pb0_sba0_tr2:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers
-    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=false, NB_TRIGGERS=2]
+    parameters      : [PROGBUF_SIZE=0, SBA_ENABLE=false, NB_TRIGGERS=2]
 
   sim_dbg_openocd_pb0_sba1_tr0:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 0, SBA, 0 triggers
-    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=true, NB_TRIGGERS=0]
+    parameters      : [PROGBUF_SIZE=0, SBA_ENABLE=true, NB_TRIGGERS=0]
 
   sim_dbg_openocd_pb0_sba1_tr2:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 0, SBA, 2 triggers
-    parameters      : [PROGBUF_SIZE=0, IMPEBREAK=false, SBA_ENABLE=true, NB_TRIGGERS=2]
+    parameters      : [PROGBUF_SIZE=0, SBA_ENABLE=true, NB_TRIGGERS=2]
 
   sim_dbg_openocd_pb2_sba0_tr0:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 2, no SBA, 0 triggers
-    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=false, NB_TRIGGERS=0]
+    parameters      : [PROGBUF_SIZE=2, SBA_ENABLE=false, NB_TRIGGERS=0]
 
   sim_dbg_openocd_pb2_sba0_tr2:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
-    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=false, NB_TRIGGERS=2]
+    parameters      : [PROGBUF_SIZE=2, SBA_ENABLE=false, NB_TRIGGERS=2]
 
   sim_dbg_openocd_pb2_sba1_tr0:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
-    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=true, NB_TRIGGERS=0]
+    parameters      : [PROGBUF_SIZE=2, SBA_ENABLE=true, NB_TRIGGERS=0]
 
   sim_dbg_openocd_pb2_sba1_tr2:
     << : *dbg_openocd
     description     : Debug - OpenOCD + GDB - program buffer 2, SBA, 2 triggers
-    parameters      : [PROGBUF_SIZE=2, IMPEBREAK=true, SBA_ENABLE=true, NB_TRIGGERS=2]
+    parameters      : [PROGBUF_SIZE=2, SBA_ENABLE=true, NB_TRIGGERS=2]
 
   sim_dbg_openocd_pb16_sba1_tr8:
     << : *dbg_openocd
-    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16 (no impebreak), 12 data, SBA, 8 triggers
-    parameters      : [PROGBUF_SIZE=16, IMPEBREAK=false, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8]
+    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers
+    parameters      : [PROGBUF_SIZE=16, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1532,12 +1530,6 @@ parameters :
     description : Debug Module - program buffer size in words
     datatype    : int
     default     : 2
-    paramtype   : generic
-
-  IMPEBREAK :
-    description : Debug Module - implicit ebreak after the program buffer (dmstatus.impebreak)
-    datatype    : bool
-    default     : true
     paramtype   : generic
 
   DATA_COUNT :

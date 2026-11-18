@@ -29,7 +29,6 @@ import re
 import gdb
 
 PROGBUF       = int(os.environ["PROGBUF_SIZE"])
-IMPEBREAK     = os.environ["IMPEBREAK"] == "1"
 DATA_COUNT    = int(os.environ["DATA_COUNT"])
 SBA           = os.environ["SBA_ENABLE"] == "1"
 TRIGGERS      = int(os.environ["NB_TRIGGERS"])
@@ -142,7 +141,7 @@ def step_connect():
     check("Examined RISC-V core" in log, "RISC-V core examined")
     check(f"datacount={DATA_COUNT} progbufsize={PROGBUF}" in log, f"OpenOCD found {DATA_COUNT} data, {PROGBUF} program buffer words")
     dmstatus = monitor_value("riscv dmi_read 0x11")
-    check(dmstatus & 0xF == 3 and (dmstatus >> 22) & 1 == IMPEBREAK, f"dmstatus : version 1.0, impebreak {IMPEBREAK}")
+    check(dmstatus & 0xF == 3 and (dmstatus >> 22) & 1 == 1, "dmstatus : version 1.0, impebreak")
     check((monitor_value("riscv dmi_read 0x38") >> 29 == 1) == SBA, f"sbcs.sbversion : SBA {SBA}")
 
 #--------------------------------------------

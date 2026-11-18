@@ -6,7 +6,7 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: WardRV_fsm (DEBUG_ENABLE, RESETHALTREQ_ENABLE, NB_TRIGGERS) +
---              WardRV_debug (PROGBUF_SIZE, IMPEBREAK, DATA_COUNT, SBA_ENABLE) driven
+--              WardRV_debug (PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE) driven
 --              by a real debugger : OpenOCD (remote_bitbang adapter) talks to
 --              sim/openocd/remote_bitbang.c, called at each clk cycle
 --              through VHPIDIRECT (TCK = clk / 2), and GDB runs
@@ -43,7 +43,6 @@ use     work.rbb_pkg.all;
 entity tb_WardRV_openocd is
   generic (
     PROGBUF_SIZE   : natural  := 2
-   ;IMPEBREAK      : boolean  := true
    ;DATA_COUNT     : positive := 2
    ;SBA_ENABLE     : boolean  := true
    ;NB_TRIGGERS    : natural := 2
@@ -116,7 +115,6 @@ begin  -- architecture sim
     (IDCODE_VALUE        => C_IDCODE
     ,PROGBUF_SIZE        => PROGBUF_SIZE
     ,DATA_COUNT          => DATA_COUNT
-    ,IMPEBREAK           => IMPEBREAK
     ,SBA_ENABLE          => SBA_ENABLE
     ,RESETHALTREQ_ENABLE => true
     )
@@ -205,12 +203,11 @@ begin  -- architecture sim
 
     file_open(f_cfg, "cosim.cfg", write_mode);
     write(v_line, "PROGBUF_SIZE=" & integer'image(PROGBUF_SIZE));               writeline(f_cfg, v_line);
-    write(v_line, "IMPEBREAK="    & integer'image(boolean'pos(IMPEBREAK)));     writeline(f_cfg, v_line);
     write(v_line, "DATA_COUNT="   & integer'image(DATA_COUNT));                 writeline(f_cfg, v_line);
     write(v_line, "SBA_ENABLE="   & integer'image(boolean'pos(SBA_ENABLE)));    writeline(f_cfg, v_line);
     write(v_line, "NB_TRIGGERS="  & integer'image(NB_TRIGGERS));                writeline(f_cfg, v_line);
     file_close(f_cfg);
-    log(ID_LOG_HDR, "Co-simulation : PROGBUF_SIZE " & integer'image(PROGBUF_SIZE) & ", IMPEBREAK " & boolean'image(IMPEBREAK) &
+    log(ID_LOG_HDR, "Co-simulation : PROGBUF_SIZE " & integer'image(PROGBUF_SIZE) &
         ", DATA_COUNT " & integer'image(DATA_COUNT) & ", SBA_ENABLE " & boolean'image(SBA_ENABLE) &
         ", NB_TRIGGERS " & integer'image(NB_TRIGGERS), C_SCOPE);
 

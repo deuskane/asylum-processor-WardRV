@@ -36,7 +36,6 @@ entity WardRV_debug is
    ;DTM_IDLE_CYCLES     : natural                         := 5     -- dtmcs.idle
    ;PROGBUF_SIZE        : natural                         := 2     -- Program buffer (0..16 words)
    ;DATA_COUNT          : positive                        := 2     -- Data registers (1..12)
-   ;IMPEBREAK           : boolean                         := true  -- dmstatus.impebreak
    ;SBA_ENABLE          : boolean                         := false -- System Bus Access
    ;RESETHALTREQ_ENABLE : boolean                         := false -- Halt on reset request
   );
@@ -85,7 +84,6 @@ begin  -- architecture rtl
     generic map
     (PROGBUF_SIZE        => PROGBUF_SIZE
     ,DATA_COUNT          => DATA_COUNT
-    ,IMPEBREAK           => IMPEBREAK
     ,SBA_ENABLE          => SBA_ENABLE
     ,RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
     )

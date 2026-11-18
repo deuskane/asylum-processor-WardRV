@@ -41,7 +41,6 @@ entity WardRV_wrapper is
    ;EBREAK_EXCEPTION    : boolean  := false
    ;RESETHALTREQ_ENABLE : boolean  := false
    ;PROGBUF_SIZE        : natural  := 2
-   ;IMPEBREAK           : boolean  := true
    ;DATA_COUNT          : positive := 2
    ;SBA_ENABLE          : boolean  := false
   );
@@ -157,7 +156,6 @@ begin  -- architecture rtl
       generic map
       (PROGBUF_SIZE        => PROGBUF_SIZE
       ,DATA_COUNT          => DATA_COUNT
-      ,IMPEBREAK           => IMPEBREAK
       ,SBA_ENABLE          => SBA_ENABLE
       ,RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
       )

@@ -9,7 +9,7 @@
 --              DMI and debug memory ports, with a memory on the System Bus
 --              Access (64 words, one wait state). Scenarios in
 --              tb_WardRV_dbg_dm_pkg (TEST). PROGBUF_SIZE : 2, or 0 for the
---              scenario progbuf0 (IMPEBREAK = PROGBUF_SIZE > 0).
+--              scenario progbuf0.
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------
@@ -64,7 +64,6 @@ begin  -- architecture sim
     generic map
     (PROGBUF_SIZE        => PROGBUF_SIZE
     ,DATA_COUNT          => 2
-    ,IMPEBREAK           => PROGBUF_SIZE > 0
     ,SBA_ENABLE          => true
     ,RESETHALTREQ_ENABLE => true
     )

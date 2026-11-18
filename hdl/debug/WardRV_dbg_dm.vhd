@@ -14,7 +14,8 @@
 --   dmcontrol      : haltreq, resumereq, ackhavereset, set/clrresethaltreq
 --                    (RESETHALTREQ_ENABLE), ndmreset, dmactive
 --   dmstatus       : version 1.0, authenticated, halted / running / unavail,
---                    resumeack, havereset, impebreak, hasresethaltreq
+--                    resumeack, havereset, impebreak (an ebreak always follows
+--                    the program buffer), hasresethaltreq
 --   hartinfo       : 1 dscratch, data registers in memory (dataaddr)
 --   abstractcs     : progbufsize, busy, cmderr, datacount
 --   command        : Access Register (3.7.1.1) of a GPR (0x1000-0x101F) or
@@ -36,6 +37,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-18  1.1      mrosiere impebreak always 1 (IMPEBREAK generic removed)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -51,7 +53,6 @@ entity WardRV_dbg_dm is
   generic (
     PROGBUF_SIZE        : natural  := 2                           -- Program buffer (0..16 words)
    ;DATA_COUNT          : positive := 2                           -- Data registers (1..12)
-   ;IMPEBREAK           : boolean  := true                        -- dmstatus.impebreak (needed with PROGBUF_SIZE = 1)
    ;SBA_ENABLE          : boolean  := false                       -- System Bus Access
    ;RESETHALTREQ_ENABLE : boolean  := false                       -- Halt on reset request
   );
@@ -152,8 +153,8 @@ architecture rtl of WardRV_dbg_dm is
 
 begin  -- architecture rtl
 
-  assert PROGBUF_SIZE <= DBG_PROGBUF_MAX and DATA_COUNT <= DBG_DATA_MAX and (PROGBUF_SIZE /= 1 or IMPEBREAK)
-    report "WardRV_dbg_dm : PROGBUF_SIZE 0..16, DATA_COUNT 1..12, PROGBUF_SIZE = 1 needs IMPEBREAK" severity failure;
+  assert PROGBUF_SIZE <= DBG_PROGBUF_MAX and DATA_COUNT <= DBG_DATA_MAX
+    report "WardRV_dbg_dm : PROGBUF_SIZE 0..16, DATA_COUNT 1..12" severity failure;
 
   -----------------------------------------------------------------------------
   -- Hart state (hart reset synchronized)
@@ -197,7 +198,7 @@ begin  -- architecture rtl
         when DM_DMCONTROL    =>
           dmi_rdata_o(1 downto 0) <= ndmreset_r & dmactive_r;
         when DM_DMSTATUS     =>
-          dmi_rdata_o(22)           <= to_sl(IMPEBREAK);
+          dmi_rdata_o(22)           <= '1';                             -- impebreak
           dmi_rdata_o(19 downto 18) <= havereset_r    & havereset_r;    -- all / any
           dmi_rdata_o(17 downto 16) <= resumeack_r    & resumeack_r;
           dmi_rdata_o(13 downto 12) <= not hart_rst_b & not hart_rst_b; -- unavail

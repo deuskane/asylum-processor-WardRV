@@ -105,7 +105,6 @@ begin  -- architecture sim
     (IDCODE_VALUE        => C_IDCODE
     ,PROGBUF_SIZE        => 2
     ,DATA_COUNT          => 2
-    ,IMPEBREAK           => true
     ,SBA_ENABLE          => false
     ,RESETHALTREQ_ENABLE => true
     )
