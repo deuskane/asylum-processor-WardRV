@@ -12,11 +12,6 @@ jobs:
     with:
       name: sim_basic
 
-  sim_irq:
-    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
-    with:
-      name: sim_irq
-
   sim_bridge_imem2sbi:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
@@ -441,5 +436,220 @@ jobs:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
       name: sim_compliance_act4_zicsr_csrrwi_00
+
+  sim_dbg_dm:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm
+
+  sim_dbg_dm_abstract:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_abstract
+
+  sim_dbg_dm_autoexec:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_autoexec
+
+  sim_dbg_dm_cmderr:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_cmderr
+
+  sim_dbg_dm_dmcontrol:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_dmcontrol
+
+  sim_dbg_dm_halt_resume:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_halt_resume
+
+  sim_dbg_dm_postincrement:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_postincrement
+
+  sim_dbg_dm_progbuf0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_progbuf0
+
+  sim_dbg_dm_resethaltreq:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_resethaltreq
+
+  sim_dbg_dm_sba:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_sba
+
+  sim_dbg_jtag:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag
+
+  sim_dbg_jtag_busy:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag_busy
+
+  sim_dbg_jtag_dmi:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag_dmi
+
+  sim_dbg_jtag_slow_dmi:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag_slow_dmi
+
+  sim_dbg_jtag_tap:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag_tap
+
+  sim_dbg_openocd_pb0_sba0_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba0_tr0
+
+  sim_dbg_openocd_pb0_sba0_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba0_tr2
+
+  sim_dbg_openocd_pb0_sba1_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba1_tr0
+
+  sim_dbg_openocd_pb0_sba1_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb0_sba1_tr2
+
+  sim_dbg_openocd_pb16_sba1_tr8:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb16_sba1_tr8
+
+  sim_dbg_openocd_pb2_sba0_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba0_tr0
+
+  sim_dbg_openocd_pb2_sba0_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba0_tr2
+
+  sim_dbg_openocd_pb2_sba1_tr0:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba1_tr0
+
+  sim_dbg_openocd_pb2_sba1_tr2:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_openocd_pb2_sba1_tr2
+
+  sim_dbg_system:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system
+
+  sim_dbg_system_cmderr:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_cmderr
+
+  sim_dbg_system_ebreak:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_ebreak
+
+  sim_dbg_system_exc_ebreak:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_exc_ebreak
+
+  sim_dbg_system_exc_trigger:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_exc_trigger
+
+  sim_dbg_system_halt_resume:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_halt_resume
+
+  sim_dbg_system_interrupt:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_interrupt
+
+  sim_dbg_system_progbuf:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_progbuf
+
+  sim_dbg_system_registers:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_registers
+
+  sim_dbg_system_resethaltreq:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_resethaltreq
+
+  sim_dbg_system_step:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_step
+
+  sim_dbg_system_trigger_execute:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_execute
+
+  sim_dbg_system_trigger_ge:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_ge
+
+  sim_dbg_system_trigger_load:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_load
+
+  sim_dbg_system_trigger_lt:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_lt
+
+  sim_dbg_system_trigger_range_execute:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_range_execute
+
+  sim_dbg_system_trigger_range_store:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_range_store
+
+  sim_dbg_system_trigger_store:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_trigger_store
+
+  sim_irq:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_irq
 
 #<GENERATE_END>

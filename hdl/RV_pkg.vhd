@@ -13,6 +13,8 @@
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
 -- 2026-03-21  1.1      mrosiere Updated with new instruction types and names
+-- 2026-11-17  1.2      mrosiere Add DRET, trigger and debug CSR addresses,
+--                               I-type / S-type instruction encoders
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -83,6 +85,7 @@ package RV_pkg is
   constant F12_EBREAK   : bit_vector(11 downto 0) := "000000000001";
   constant F12_MRET     : bit_vector(11 downto 0) := "001100000010";
   constant F12_WFI      : bit_vector(11 downto 0) := "000100000101";
+  constant F12_DRET     : bit_vector(11 downto 0) := "011110110010"; -- Debug Spec : return from debug mode
 
   -- ===========================================================================
   -- RISC-V Compressed Opcodes (RV32C)
@@ -159,4 +162,65 @@ package RV_pkg is
   constant CSR_MTVAL      : std_logic_vector(11 downto 0) := x"343";
   constant CSR_MIP        : std_logic_vector(11 downto 0) := x"344";
 
+  -- Trigger Module (Debug Spec, Sdtrig)
+  constant CSR_TSELECT    : std_logic_vector(11 downto 0) := x"7A0";
+  constant CSR_TDATA1     : std_logic_vector(11 downto 0) := x"7A1";
+  constant CSR_TDATA2     : std_logic_vector(11 downto 0) := x"7A2";
+  constant CSR_TDATA3     : std_logic_vector(11 downto 0) := x"7A3";
+  constant CSR_TINFO      : std_logic_vector(11 downto 0) := x"7A4";
+
+  -- Debug Mode Registers (Debug Spec, Sdext : debug mode only)
+  constant CSR_DCSR       : std_logic_vector(11 downto 0) := x"7B0";
+  constant CSR_DPC        : std_logic_vector(11 downto 0) := x"7B1";
+  constant CSR_DSCRATCH0  : std_logic_vector(11 downto 0) := x"7B2";
+  constant CSR_DSCRATCH1  : std_logic_vector(11 downto 0) := x"7B3";
+
+  -- ===========================================================================
+  -- Instruction encoders (rd / rs1 / rs2 : register numbers, imm : 12 bits,
+  -- signed -2048..2047 or a CSR number 0..4095)
+  -- ===========================================================================
+  function rv_i_type(imm    : integer;
+                     rs1    : natural;
+                     funct3 : bit_vector(2 downto 0);
+                     rd     : natural;
+                     opcode : bit_vector(6 downto 0)) return std_logic_vector;
+
+  function rv_s_type(imm    : integer;
+                     rs2    : natural;
+                     rs1    : natural;
+                     funct3 : bit_vector(2 downto 0);
+                     opcode : bit_vector(6 downto 0)) return std_logic_vector;
+
 end RV_pkg;
+
+package body RV_pkg is
+
+  function rv_i_type(imm    : integer;
+                     rs1    : natural;
+                     funct3 : bit_vector(2 downto 0);
+                     rd     : natural;
+                     opcode : bit_vector(6 downto 0)) return std_logic_vector is
+  begin
+    return std_logic_vector(to_unsigned(imm mod 2**12, 12)) &
+           std_logic_vector(to_unsigned(rs1,  5))           &
+           to_stdlogicvector(funct3)                        &
+           std_logic_vector(to_unsigned(rd ,  5))           &
+           to_stdlogicvector(opcode);
+  end function rv_i_type;
+
+  function rv_s_type(imm    : integer;
+                     rs2    : natural;
+                     rs1    : natural;
+                     funct3 : bit_vector(2 downto 0);
+                     opcode : bit_vector(6 downto 0)) return std_logic_vector is
+    constant IMM12 : std_logic_vector(11 downto 0) := std_logic_vector(to_unsigned(imm mod 2**12, 12));
+  begin
+    return IMM12(11 downto 5)                     &
+           std_logic_vector(to_unsigned(rs2,  5)) &
+           std_logic_vector(to_unsigned(rs1,  5)) &
+           to_stdlogicvector(funct3)              &
+           IMM12(4 downto 0)                      &
+           to_stdlogicvector(opcode);
+  end function rv_s_type;
+
+end package body RV_pkg;

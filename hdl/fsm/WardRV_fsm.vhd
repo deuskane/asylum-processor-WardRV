@@ -20,6 +20,7 @@
 -- 2026-04-06  1.1      mrosiere Move decode into specific module
 --                               Add instruction type to report
 -- 2026-11-17  1.2      mrosiere MRET effect only in WRITEBACK
+-- 2026-11-17  1.3      mrosiere Debug hooks (WardRV_fsm_debug, WardRV_fsm_debug_bus)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -32,13 +33,21 @@ use     asylum.RV_pkg.all;
 use     asylum.WardRV_stats_pkg.all;
 use     asylum.WardRV_decode_pkg.all;
 use     asylum.WardRV_fsm_alu_pkg.all;
+use     asylum.WardRV_debug_pkg.all;
 
 entity WardRV_fsm is
   generic (
   --VENDORID   : std_logic_vector(31 downto 0) := (others => '0');
     HARTID     : std_logic_vector(31 downto 0) := (others => '0');
     RESET_ADDR : std_logic_vector(31 downto 0) := (others => '0');
-    VERBOSE    : boolean                       := true
+    VERBOSE    : boolean                       := true;
+
+    -- Debug (RISC-V Debug Spec 1.0, see WardRV_fsm_debug)
+    DEBUG_ENABLE         : boolean := false; -- Debug mode, for the Debug Module WardRV_dbg_dm
+    NB_TRIGGERS          : natural := 0;     -- Hardware breakpoints / watchpoints (needs DEBUG_ENABLE)
+    EBREAK_EXCEPTION     : boolean := false; -- EBREAK raises a breakpoint exception
+    RESETHALTREQ_ENABLE  : boolean := false; -- Halt before the first instruction on request
+    TRIGGER_RANGE_ENABLE : boolean := false  -- Triggers : match >= / < and chain (address ranges)
   );
   port (
     clk_i      : in  std_logic;
@@ -53,7 +62,12 @@ entity WardRV_fsm is
     dmem_tgt_i  : in  dmem_tgt_t;
 
     -- Interruption Interface
-    meip_i     : in  std_logic
+    meip_i     : in  std_logic;
+
+    -- Debug Interface (DEBUG_ENABLE) : to / from WardRV_dbg_dm
+    dbg_hart_req_i : in  dbg_hart_req_t := DBG_HART_REQ_NULL; -- Halt requests
+    dbg_mem_ini_o  : out dmem_ini_t;                          -- Debug memory (debug mode)
+    dbg_mem_tgt_i  : in  dmem_tgt_t     := DMEM_TGT_NULL
   );
 end entity WardRV_fsm;
 
@@ -99,6 +113,8 @@ architecture behavioural of WardRV_fsm is
   -- Current Instruction
   signal inst_r                     : std_logic_vector(31 downto 0);
 
+  signal imem_ini                   : imem_ini_t;
+  signal imem_tgt                   : imem_tgt_t;
   signal imem_valid                 : std_logic;
   signal imem_ready                 : std_logic;
   signal imem_addr                  : std_logic_vector(31 downto 0);
@@ -110,7 +126,8 @@ architecture behavioural of WardRV_fsm is
   signal dmem_be                    : std_logic_vector(3 downto 0);
   signal dmem_addr                  : std_logic_vector(31 downto 0);
   signal dmem_rdata_r               : std_logic_vector(31 downto 0);
-  signal dmem_ini                    : dmem_ini_t;
+  signal dmem_ini                   : dmem_ini_t;
+  signal dmem_tgt                   : dmem_tgt_t;
 
   -- Intermediate register for ALU result to be used across FSM cycles.
   signal alu_res_r_we               : std_logic;
@@ -160,12 +177,15 @@ architecture behavioural of WardRV_fsm is
   signal dec_csr_addr               : std_logic_vector(11 downto 0);
   signal dec_inst_type              : inst_type_t;
   signal dec_inst_is_mret           : std_logic;
+  signal dec_inst_is_ebreak         : std_logic;
+  signal dec_inst_is_dret           : std_logic;
   signal inst_is_mret               : std_logic;
      
   -- CSR Signals
   signal csr_we                     : std_logic; -- Write enable for CSRs
 
   signal csr_rdata                  : std_logic_vector(31 downto 0);
+  signal csr_rdata_core             : std_logic_vector(31 downto 0);
   signal csr_mtvec                  : std_logic_vector(31 downto 0);  
 
   -- Trap Handling (Stubs for now)
@@ -183,6 +203,18 @@ architecture behavioural of WardRV_fsm is
   signal src_b_val                  : std_logic_vector(31 downto 0);
   signal regfile_rd_we              : std_logic; -- Combined RF write enable
   signal regfile_rd_wdata           : std_logic_vector(31 downto 0); -- Data to write back
+
+  -- Next PC of the instruction (without debug)
+  signal pc_next                    : std_logic_vector(31 downto 0);
+
+  -- Debug
+  signal dbg_debug_mode             : std_logic; -- Hart in debug mode
+  signal dbg_irq_mask               : std_logic; -- Interrupts masked
+  signal dbg_exception              : std_logic; -- EXECUTE : breakpoint exception
+  signal dbg_trap_bkpt              : std_logic; -- TRAP    : the trap is a breakpoint
+  signal dbg_pc_we                  : std_logic; -- pc <= dbg_pc : debug mode entry / exit
+  signal dbg_pc                     : std_logic_vector(31 downto 0);
+  signal dbg_csr_rdata              : std_logic_vector(31 downto 0);
 
 begin
 
@@ -202,8 +234,8 @@ begin
     inst_r_o     => inst_r,
 
     -- Physical Interface
-    imem_ini_o   => imem_ini_o,
-    imem_tgt_i   => imem_tgt_i
+    imem_ini_o   => imem_ini,
+    imem_tgt_i   => imem_tgt
   );
 
   imem_valid <= state_next_is_fetch;
@@ -248,6 +280,8 @@ begin
     csr_re_o                 => dec_csr_re,
     csr_addr_o               => dec_csr_addr,
     inst_is_mret_o           => dec_inst_is_mret,
+    inst_is_ebreak_o         => dec_inst_is_ebreak,
+    inst_is_dret_o           => dec_inst_is_dret,
     inst_type_o              => dec_inst_type
   );
 
@@ -269,7 +303,7 @@ begin
     csr_we_i            => csr_we,
     csr_re_i            => dec_csr_re,
     csr_wdata_i         => alu_res_r,
-    csr_rdata_o         => csr_rdata,
+    csr_rdata_o         => csr_rdata_core,
 
     csr_mtvec_o         => csr_mtvec,
 
@@ -284,12 +318,18 @@ begin
     trap_mirq_o         => trap_mirq
     );
 
+  -- Debug CSRs : 0 when not implemented
+  csr_rdata             <= csr_rdata_core or dbg_csr_rdata;
+
   --------------------------------------------------------------------
   -- Trap
   --------------------------------------------------------------------
-  trap_valid <= trap_mirq; -- For now, we only have one trap source (external interrupt). In a full implementation, this would be a combination of multiple trap sources (e.g., illegal instruction, ecall, timer interrupt) and would likely involve prioritization logic.
+  -- Interrupt taken at the end of WRITEBACK (masked in debug mode). The
+  -- breakpoint exception of the debug unit goes to S_TRAP from S_EXECUTE.
+  trap_valid <= trap_mirq and not dbg_irq_mask;
   trap       <= state_is_trap;
-  trap_cause <= x"8000000B";--when trap_mirq = '1' else (others => '0'); -- External Interrupt
+  trap_cause <= x"00000003" when dbg_trap_bkpt = '1' else -- Breakpoint
+                x"8000000B";                              -- External Interrupt
   trap_pc    <= pc_r       ;--when trap_mirq = '1' else (others => '0');
   trap_mtval <= (others => '0'); -- No additional info for external interrupts
 
@@ -425,14 +465,76 @@ begin
     dmem_rdata_r_o      => dmem_rdata_r,
     
     dmem_ini_o          => dmem_ini,
-    dmem_tgt_i          => dmem_tgt_i
+    dmem_tgt_i          => dmem_tgt
   );
 
   dmem_valid <= state_next_is_memory;
-  dmem_ini_o <= dmem_ini;
   dmem_addr  <= dmem_ini.addr;
   dmem_be    <= dmem_ini.be;
 
+
+  --------------------------------------------------------------------
+  -- Debug (RISC-V Debug Spec 1.0)
+  -- WardRV_fsm_debug     : debug mode, debug CSRs, triggers, breakpoint
+  --                        exception, debug mode entry / exit (dbg_pc)
+  -- WardRV_fsm_debug_bus : in debug mode, the accesses to 0xFFFF_F800 go to
+  --                        the debug memory of the Debug Module (dbg_mem)
+  -- With the default generics every dbg_* signal is '0' and the buses are
+  -- wires : the core is the one described in the other sections.
+  --------------------------------------------------------------------
+  inst_debug : entity work.WardRV_fsm_debug
+  generic map (
+    DEBUG_ENABLE         => DEBUG_ENABLE,
+    NB_TRIGGERS          => NB_TRIGGERS,
+    EBREAK_EXCEPTION     => EBREAK_EXCEPTION,
+    RESETHALTREQ_ENABLE  => RESETHALTREQ_ENABLE,
+    TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
+  )
+  port map (
+    clk_i                => clk_i,
+    arst_b_i             => arst_b_i,
+    state_is_reset_i     => state_is_reset,
+    state_is_execute_i   => state_is_execute,
+    state_is_writeback_i => state_is_writeback,
+    state_is_trap_i      => state_is_trap,
+    pc_i                 => pc_r,
+    pc_next_i            => pc_next,
+    inst_is_ebreak_i     => dec_inst_is_ebreak,
+    inst_is_dret_i       => dec_inst_is_dret,
+    mem_req_i            => dec_dmem_req,
+    mem_we_i             => dec_dmem_we,
+    mem_addr_i           => alu_res,
+    irq_i                => trap_valid,
+    csr_addr_i           => dec_csr_addr,
+    csr_we_i             => csr_we,
+    csr_wdata_i          => alu_res_r,
+    csr_rdata_o          => dbg_csr_rdata,
+    dbg_hart_req_i       => dbg_hart_req_i,
+    debug_mode_o         => dbg_debug_mode,
+    irq_mask_o           => dbg_irq_mask,
+    exception_o          => dbg_exception,
+    trap_bkpt_o          => dbg_trap_bkpt,
+    pc_we_o              => dbg_pc_we,
+    pc_o                 => dbg_pc
+  );
+
+  inst_debug_bus : entity work.WardRV_fsm_debug_bus
+  generic map (
+    DEBUG_ENABLE         => DEBUG_ENABLE
+  )
+  port map (
+    debug_mode_i         => dbg_debug_mode,
+    core_imem_ini_i      => imem_ini,
+    core_imem_tgt_o      => imem_tgt,
+    core_dmem_ini_i      => dmem_ini,
+    core_dmem_tgt_o      => dmem_tgt,
+    imem_ini_o           => imem_ini_o,
+    imem_tgt_i           => imem_tgt_i,
+    dmem_ini_o           => dmem_ini_o,
+    dmem_tgt_i           => dmem_tgt_i,
+    dbg_mem_ini_o        => dbg_mem_ini_o,
+    dbg_mem_tgt_i        => dbg_mem_tgt_i
+  );
 
   --------------------------------------------------------------------
   -- Program Counter Logic
@@ -447,15 +549,19 @@ begin
                             (alu_sign  and dec_branch_use_flag_sign  )) = dec_branch_flag_is_set)                
                    else '0';
   -- Next PC Mux: Sequential (+4), Branch target, or Jump target
-  pc_r_next    <= csr_mtvec                     when trap = '1' else
+  pc_next      <= csr_mtvec                     when trap = '1' else
                   csr_rdata                     when (dec_pc_sel = PC_SEL_XEPC) else
                   alu_res_r(31 downto 2) & "00" when (dec_pc_sel = PC_SEL_JUMP) or
                                                      (((dec_pc_sel = PC_SEL_BRANCH) and branch_taken_r = '1')) else
                   pc_seq_r; -- pc_seq_r is already PC+4
 
+  -- Debug : debug mode entry (0xFFFF_F800) or exit (dpc)
+  pc_r_next    <= dbg_pc when dbg_pc_we = '1' else
+                  pc_next;
+
   pc_seq_r_we       <= state_is_fetch; -- We compute PC+4 at the end of the FETCH stage, so it's ready for the next instruction. This also simplifies the logic, as we don't need to compute PC+4 in multiple places (e.g., for jumps/branches) and can rely on the FSM to have it ready when needed.
   branch_taken_r_we <= state_is_branch_decision; -- We determine if the branch is taken at the end of the BRANCH_DECISION stage, so we latch it then for use in the next cycle when we decide the next PC.
-  pc_r_we           <= state_is_writeback or state_is_trap; -- We update the PC at the end of the WRITEBACK stage, so it's ready for the next instruction.
+  pc_r_we           <= state_is_writeback or state_is_trap or dbg_pc_we; -- We update the PC at the end of the WRITEBACK stage, so it's ready for the next instruction.
 
 
   process(clk_i, arst_b_i)
@@ -524,8 +630,14 @@ begin
         -- is interpreted and control signals are generated.
 
       when S_EXECUTE =>
+          -- Debug : the instruction is abandoned, trap (breakpoint exception)
+          -- or debug mode entry / exit (pc <= dbg_pc)
+          if dbg_exception = '1' then
+              state_r_next <= S_TRAP;
+          elsif dbg_pc_we = '1' then
+              state_r_next <= S_FETCH;
           -- Fork the execution flow based on instruction requirements
-          if dec_is_branch = '1' then
+          elsif dec_is_branch = '1' then
               state_r_next <= S_BRANCH_DECISION;
           elsif dec_dmem_req = '1' then
               state_r_next <= S_MEMORY;
