@@ -9,8 +9,10 @@
 --              The sequencer is both the debugger (DMI requests) and the hart
 --              (accesses to the debug memory, as the debug ROM and the
 --              abstract command programs do).
---  dmcontrol    : dmactive, dmstatus, hartinfo, abstractcs, ackhavereset,
---                 ndmreset
+--  reset        : after reset : dmcontrol, dmstatus, abstractcs, sbcs,
+--                 hartinfo, haltsum0
+--  dmcontrol    : dmactive, ackhavereset, ndmreset, dmactive = 0 resets
+--                 the DM
 --  halt_resume  : haltreq, HALTED, resumereq, RESUMING, resumeack
 --  abstract     : programs of GPR / CSR reads and writes, postexec and the
 --                 program buffer with its implicit ebreak, data registers
@@ -62,6 +64,7 @@ package tb_WardRV_dbg_dm_pkg is
                                       mem_ini    => (valid => '0', addr => (others => '0'), wdata => (others => '0'), we => '0', be => "1111"),
                                       hart_rst_b => '1');
 
+  procedure test_reset       (signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t);
   procedure test_dmcontrol   (signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t);
   procedure test_halt_resume (signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t);
   procedure test_abstract    (signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t);
@@ -194,6 +197,21 @@ package body tb_WardRV_dbg_dm_pkg is
   end procedure;
 
   -----------------------------------------------------------------------------
+  -- reset
+  -----------------------------------------------------------------------------
+  procedure test_reset(signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t) is
+  begin
+    dmi_check(clk, ini, tgt, DM_DMCONTROL , x"00000000", "dmcontrol : dmactive = 0 after reset");
+    dmi_write(clk, ini, tgt, DM_DMCONTROL , x"00000001");          -- dmactive
+    dmi_check(clk, ini, tgt, DM_DMSTATUS  , x"004C0CA3", "dmstatus : impebreak, havereset, running, authenticated, hasresethaltreq, version 3");
+    dmi_check(clk, ini, tgt, DM_ABSTRACTCS, x"02000002", "abstractcs : progbufsize 2, not busy, cmderr 0, datacount 2");
+    dmi_check(clk, ini, tgt, DM_SBCS      , x"20040407", "sbcs : sbversion 1, sbaccess 32, sbasize 32, sbaccess 8 / 16 / 32");
+    dmi_check(clk, ini, tgt, DM_HARTINFO  , x"00112B00", "hartinfo : nscratch 1, dataaccess, datasize 2, dataaddr 0xB00");
+    dmi_check(clk, ini, tgt, DM_HALTSUM0  , x"00000000", "haltsum0 : running");
+    check_value(tgt.hart_req.haltreq, '0', ERROR, "no haltreq to the hart", C_TB_SCOPE);
+  end procedure;
+
+  -----------------------------------------------------------------------------
   -- dmcontrol
   -----------------------------------------------------------------------------
   procedure test_dmcontrol(signal clk : in std_logic; signal ini : out dm_ini_t; signal tgt : in dm_tgt_t) is
@@ -205,13 +223,10 @@ package body tb_WardRV_dbg_dm_pkg is
     dmi_check(clk, ini, tgt, DM_DMCONTROL, x"00000001", "dmactive only");
     dmi_check(clk, ini, tgt, DM_DATA0    , x"00000000", "data0 not written while dmactive = 0");
 
-    log(ID_LOG_HDR, "dmstatus, hartinfo, abstractcs", C_TB_SCOPE);
-    dmi_check(clk, ini, tgt, DM_DMSTATUS  , x"004C0CA3", "dmstatus : impebreak, havereset, running, authenticated, hasresethaltreq, version 3");
+    log(ID_LOG_HDR, "ackhavereset", C_TB_SCOPE);
+    dmi_check(clk, ini, tgt, DM_DMSTATUS  , x"004C0CA3", "dmstatus : havereset");
     dmi_write(clk, ini, tgt, DM_DMCONTROL , x"10000001");         -- ackhavereset
     dmi_check(clk, ini, tgt, DM_DMSTATUS  , x"00400CA3", "dmstatus : havereset acknowledged");
-    dmi_check(clk, ini, tgt, DM_HARTINFO  , x"00112B00", "hartinfo : nscratch 1, dataaccess, datasize 2, dataaddr 0xB00");
-    dmi_check(clk, ini, tgt, DM_ABSTRACTCS, x"02000002", "abstractcs : progbufsize 2, datacount 2");
-    dmi_check(clk, ini, tgt, DM_HALTSUM0  , x"00000000", "haltsum0 : running");
 
     log(ID_LOG_HDR, "ndmreset", C_TB_SCOPE);
     dmi_write(clk, ini, tgt, DM_DMCONTROL, x"00000003");
@@ -431,7 +446,6 @@ package body tb_WardRV_dbg_dm_pkg is
 
   begin
     dmi_write(clk, ini, tgt, DM_DMCONTROL, x"00000001");
-    dmi_check(clk, ini, tgt, DM_SBCS, x"20040407", "sbcs : sbversion 1, sbaccess 32, sbasize 32, sbaccess 8 / 16 / 32");
 
     log(ID_LOG_HDR, "32-bit write, read on address", C_TB_SCOPE);
     dmi_write(clk, ini, tgt, DM_SBADDRESS0, x"00000010");

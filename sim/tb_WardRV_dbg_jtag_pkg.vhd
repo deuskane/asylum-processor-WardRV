@@ -6,9 +6,9 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: Scenarios of tb_WardRV_dbg_jtag (one per run, TEST generic) :
+--  reset : after TRST* : IDCODE selected, dtmcs fields
 --  tap   : Test-Logic-Reset (TRST*, 5 x TMS = 1), Capture-IR, IDCODE,
 --          BYPASS and undecoded opcodes
---  dtmcs : dtmcs fields
 --  dmi   : DMI writes and reads of the fake Debug Module, one DMI request
 --          per access
 --  busy  : scans too close to each other : sticky busy status, request
@@ -38,12 +38,12 @@ package tb_WardRV_dbg_jtag_pkg is
 
   constant C_IDCODE : std_logic_vector(32-1 downto 0) := x"1DEB0001";
 
-  procedure test_tap(
+  procedure test_reset(
     signal   jtag_ini   : out jtag_ini_t;
     signal   jtag_tgt   : in  jtag_tgt_t
   );
 
-  procedure test_dtmcs(
+  procedure test_tap(
     signal   jtag_ini   : out jtag_ini_t;
     signal   jtag_tgt   : in  jtag_tgt_t
   );
@@ -65,6 +65,23 @@ end package tb_WardRV_dbg_jtag_pkg;
 package body tb_WardRV_dbg_jtag_pkg is
 
   constant C_TB_SCOPE : string := "tb_WardRV_dbg_jtag";
+
+  -----------------------------------------------------------------------------
+  -- reset
+  -----------------------------------------------------------------------------
+  procedure test_reset(
+    signal   jtag_ini   : out jtag_ini_t;
+    signal   jtag_tgt   : in  jtag_tgt_t
+  ) is
+    variable v_data     : std_logic_vector(32-1 downto 0);
+  begin
+    -- TRST* by vip_jtag_init : IDCODE selected
+    vip_jtag_clock(jtag_ini, '0');                                -- Run-Test/Idle
+    vip_jtag_scan (jtag_ini, jtag_tgt, false, x"00000000", v_data);
+    check_value(v_data, C_IDCODE, ERROR, "IDCODE after reset", C_TB_SCOPE);
+    vip_jtag_dtmcs(jtag_ini, jtag_tgt, x"00000000", v_data);
+    check_value(v_data, x"00005071", ERROR, "dtmcs : idle 5, dmistat 0, abits 7, version 1", C_TB_SCOPE);
+  end procedure;
 
   -----------------------------------------------------------------------------
   -- tap
@@ -106,20 +123,6 @@ package body tb_WardRV_dbg_jtag_pkg is
     vip_jtag_clock   (jtag_ini, '0');                             -- Run-Test/Idle
     vip_jtag_scan    (jtag_ini, jtag_tgt, false, x"00000000", v_data);
     check_value(v_data, C_IDCODE, ERROR, "IDCODE after TRST*", C_TB_SCOPE);
-  end procedure;
-
-  -----------------------------------------------------------------------------
-  -- dtmcs
-  -----------------------------------------------------------------------------
-  procedure test_dtmcs(
-    signal   jtag_ini   : out jtag_ini_t;
-    signal   jtag_tgt   : in  jtag_tgt_t
-  ) is
-    variable v_dtmcs    : std_logic_vector(32-1 downto 0);
-  begin
-    vip_jtag_reset(jtag_ini);
-    vip_jtag_dtmcs(jtag_ini, jtag_tgt, x"00000000", v_dtmcs);
-    check_value(v_dtmcs, x"00005071", ERROR, "dtmcs : idle 5, dmistat 0, abits 7, version 1", C_TB_SCOPE);
   end procedure;
 
   -----------------------------------------------------------------------------

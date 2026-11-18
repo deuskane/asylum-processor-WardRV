@@ -721,192 +721,187 @@ targets:
 
   #---------------------------------------
   # Debug unit : one sim_dbg_<testbench>_<scenario> target per scenario,
-  # chosen at run time by the generic TEST. The bases dbg_<testbench> are
-  # not sim_ targets (no CI job), they run any scenario :
-  #   fusesoc --cores-root . run --target dbg_jtag <VLNV> --TEST=<scenario>
+  # chosen at run time by the generic TEST. The bases sim_dbg_<testbench>
+  # run the scenario reset (state after reset), or any scenario :
+  #   fusesoc --cores-root . run --target sim_dbg_jtag <VLNV> --TEST=<scenario>
   # No waveform (long simulations) : add --fst=dut.fst to run_options.
   #---------------------------------------
-  dbg_jtag: &dbg_jtag
+  sim_dbg_jtag: &sim_dbg_jtag
   #---------------------------------------
     << : *default
-    description     : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
+    description     : Debug - JTAG - after reset, IDCODE selected, dtmcs (base of sim_dbg_jtag_*, WardRV_dbg_jtag unit test)
     default_tool    : ghdl
     toplevel        : tb_WardRV_dbg_jtag
     filesets_append : [files_sim, files_sim_debug]
-    parameters      : [TEST, CLK_PERIOD_NS, VERBOSE]
+    parameters      : [TEST=reset, CLK_PERIOD_NS, VERBOSE=false]
     tools :
       ghdl :
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--ieee-asserts=disable"]
 
   sim_dbg_jtag_tap:
-    << : *dbg_jtag
+    << : *sim_dbg_jtag
     description     : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
     parameters      : [TEST=tap]
 
-  sim_dbg_jtag_dtmcs:
-    << : *dbg_jtag
-    description     : Debug - JTAG DTM - dtmcs fields
-    parameters      : [TEST=dtmcs]
-
   sim_dbg_jtag_dmi:
-    << : *dbg_jtag
+    << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
     parameters      : [TEST=dmi]
 
   sim_dbg_jtag_slow_dmi:
-    << : *dbg_jtag
+    << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 40x slower than TCK, busy retries, requests in the end of the handshake)
     parameters      : [TEST=dmi, CLK_PERIOD_NS=2000]
 
   sim_dbg_jtag_busy:
-    << : *dbg_jtag
+    << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
     parameters      : [TEST=busy]
 
   #---------------------------------------
-  dbg_dm: &dbg_dm
+  sim_dbg_dm: &sim_dbg_dm
   #---------------------------------------
-    << : *dbg_jtag
-    description     : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
+    << : *sim_dbg_jtag
+    description     : Debug - Debug Module - after reset, dmcontrol, dmstatus, abstractcs, sbcs, hartinfo, haltsum0 (base of sim_dbg_dm_*, WardRV_dbg_dm unit test)
     toplevel        : tb_WardRV_dbg_dm
-    parameters      : [TEST, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE, VERBOSE]
+    parameters      : [TEST=reset, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE, VERBOSE=false]
 
   sim_dbg_dm_dmcontrol:
-    << : *dbg_dm
-    description     : Debug - Debug Module - dmactive, dmstatus, hartinfo, abstractcs, ackhavereset, ndmreset
+    << : *sim_dbg_dm
+    description     : Debug - Debug Module - dmactive, ackhavereset, ndmreset, dmactive = 0 resets the DM
     parameters      : [TEST=dmcontrol]
 
   sim_dbg_dm_halt_resume:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - haltreq, halted, resumereq, resumeack
     parameters      : [TEST=halt_resume]
 
   sim_dbg_dm_abstract:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - abstract command programs (GPR / CSR read and write), postexec, program buffer, data registers
     parameters      : [TEST=abstract]
 
   sim_dbg_dm_cmderr:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
     parameters      : [TEST=cmderr]
 
   sim_dbg_dm_autoexec:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - abstractauto on data and program buffer accesses
     parameters      : [TEST=autoexec]
 
   sim_dbg_dm_resethaltreq:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
     parameters      : [TEST=resethaltreq]
 
   sim_dbg_dm_sba:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
     parameters      : [TEST=sba]
 
   sim_dbg_dm_progbuf0:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
     parameters      : [TEST=progbuf0, PROGBUF_SIZE=0]
 
   sim_dbg_dm_postincrement:
-    << : *dbg_dm
+    << : *sim_dbg_dm
     description     : Debug - Debug Module with AARPOSTINCREMENT_ENABLE - aarpostincrement with abstractauto
     parameters      : [TEST=postincrement, AARPOSTINCREMENT_ENABLE=true]
 
   #---------------------------------------
-  dbg_system: &dbg_system
+  sim_dbg_system: &sim_dbg_system
   #---------------------------------------
-    << : *dbg_jtag
-    description     : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
+    << : *sim_dbg_jtag
+    description     : Debug - System - after reset, the core runs its firmware (allrunning), Debug Module idle (base of sim_dbg_system_*, WardRV_fsm + WardRV_debug through JTAG)
     toplevel        : tb_WardRV_debug
-    parameters      : [TEST, EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE, VERBOSE]
+    parameters      : [TEST=reset, EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE, VERBOSE=false]
 
   sim_dbg_system_halt_resume:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - haltreq (cause 3, dpc), resume
     parameters      : [TEST=halt_resume]
 
   sim_dbg_system_registers:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - GPR / CSR access with abstract commands, dpc write
     parameters      : [TEST=registers]
 
   sim_dbg_system_cmderr:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - register that does not exist, command while running
     parameters      : [TEST=cmderr]
 
   sim_dbg_system_progbuf:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - memory read / write through the program buffer
     parameters      : [TEST=progbuf]
 
   sim_dbg_system_step:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - dcsr.step (cause 4, dpc of each instruction)
     parameters      : [TEST=step]
 
   sim_dbg_system_ebreak:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
     parameters      : [TEST=ebreak]
 
   sim_dbg_system_trigger_execute:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - tselect / tinfo / tdata1 WARL (match and chain read 0 without TRIGGER_RANGE_ENABLE), execute trigger (cause 2, instruction not executed)
     parameters      : [TEST=trigger_execute]
 
   sim_dbg_system_trigger_store:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - store trigger (cause 2, dpc of the store)
     parameters      : [TEST=trigger_store]
 
   sim_dbg_system_trigger_load:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - load trigger (cause 2, dpc of the load)
     parameters      : [TEST=trigger_load]
 
   sim_dbg_system_resethaltreq:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - ndmreset with resethaltreq (cause 5) and with haltreq (cause 3), dpc = reset address
     parameters      : [TEST=resethaltreq]
 
   sim_dbg_system_interrupt:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - interrupt masked in debug mode, step without / with dcsr.stepie
     parameters      : [TEST=interrupt]
 
   sim_dbg_system_trigger_ge:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match >= (fires on pc = tdata2)
     parameters      : [TEST=trigger_ge, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_lt:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match < (not on pc = tdata2)
     parameters      : [TEST=trigger_lt, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_range_execute:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, range of pc [A, B) with two chained triggers, chain WARL, chain of M-mode triggers
     parameters      : [TEST=trigger_range_execute, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_range_store:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, range of store addresses [A, B) with two chained triggers
     parameters      : [TEST=trigger_range_store, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_exc_ebreak:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode
     parameters      : [TEST=exc_ebreak, EBREAK_EXCEPTION=true]
 
   sim_dbg_system_exc_trigger:
-    << : *dbg_system
+    << : *sim_dbg_system
     description     : Debug - System - EBREAK_EXCEPTION, trigger of M-mode (dmode 0) raises a breakpoint exception
     parameters      : [TEST=exc_trigger, EBREAK_EXCEPTION=true]
 
@@ -917,7 +912,7 @@ targets:
   #---------------------------------------
   dbg_openocd: &dbg_openocd
   #---------------------------------------
-    << : *dbg_jtag
+    << : *sim_dbg_jtag
     description     : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
     toplevel        : tb_WardRV_openocd
     filesets_append : [files_sim, files_sim_openocd]

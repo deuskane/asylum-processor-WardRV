@@ -1,7 +1,4 @@
-dbg_dm                                : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
-dbg_jtag                              : Base of sim_dbg_jtag_* (DON'T RUN alone), WardRV_dbg_jtag unit test, scenario TEST
 dbg_openocd                           : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
-dbg_system                            : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
 default                               : Default Target
 lint_ghdl                             : Lint with GHDL (-Wall analysis and elaboration of WardRV_wrapper)
 lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte address on 32 bits
@@ -102,18 +99,19 @@ sim_compliance_act4_zicsr_csrrs_00    : ACT4 Zicsr-csrrs-00 testcase
 sim_compliance_act4_zicsr_csrrsi_00   : ACT4 Zicsr-csrrsi-00 testcase
 sim_compliance_act4_zicsr_csrrw_00    : ACT4 Zicsr-csrrw-00 testcase
 sim_compliance_act4_zicsr_csrrwi_00   : ACT4 Zicsr-csrrwi-00 testcase
+sim_dbg_dm                            : Debug - Debug Module - after reset, dmcontrol, dmstatus, abstractcs, sbcs, hartinfo, haltsum0 (base of sim_dbg_dm_*, WardRV_dbg_dm unit test)
 sim_dbg_dm_abstract                   : Debug - Debug Module - abstract command programs (GPR / CSR read and write), postexec, program buffer, data registers
 sim_dbg_dm_autoexec                   : Debug - Debug Module - abstractauto on data and program buffer accesses
 sim_dbg_dm_cmderr                     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
-sim_dbg_dm_dmcontrol                  : Debug - Debug Module - dmactive, dmstatus, hartinfo, abstractcs, ackhavereset, ndmreset
+sim_dbg_dm_dmcontrol                  : Debug - Debug Module - dmactive, ackhavereset, ndmreset, dmactive = 0 resets the DM
 sim_dbg_dm_halt_resume                : Debug - Debug Module - haltreq, halted, resumereq, resumeack
 sim_dbg_dm_postincrement              : Debug - Debug Module with AARPOSTINCREMENT_ENABLE - aarpostincrement with abstractauto
 sim_dbg_dm_progbuf0                   : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
 sim_dbg_dm_resethaltreq               : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
 sim_dbg_dm_sba                        : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
+sim_dbg_jtag                          : Debug - JTAG - after reset, IDCODE selected, dtmcs (base of sim_dbg_jtag_*, WardRV_dbg_jtag unit test)
 sim_dbg_jtag_busy                     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
 sim_dbg_jtag_dmi                      : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
-sim_dbg_jtag_dtmcs                    : Debug - JTAG DTM - dtmcs fields
 sim_dbg_jtag_slow_dmi                 : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 40x slower than TCK, busy retries, requests in the end of the handshake)
 sim_dbg_jtag_tap                      : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
 sim_dbg_openocd_pb0_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 0 triggers
@@ -125,6 +123,7 @@ sim_dbg_openocd_pb2_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 2
 sim_dbg_openocd_pb2_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
 sim_dbg_openocd_pb2_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
 sim_dbg_openocd_pb2_sba1_tr2          : Debug - OpenOCD + GDB - program buffer 2, SBA, 2 triggers
+sim_dbg_system                        : Debug - System - after reset, the core runs its firmware (allrunning), Debug Module idle (base of sim_dbg_system_*, WardRV_fsm + WardRV_debug through JTAG)
 sim_dbg_system_cmderr                 : Debug - System - register that does not exist, command while running
 sim_dbg_system_ebreak                 : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
 sim_dbg_system_exc_ebreak             : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode

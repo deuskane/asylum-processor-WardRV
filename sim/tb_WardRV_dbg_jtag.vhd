@@ -35,7 +35,7 @@ use     work.tb_WardRV_dbg_jtag_pkg.all;
 
 entity tb_WardRV_dbg_jtag is
   generic (
-    TEST           : string  := "tap"
+    TEST           : string  := "reset"
    ;CLK_PERIOD_NS  : natural := 10
    ;VERBOSE        : boolean := false
   );
@@ -124,12 +124,12 @@ begin  -- architecture sim
     wait until arst_b_i = '1';
     vip_jtag_init(jtag_ini);
 
-    if    TEST = "tap"
+    if    TEST = "reset"
+    then
+      test_reset(jtag_ini, jtag_tgt);
+    elsif TEST = "tap"
     then
       test_tap  (jtag_ini, jtag_tgt);
-    elsif TEST = "dtmcs"
-    then
-      test_dtmcs(jtag_ini, jtag_tgt);
     elsif TEST = "dmi"
     then
       test_dmi  (jtag_ini, jtag_tgt, dm_nb_req);

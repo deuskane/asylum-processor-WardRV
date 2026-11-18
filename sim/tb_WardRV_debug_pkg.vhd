@@ -9,6 +9,8 @@
 --              the sequencer is a debugger on the JTAG port, the core runs
 --              esw/debug/debug_fw.S. Debugger procedures (halt, resume,
 --              register and memory access) follow the OpenOCD flow.
+--  reset           : after reset, the core runs its firmware (allrunning,
+--                    counter in memory), Debug Module idle
 --  halt_resume     : haltreq (cause 3, dpc in the loop), resume
 --  registers       : GPR / CSR access with abstract commands, dpc write
 --  cmderr          : register that does not exist, command while running
@@ -71,6 +73,7 @@ package tb_WardRV_debug_pkg is
   constant C_COUNTER    : std_logic_vector(32-1 downto 0) := x"80001000";
   constant C_FLAG       : std_logic_vector(32-1 downto 0) := x"80001004";
 
+  procedure test_reset          (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; signal mem : in ram_t);
   procedure test_halt_resume    (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_registers      (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_cmderr         (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
@@ -280,6 +283,29 @@ package body tb_WardRV_debug_pkg is
     end if;
     return std_logic_vector(unsigned(pc) + 4);
   end function;
+
+  -----------------------------------------------------------------------------
+  -- reset
+  -----------------------------------------------------------------------------
+  procedure test_reset(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; signal mem : in ram_t) is
+    variable v_data   : std_logic_vector(32-1 downto 0);
+    variable v_count  : std_logic_vector(32-1 downto 0);
+    variable v_count2 : std_logic_vector(32-1 downto 0);
+  begin
+    connect    (jtag_ini, jtag_tgt);
+    dmi_read   (jtag_ini, jtag_tgt, DM_DMSTATUS  , v_data);
+    check_value(v_data, x"00400CA3", ERROR, "dmstatus : impebreak, allrunning, authenticated, hasresethaltreq, version 3", C_TB_SCOPE);
+    dmi_read   (jtag_ini, jtag_tgt, DM_ABSTRACTCS, v_data);
+    check_value(v_data, x"02000002", ERROR, "abstractcs : progbufsize 2, not busy, cmderr 0, datacount 2", C_TB_SCOPE);
+    dmi_read   (jtag_ini, jtag_tgt, DM_HALTSUM0  , v_data);
+    check_value(v_data, x"00000000", ERROR, "haltsum0 : running", C_TB_SCOPE);
+    -- The firmware loop stores its counter
+    read_mem   (mem, C_COUNTER, v_count , false);
+    wait for 5 us;
+    read_mem   (mem, C_COUNTER, v_count2, false);
+    check_value(unsigned(v_count2) > unsigned(v_count), ERROR,
+                "the firmware runs : counter 0x" & to_hstring(v_count) & " then 0x" & to_hstring(v_count2), C_TB_SCOPE);
+  end procedure;
 
   -----------------------------------------------------------------------------
   -- halt_resume

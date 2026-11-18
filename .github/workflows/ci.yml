@@ -437,6 +437,11 @@ jobs:
     with:
       name: sim_compliance_act4_zicsr_csrrwi_00
 
+  sim_dbg_dm:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm
+
   sim_dbg_dm_abstract:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
@@ -482,6 +487,11 @@ jobs:
     with:
       name: sim_dbg_dm_sba
 
+  sim_dbg_jtag:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag
+
   sim_dbg_jtag_busy:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
@@ -491,11 +501,6 @@ jobs:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
       name: sim_dbg_jtag_dmi
-
-  sim_dbg_jtag_dtmcs:
-    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
-    with:
-      name: sim_dbg_jtag_dtmcs
 
   sim_dbg_jtag_slow_dmi:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
@@ -551,6 +556,11 @@ jobs:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
       name: sim_dbg_openocd_pb2_sba1_tr2
+
+  sim_dbg_system:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system
 
   sim_dbg_system_cmderr:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main

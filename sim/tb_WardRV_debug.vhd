@@ -38,7 +38,7 @@ use     work.tb_WardRV_debug_pkg.all;
 
 entity tb_WardRV_debug is
   generic (
-    TEST                 : string  := "halt_resume"
+    TEST                 : string  := "reset"
    ;EBREAK_EXCEPTION     : boolean := false
    ;TRIGGER_RANGE_ENABLE : boolean := false
    ;FIRMWARE_FILE        : string  := "debug/debug_fw.hex"
@@ -182,7 +182,10 @@ begin  -- architecture sim
     wait until arst_b_i = '1';
     vip_jtag_init(jtag_ini);
 
-    if    TEST = "halt_resume"
+    if    TEST = "reset"
+    then
+      test_reset          (jtag_ini, jtag_tgt, mem);
+    elsif TEST = "halt_resume"
     then
       test_halt_resume    (jtag_ini, jtag_tgt);
     elsif TEST = "registers"

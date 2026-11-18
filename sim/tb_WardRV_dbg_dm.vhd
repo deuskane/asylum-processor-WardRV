@@ -34,7 +34,7 @@ use     work.tb_WardRV_dbg_dm_pkg.all;
 
 entity tb_WardRV_dbg_dm is
   generic (
-    TEST                    : string  := "dmcontrol"
+    TEST                    : string  := "reset"
    ;PROGBUF_SIZE            : natural := 2
    ;AARPOSTINCREMENT_ENABLE : boolean := false
    ;VERBOSE                 : boolean := false
@@ -128,7 +128,10 @@ begin  -- architecture sim
     wait until arst_b_i = '1';
     wait until rising_edge(clk_i);
 
-    if    TEST = "dmcontrol"
+    if    TEST = "reset"
+    then
+      test_reset       (clk_i, ini, tgt);
+    elsif TEST = "dmcontrol"
     then
       test_dmcontrol   (clk_i, ini, tgt);
     elsif TEST = "halt_resume"
