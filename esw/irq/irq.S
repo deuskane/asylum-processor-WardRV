@@ -13,6 +13,7 @@
 //   5 : csrs  mie, MEIE with the interrupt pending : trap right after it
 //   6 : mtvec written with MODE = 3 reads back the aligned handler address
 //       (MODE is read-only zero), and the next trap enters the handler
+//   7 : mret with mstatus.MPIE = 0 : MIE = 0 after it (MIE <= MPIE applied once)
 //
 // Build : make (needs a RISC-V toolchain), irq_fw.hex / irq_fw.lst committed
 // ----------------------------------------------------------------------------
@@ -20,6 +21,7 @@
 .equ MEIP_ADDR,     0x80300000    // tb_WardRV : meip_i <= wdata(0) at the next fetch
 .equ TOHOST_ADDR,   0x80200000    // tb_WardRV : 1 = pass, other = fail
 .equ MSTATUS_MIE,   0x8           // mstatus.MIE  (bit 3)
+.equ MSTATUS_MPP,   0x1800        // mstatus : MPP = 3, MPIE = 0, MIE = 0
 .equ MIE_MEIE,      0x800         // mie.MEIE     (bit 11)
 .equ MSTATUS_TRAP,  0x1880        // mstatus in the handler    : MPP = 3, MPIE = 1, MIE = 0
 .equ MSTATUS_MRET,  0x1888        // mstatus after mret        : MPP = 3, MPIE = 1, MIE = 1
@@ -105,6 +107,17 @@ ret5:
     nop                           // trap : enters the aligned handler
     li    a5, 3
     bne   s4, a5, fail            // third trap
+
+    // 7 : mret with mstatus.MPIE = 0 restores MIE = 0
+    li    t6, 7
+    li    a6, MSTATUS_MPP
+    csrw  mstatus, a6               // MPIE = 0, MIE = 0
+    la    a6, ret7
+    csrw  mepc, a6
+    mret                            // MIE <= MPIE = 0, MPIE <= 1
+ret7:
+    csrr  s3, mstatus
+    bne   s3, a7, fail            // MPP = 3, MPIE = 1, MIE = 0
 
 pass:
     sw    a3, 0(a1)               // tohost = 1 : pass

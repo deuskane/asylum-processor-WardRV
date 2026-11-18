@@ -22,7 +22,8 @@ CAPI=2:
 #                               Compliance : ACT3 (esw/compliance_act3) and ACT4 (esw/compliance_act4) suites
 # 2026-11-16  0.0.5    mrosiere fsm : mtvec.MODE read-only zero, interrupt evaluated with
 #                               the mstatus / mie being written, imem2sbi cs,
-#                               sbi_WardRV_fsm IADDR_ALIGN_BITS default 0
+#                               sbi_WardRV_fsm IADDR_ALIGN_BITS default 0,
+#                               MRET effect applied once (WRITEBACK)
 #-----------------------------------------------------------------------------
 
 name        : asylum:processor:WardRV:0.0.5
