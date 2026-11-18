@@ -680,7 +680,7 @@ targets:
   lint_ghdl_synth_debug_max :
   #---------------------------------------
     << : *lint_ghdl_synth
-    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE)
+    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
     parameters      :
       - DEBUG_ENABLE=true
       - NB_TRIGGERS=8
@@ -689,6 +689,7 @@ targets:
       - SBA_ENABLE=true
       - EBREAK_EXCEPTION=true
       - RESETHALTREQ_ENABLE=true
+      - AARPOSTINCREMENT_ENABLE=true
 
   #---------------------------------------
   sim_basic:
@@ -768,7 +769,7 @@ targets:
     << : *dbg_jtag
     description     : Base of sim_dbg_dm_* (DON'T RUN alone), WardRV_dbg_dm unit test, scenario TEST
     toplevel        : tb_WardRV_dbg_dm
-    parameters      : [TEST, PROGBUF_SIZE, VERBOSE]
+    parameters      : [TEST, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE, VERBOSE]
 
   sim_dbg_dm_dmcontrol:
     << : *dbg_dm
@@ -809,6 +810,11 @@ targets:
     << : *dbg_dm
     description     : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
     parameters      : [TEST=progbuf0, PROGBUF_SIZE=0]
+
+  sim_dbg_dm_postincrement:
+    << : *dbg_dm
+    description     : Debug - Debug Module with AARPOSTINCREMENT_ENABLE - aarpostincrement with abstractauto
+    parameters      : [TEST=postincrement, AARPOSTINCREMENT_ENABLE=true]
 
   #---------------------------------------
   dbg_system: &dbg_system
@@ -894,7 +900,7 @@ targets:
     description     : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
     toplevel        : tb_WardRV_openocd
     filesets_append : [files_sim, files_sim_openocd]
-    parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS]
+    parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS, AARPOSTINCREMENT_ENABLE]
     hooks :
       pre_build     : [cosim_build]
       pre_run       : [cosim_start]
@@ -942,8 +948,8 @@ targets:
 
   sim_dbg_openocd_pb16_sba1_tr8:
     << : *dbg_openocd
-    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers
-    parameters      : [PROGBUF_SIZE=16, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8]
+    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers, aarpostincrement
+    parameters      : [PROGBUF_SIZE=16, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8, AARPOSTINCREMENT_ENABLE=true]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1536,6 +1542,12 @@ parameters :
     description : Debug Module - number of data registers
     datatype    : int
     default     : 2
+    paramtype   : generic
+
+  AARPOSTINCREMENT_ENABLE :
+    description : Debug Module - aarpostincrement of the Access Register command
+    datatype    : bool
+    default     : false
     paramtype   : generic
 
   SBA_ENABLE :

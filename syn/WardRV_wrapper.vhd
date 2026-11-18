@@ -33,16 +33,17 @@ use     asylum.WardRV_debug_pkg.all;
 
 entity WardRV_wrapper is
   generic (
-    IADDR_WIDTH         : natural  := 30    -- Width of iaddr_o
-   ;IADDR_ALIGN_BITS    : natural  := 2     -- PC LSBs dropped on iaddr_o (2 = word address)
+    IADDR_WIDTH             : natural  := 30    -- Width of iaddr_o
+   ;IADDR_ALIGN_BITS        : natural  := 2     -- PC LSBs dropped on iaddr_o (2 = word address)
     -- Debug
-   ;DEBUG_ENABLE        : boolean  := false
-   ;NB_TRIGGERS         : natural  := 0
-   ;EBREAK_EXCEPTION    : boolean  := false
-   ;RESETHALTREQ_ENABLE : boolean  := false
-   ;PROGBUF_SIZE        : natural  := 2
-   ;DATA_COUNT          : positive := 2
-   ;SBA_ENABLE          : boolean  := false
+   ;DEBUG_ENABLE            : boolean  := false
+   ;NB_TRIGGERS             : natural  := 0
+   ;EBREAK_EXCEPTION        : boolean  := false
+   ;RESETHALTREQ_ENABLE     : boolean  := false
+   ;PROGBUF_SIZE            : natural  := 2
+   ;DATA_COUNT              : positive := 2
+   ;SBA_ENABLE              : boolean  := false
+   ;AARPOSTINCREMENT_ENABLE : boolean  := false
   );
   port (
     -- Clock and Reset
@@ -154,24 +155,25 @@ begin  -- architecture rtl
   begin
     ins_debug : entity asylum.WardRV_debug
       generic map
-      (PROGBUF_SIZE        => PROGBUF_SIZE
-      ,DATA_COUNT          => DATA_COUNT
-      ,SBA_ENABLE          => SBA_ENABLE
-      ,RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
+      (PROGBUF_SIZE            => PROGBUF_SIZE
+      ,DATA_COUNT              => DATA_COUNT
+      ,SBA_ENABLE              => SBA_ENABLE
+      ,RESETHALTREQ_ENABLE     => RESETHALTREQ_ENABLE
+      ,AARPOSTINCREMENT_ENABLE => AARPOSTINCREMENT_ENABLE
       )
       port map
-      (jtag_ini_i          => (tck => tck_i, trst_n => trst_b_i, tms => tms_i, tdi => tdi_i)
-      ,jtag_tgt_o.tdo      => tdo_o
-      ,jtag_tgt_o.tdo_en   => tdo_en_o
-      ,clk_i               => clk_i
-      ,arst_b_i            => arst_b_i
-      ,hart_rst_b_i        => hart_rst_b
-      ,dbg_hart_req_o      => dbg_hart_req
-      ,dbg_mem_ini_i       => dbg_mem_ini
-      ,dbg_mem_tgt_o       => dbg_mem_tgt
-      ,ndmreset_o          => ndmreset
-      ,sba_dmem_ini_o      => sba_dmem_ini
-      ,sba_dmem_tgt_i      => sba_dmem_tgt
+      (jtag_ini_i              => (tck => tck_i, trst_n => trst_b_i, tms => tms_i, tdi => tdi_i)
+      ,jtag_tgt_o.tdo          => tdo_o
+      ,jtag_tgt_o.tdo_en       => tdo_en_o
+      ,clk_i                   => clk_i
+      ,arst_b_i                => arst_b_i
+      ,hart_rst_b_i            => hart_rst_b
+      ,dbg_hart_req_o          => dbg_hart_req
+      ,dbg_mem_ini_i           => dbg_mem_ini
+      ,dbg_mem_tgt_o           => dbg_mem_tgt
+      ,ndmreset_o              => ndmreset
+      ,sba_dmem_ini_o          => sba_dmem_ini
+      ,sba_dmem_tgt_i          => sba_dmem_tgt
       );
 
     -- System Bus Access on the 8-bit SBI bus of the SoC

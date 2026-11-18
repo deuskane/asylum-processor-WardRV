@@ -42,12 +42,13 @@ use     work.rbb_pkg.all;
 
 entity tb_WardRV_openocd is
   generic (
-    PROGBUF_SIZE   : natural  := 2
-   ;DATA_COUNT     : positive := 2
-   ;SBA_ENABLE     : boolean  := true
-   ;NB_TRIGGERS    : natural := 2
-   ;FIRMWARE_FILE  : string  := "openocd/fw/fw.hex"
-   ;VERBOSE        : boolean := false
+    PROGBUF_SIZE            : natural  := 2
+   ;DATA_COUNT              : positive := 2
+   ;SBA_ENABLE              : boolean  := true
+   ;AARPOSTINCREMENT_ENABLE : boolean  := false
+   ;NB_TRIGGERS             : natural  := 2
+   ;FIRMWARE_FILE           : string   := "openocd/fw/fw.hex"
+   ;VERBOSE                 : boolean  := false
   );
 end entity tb_WardRV_openocd;
 
@@ -112,24 +113,25 @@ begin  -- architecture sim
 
   ins_debug : entity asylum.WardRV_debug
     generic map
-    (IDCODE_VALUE        => C_IDCODE
-    ,PROGBUF_SIZE        => PROGBUF_SIZE
-    ,DATA_COUNT          => DATA_COUNT
-    ,SBA_ENABLE          => SBA_ENABLE
-    ,RESETHALTREQ_ENABLE => true
+    (IDCODE_VALUE            => C_IDCODE
+    ,PROGBUF_SIZE            => PROGBUF_SIZE
+    ,DATA_COUNT              => DATA_COUNT
+    ,SBA_ENABLE              => SBA_ENABLE
+    ,RESETHALTREQ_ENABLE     => true
+    ,AARPOSTINCREMENT_ENABLE => AARPOSTINCREMENT_ENABLE
     )
     port map
-    (jtag_ini_i          => jtag_ini
-    ,jtag_tgt_o          => jtag_tgt
-    ,clk_i               => clk_i
-    ,arst_b_i            => arst_b_i
-    ,hart_rst_b_i        => hart_rst_b
-    ,dbg_hart_req_o      => dbg_hart_req
-    ,dbg_mem_ini_i       => dbg_mem_ini
-    ,dbg_mem_tgt_o       => dbg_mem_tgt
-    ,ndmreset_o          => ndmreset
-    ,sba_dmem_ini_o      => sba_ini
-    ,sba_dmem_tgt_i      => sba_tgt
+    (jtag_ini_i              => jtag_ini
+    ,jtag_tgt_o              => jtag_tgt
+    ,clk_i                   => clk_i
+    ,arst_b_i                => arst_b_i
+    ,hart_rst_b_i            => hart_rst_b
+    ,dbg_hart_req_o          => dbg_hart_req
+    ,dbg_mem_ini_i           => dbg_mem_ini
+    ,dbg_mem_tgt_o           => dbg_mem_tgt
+    ,ndmreset_o              => ndmreset
+    ,sba_dmem_ini_o          => sba_ini
+    ,sba_dmem_tgt_i          => sba_tgt
     );
 
   -----------------------------------------------------------------------------
@@ -209,7 +211,7 @@ begin  -- architecture sim
     file_close(f_cfg);
     log(ID_LOG_HDR, "Co-simulation : PROGBUF_SIZE " & integer'image(PROGBUF_SIZE) &
         ", DATA_COUNT " & integer'image(DATA_COUNT) & ", SBA_ENABLE " & boolean'image(SBA_ENABLE) &
-        ", NB_TRIGGERS " & integer'image(NB_TRIGGERS), C_SCOPE);
+        ", NB_TRIGGERS " & integer'image(NB_TRIGGERS) & ", AARPOSTINCREMENT_ENABLE " & boolean'image(AARPOSTINCREMENT_ENABLE), C_SCOPE);
 
     wait until quit for C_TIMEOUT;
     if quit

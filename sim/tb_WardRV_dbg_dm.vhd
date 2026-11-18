@@ -5,7 +5,8 @@
 -- File       : tb_WardRV_dbg_dm.vhd
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
--- Description: WardRV_dbg_dm (DATA_COUNT 2, SBA, resethaltreq) driven on its
+-- Description: WardRV_dbg_dm (DATA_COUNT 2, SBA, resethaltreq,
+--              AARPOSTINCREMENT_ENABLE generic) driven on its
 --              DMI and debug memory ports, with a memory on the System Bus
 --              Access (64 words, one wait state). Scenarios in
 --              tb_WardRV_dbg_dm_pkg (TEST). PROGBUF_SIZE : 2, or 0 for the
@@ -33,9 +34,10 @@ use     work.tb_WardRV_dbg_dm_pkg.all;
 
 entity tb_WardRV_dbg_dm is
   generic (
-    TEST           : string  := "dmcontrol"
-   ;PROGBUF_SIZE   : natural := 2
-   ;VERBOSE        : boolean := false
+    TEST                    : string  := "dmcontrol"
+   ;PROGBUF_SIZE            : natural := 2
+   ;AARPOSTINCREMENT_ENABLE : boolean := false
+   ;VERBOSE                 : boolean := false
   );
 end entity tb_WardRV_dbg_dm;
 
@@ -62,23 +64,24 @@ begin  -- architecture sim
   -----------------------------------------------------------------------------
   dut : entity asylum.WardRV_dbg_dm
     generic map
-    (PROGBUF_SIZE        => PROGBUF_SIZE
-    ,DATA_COUNT          => 2
-    ,SBA_ENABLE          => true
-    ,RESETHALTREQ_ENABLE => true
+    (PROGBUF_SIZE            => PROGBUF_SIZE
+    ,DATA_COUNT              => 2
+    ,SBA_ENABLE              => true
+    ,RESETHALTREQ_ENABLE     => true
+    ,AARPOSTINCREMENT_ENABLE => AARPOSTINCREMENT_ENABLE
     )
     port map
-    (clk_i               => clk_i
-    ,arst_b_i            => arst_b_i
-    ,dmi_req_i           => ini.dmi_req
-    ,dmi_rdata_o         => tgt.dmi_rdata
-    ,hart_rst_b_i        => ini.hart_rst_b
-    ,dbg_hart_req_o      => tgt.hart_req
-    ,dbg_mem_ini_i       => ini.mem_ini
-    ,dbg_mem_tgt_o       => tgt.mem_tgt
-    ,ndmreset_o          => tgt.ndmreset
-    ,sba_dmem_ini_o      => sba_ini
-    ,sba_dmem_tgt_i      => sba_tgt
+    (clk_i                   => clk_i
+    ,arst_b_i                => arst_b_i
+    ,dmi_req_i               => ini.dmi_req
+    ,dmi_rdata_o             => tgt.dmi_rdata
+    ,hart_rst_b_i            => ini.hart_rst_b
+    ,dbg_hart_req_o          => tgt.hart_req
+    ,dbg_mem_ini_i           => ini.mem_ini
+    ,dbg_mem_tgt_o           => tgt.mem_tgt
+    ,ndmreset_o              => tgt.ndmreset
+    ,sba_dmem_ini_o          => sba_ini
+    ,sba_dmem_tgt_i          => sba_tgt
     );
 
   -----------------------------------------------------------------------------
@@ -118,9 +121,9 @@ begin  -- architecture sim
     end if;
 
     log(ID_LOG_HDR, "TEST " & TEST & ", PROGBUF_SIZE " & integer'image(PROGBUF_SIZE), C_SCOPE);
-    if (TEST = "progbuf0") /= (PROGBUF_SIZE = 0)
+    if (TEST = "progbuf0") /= (PROGBUF_SIZE = 0) or (TEST = "postincrement") /= AARPOSTINCREMENT_ENABLE
     then
-      alert(TB_ERROR, "TEST progbuf0 needs PROGBUF_SIZE = 0, the others PROGBUF_SIZE = 2", C_SCOPE);
+      alert(TB_ERROR, "TEST progbuf0 needs PROGBUF_SIZE = 0, postincrement AARPOSTINCREMENT_ENABLE, the others the defaults", C_SCOPE);
     end if;
     wait until arst_b_i = '1';
     wait until rising_edge(clk_i);
@@ -149,6 +152,9 @@ begin  -- architecture sim
     elsif TEST = "progbuf0"
     then
       test_progbuf0    (clk_i, ini, tgt);
+    elsif TEST = "postincrement"
+    then
+      test_postincrement(clk_i, ini, tgt);
     else
       alert(TB_ERROR, "Unknown TEST " & TEST, C_SCOPE);
     end if;

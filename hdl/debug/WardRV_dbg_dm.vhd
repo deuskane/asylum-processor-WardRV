@@ -20,8 +20,11 @@
 --   abstractcs     : progbufsize, busy, cmderr, datacount
 --   command        : Access Register (3.7.1.1) of a GPR (0x1000-0x101F) or
 --                    a CSR (0x0000-0x0FFF), aarsize 2, transfer, write,
---                    postexec. cmderr 2 : other cmdtype, aarsize,
---                    aarpostincrement, postexec without program buffer ;
+--                    postexec, aarpostincrement (AARPOSTINCREMENT_ENABLE :
+--                    regno + 1 after each transfer, for the next command
+--                    started by abstractauto). cmderr 2 : other cmdtype,
+--                    aarsize, aarpostincrement without
+--                    AARPOSTINCREMENT_ENABLE, postexec without program buffer ;
 --                    3 : register that does not exist ; 4 : hart not
 --                    halted ; 1 : access during a command
 --   abstractauto   : autoexecdata, autoexecprogbuf
@@ -38,6 +41,7 @@
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
 -- 2026-11-18  1.1      mrosiere impebreak always 1 (IMPEBREAK generic removed)
+--                               AARPOSTINCREMENT_ENABLE
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -51,27 +55,28 @@ use     asylum.techmap_pkg.all;
 
 entity WardRV_dbg_dm is
   generic (
-    PROGBUF_SIZE        : natural  := 2                           -- Program buffer (0..16 words)
-   ;DATA_COUNT          : positive := 2                           -- Data registers (1..12)
-   ;SBA_ENABLE          : boolean  := false                       -- System Bus Access
-   ;RESETHALTREQ_ENABLE : boolean  := false                       -- Halt on reset request
+    PROGBUF_SIZE            : natural  := 2                           -- Program buffer (0..16 words)
+   ;DATA_COUNT              : positive := 2                           -- Data registers (1..12)
+   ;SBA_ENABLE              : boolean  := false                       -- System Bus Access
+   ;RESETHALTREQ_ENABLE     : boolean  := false                       -- Halt on reset request
+   ;AARPOSTINCREMENT_ENABLE : boolean  := false                       -- Access Register : aarpostincrement
   );
   port (
     -- Clock and Reset (power-on reset of the debug unit)
-    clk_i               : in  std_logic
-   ;arst_b_i            : in  std_logic
+    clk_i                   : in  std_logic
+   ;arst_b_i                : in  std_logic
     -- DMI
-   ;dmi_req_i           : in  dmi_req_t
-   ;dmi_rdata_o         : out std_logic_vector(32-1 downto 0)
+   ;dmi_req_i               : in  dmi_req_t
+   ;dmi_rdata_o             : out std_logic_vector(32-1 downto 0)
     -- Hart
-   ;hart_rst_b_i        : in  std_logic                           -- Reset of the hart
-   ;dbg_hart_req_o      : out dbg_hart_req_t
-   ;dbg_mem_ini_i       : in  dmem_ini_t                          -- Debug memory
-   ;dbg_mem_tgt_o       : out dmem_tgt_t
+   ;hart_rst_b_i            : in  std_logic                           -- Reset of the hart
+   ;dbg_hart_req_o          : out dbg_hart_req_t
+   ;dbg_mem_ini_i           : in  dmem_ini_t                          -- Debug memory
+   ;dbg_mem_tgt_o           : out dmem_tgt_t
     -- SoC
-   ;ndmreset_o          : out std_logic                           -- Reset of the system without the DM
-   ;sba_dmem_ini_o      : out dmem_ini_t                          -- System Bus Access
-   ;sba_dmem_tgt_i      : in  dmem_tgt_t := DMEM_TGT_NULL
+   ;ndmreset_o              : out std_logic                           -- Reset of the system without the DM
+   ;sba_dmem_ini_o          : out dmem_ini_t                          -- System Bus Access
+   ;sba_dmem_tgt_i          : in  dmem_tgt_t := DMEM_TGT_NULL
   );
 end entity WardRV_dbg_dm;
 
@@ -89,7 +94,7 @@ architecture rtl of WardRV_dbg_dm is
     constant REGNO : natural := to_integer(unsigned(cmd(15 downto 0)));
   begin
     if cmd(31 downto 24) /= x"00"                                 or -- cmdtype : Access Register only
-       cmd(19) = '1'                                              or -- aarpostincrement
+      (cmd(19) = '1' and not AARPOSTINCREMENT_ENABLE)             or -- aarpostincrement
       (cmd(18) = '1' and PROGBUF_SIZE = 0)                        or -- postexec
       (cmd(17) = '1' and cmd(22 downto 20) /= "010")                 -- transfer of 32 bits only
     then
@@ -282,6 +287,11 @@ begin  -- architecture rtl
         -- Parked in the ROM : debug mode entry or end of the command
         halted_r    <= '1';
         go_r        <= '0';
+        -- End of a transfer with aarpostincrement : next register
+        if AARPOSTINCREMENT_ENABLE and go_r = '1' and cmd_r(19) = '1' and cmd_r(17) = '1'
+        then
+          cmd_r(15 downto 0) <= std_logic_vector(unsigned(cmd_r(15 downto 0)) + 1);
+        end if;
       end if;
 
       if mem_resuming = '1'

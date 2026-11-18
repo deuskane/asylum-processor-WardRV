@@ -8,7 +8,7 @@ lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte 
 lint_ghdl_synth_debug                 : Synthesis check of WardRV_wrapper, debug unit, abstract commands and program buffer of 2 words, no trigger
 lint_ghdl_synth_debug_full            : Synthesis check of WardRV_wrapper, debug unit, 2 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE
 lint_ghdl_synth_debug_large           : Synthesis check of WardRV_wrapper, debug unit, 4 triggers, program buffer of 8 words, 12 data registers
-lint_ghdl_synth_debug_max             : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE)
+lint_ghdl_synth_debug_max             : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
 lint_ghdl_synth_debug_pb0             : Synthesis check of WardRV_wrapper, debug unit without program buffer
 lint_ghdl_synth_debug_sba             : Synthesis check of WardRV_wrapper, debug unit, System Bus Access
 lint_ghdl_synth_debug_trig2           : Synthesis check of WardRV_wrapper, debug unit, 2 triggers
@@ -107,6 +107,7 @@ sim_dbg_dm_autoexec                   : Debug - Debug Module - abstractauto on d
 sim_dbg_dm_cmderr                     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
 sim_dbg_dm_dmcontrol                  : Debug - Debug Module - dmactive, dmstatus, hartinfo, abstractcs, ackhavereset, ndmreset
 sim_dbg_dm_halt_resume                : Debug - Debug Module - haltreq, halted, resumereq, resumeack
+sim_dbg_dm_postincrement              : Debug - Debug Module with AARPOSTINCREMENT_ENABLE - aarpostincrement with abstractauto
 sim_dbg_dm_progbuf0                   : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
 sim_dbg_dm_resethaltreq               : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
 sim_dbg_dm_sba                        : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
@@ -119,7 +120,7 @@ sim_dbg_openocd_pb0_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 0
 sim_dbg_openocd_pb0_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers
 sim_dbg_openocd_pb0_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 0, SBA, 0 triggers
 sim_dbg_openocd_pb0_sba1_tr2          : Debug - OpenOCD + GDB - program buffer 0, SBA, 2 triggers
-sim_dbg_openocd_pb16_sba1_tr8         : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers
+sim_dbg_openocd_pb16_sba1_tr8         : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers, aarpostincrement
 sim_dbg_openocd_pb2_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 0 triggers
 sim_dbg_openocd_pb2_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
 sim_dbg_openocd_pb2_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
