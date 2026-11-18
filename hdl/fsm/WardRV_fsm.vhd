@@ -43,10 +43,11 @@ entity WardRV_fsm is
     VERBOSE    : boolean                       := true;
 
     -- Debug (RISC-V Debug Spec 1.0, see WardRV_fsm_debug)
-    DEBUG_ENABLE        : boolean := false; -- Debug mode, for the Debug Module WardRV_dbg_dm
-    NB_TRIGGERS         : natural := 0;     -- Hardware breakpoints / watchpoints (needs DEBUG_ENABLE)
-    EBREAK_EXCEPTION    : boolean := false; -- EBREAK raises a breakpoint exception
-    RESETHALTREQ_ENABLE : boolean := false  -- Halt before the first instruction on request
+    DEBUG_ENABLE         : boolean := false; -- Debug mode, for the Debug Module WardRV_dbg_dm
+    NB_TRIGGERS          : natural := 0;     -- Hardware breakpoints / watchpoints (needs DEBUG_ENABLE)
+    EBREAK_EXCEPTION     : boolean := false; -- EBREAK raises a breakpoint exception
+    RESETHALTREQ_ENABLE  : boolean := false; -- Halt before the first instruction on request
+    TRIGGER_RANGE_ENABLE : boolean := false  -- Triggers : match >= / < and chain (address ranges)
   );
   port (
     clk_i      : in  std_logic;
@@ -486,7 +487,8 @@ begin
     DEBUG_ENABLE         => DEBUG_ENABLE,
     NB_TRIGGERS          => NB_TRIGGERS,
     EBREAK_EXCEPTION     => EBREAK_EXCEPTION,
-    RESETHALTREQ_ENABLE  => RESETHALTREQ_ENABLE
+    RESETHALTREQ_ENABLE  => RESETHALTREQ_ENABLE,
+    TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
   )
   port map (
     clk_i                => clk_i,

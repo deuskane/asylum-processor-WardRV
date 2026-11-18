@@ -38,10 +38,11 @@ use     work.tb_WardRV_debug_pkg.all;
 
 entity tb_WardRV_debug is
   generic (
-    TEST             : string  := "halt_resume"
-   ;EBREAK_EXCEPTION : boolean := false
-   ;FIRMWARE_FILE    : string  := "debug/debug_fw.hex"
-   ;VERBOSE          : boolean := false
+    TEST                 : string  := "halt_resume"
+   ;EBREAK_EXCEPTION     : boolean := false
+   ;TRIGGER_RANGE_ENABLE : boolean := false
+   ;FIRMWARE_FILE        : string  := "debug/debug_fw.hex"
+   ;VERBOSE              : boolean := false
   );
 end entity tb_WardRV_debug;
 
@@ -79,13 +80,14 @@ begin  -- architecture sim
   -----------------------------------------------------------------------------
   ins_core : entity asylum.WardRV_fsm
     generic map
-    (HARTID              => C_HARTID
-    ,RESET_ADDR          => C_FIRMWARE_ADDR
-    ,VERBOSE             => VERBOSE
-    ,DEBUG_ENABLE        => true
-    ,NB_TRIGGERS         => C_NB_TRIGGERS
-    ,EBREAK_EXCEPTION    => EBREAK_EXCEPTION
-    ,RESETHALTREQ_ENABLE => true
+    (HARTID               => C_HARTID
+    ,RESET_ADDR           => C_FIRMWARE_ADDR
+    ,VERBOSE              => VERBOSE
+    ,DEBUG_ENABLE         => true
+    ,NB_TRIGGERS          => C_NB_TRIGGERS
+    ,EBREAK_EXCEPTION     => EBREAK_EXCEPTION
+    ,RESETHALTREQ_ENABLE  => true
+    ,TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
     )
     port map
     (clk_i               => clk_i
@@ -172,9 +174,10 @@ begin  -- architecture sim
     end if;
 
     log(ID_LOG_HDR, "TEST " & TEST & ", EBREAK_EXCEPTION " & boolean'image(EBREAK_EXCEPTION), C_SCOPE);
-    if (TEST(1 to minimum(4, TEST'length)) = "exc_") /= EBREAK_EXCEPTION
+    if (TEST(1 to minimum(4, TEST'length)) = "exc_") /= EBREAK_EXCEPTION or
+       (TEST = "trigger_ge" or TEST = "trigger_lt" or TEST = "trigger_range_execute" or TEST = "trigger_range_store") /= TRIGGER_RANGE_ENABLE
     then
-      alert(TB_ERROR, "TEST exc_* needs EBREAK_EXCEPTION = true, the others false", C_SCOPE);
+      alert(TB_ERROR, "TEST exc_* needs EBREAK_EXCEPTION, trigger_ge / _lt / _range_* TRIGGER_RANGE_ENABLE", C_SCOPE);
     end if;
     wait until arst_b_i = '1';
     vip_jtag_init(jtag_ini);
@@ -206,6 +209,18 @@ begin  -- architecture sim
     elsif TEST = "trigger_load"
     then
       test_trigger_load   (jtag_ini, jtag_tgt);
+    elsif TEST = "trigger_ge"
+    then
+      test_trigger_ge     (jtag_ini, jtag_tgt);
+    elsif TEST = "trigger_lt"
+    then
+      test_trigger_lt     (jtag_ini, jtag_tgt);
+    elsif TEST = "trigger_range_execute"
+    then
+      test_trigger_range_execute(jtag_ini, jtag_tgt);
+    elsif TEST = "trigger_range_store"
+    then
+      test_trigger_range_store(jtag_ini, jtag_tgt);
     elsif TEST = "resethaltreq"
     then
       test_resethaltreq   (jtag_ini, jtag_tgt);

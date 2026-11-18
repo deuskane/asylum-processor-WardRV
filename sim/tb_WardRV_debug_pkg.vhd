@@ -15,12 +15,19 @@
 --  progbuf         : memory read / write through the program buffer
 --  step            : dcsr.step (cause 4, dpc of each instruction)
 --  ebreak          : ebreak with dcsr.ebreakm (cause 1), NOP without
---  trigger_execute : tselect / tinfo / tdata1 WARL, execute trigger
+--  trigger_execute : tselect / tinfo / tdata1 WARL (no range, no chain),
+--                    execute trigger
 --  trigger_store   : store trigger (cause 2, dpc of the store)
 --  trigger_load    : load trigger (cause 2, dpc of the load)
 --  resethaltreq    : ndmreset with resethaltreq (cause 5) and haltreq (3)
 --  interrupt       : interrupt pending in debug mode, step with and
 --                    without dcsr.stepie
+-- TRIGGER_RANGE_ENABLE = true :
+--  trigger_ge          : execute trigger, match >= (fires on pc = tdata2)
+--  trigger_lt          : execute trigger, match < (not on pc = tdata2)
+--  trigger_range_execute : chain >= A, < B on the pc, chain WARL, chain
+--                    of M-mode triggers (tdata2 written, dmode not set)
+--  trigger_range_store : chain >= A, < B on the store address
 -- EBREAK_EXCEPTION = true :
 --  exc_ebreak      : ebreak without ebreakm traps (mcause 3), with ebreakm
 --                    enters debug mode
@@ -59,6 +66,7 @@ package tb_WardRV_debug_pkg is
   constant C_LW_FLAG    : std_logic_vector(32-1 downto 0) := x"8000003C";  -- lw   s0, 4(a0)
   constant C_BEQZ       : std_logic_vector(32-1 downto 0) := x"80000040";  -- beqz s0, loop
   constant C_EBREAK     : std_logic_vector(32-1 downto 0) := x"80000044";
+  constant C_SW_FLAG    : std_logic_vector(32-1 downto 0) := x"8000004C";  -- sw   zero, 4(a0)
   constant C_HANDLER    : std_logic_vector(32-1 downto 0) := x"80000054";
   constant C_COUNTER    : std_logic_vector(32-1 downto 0) := x"80001000";
   constant C_FLAG       : std_logic_vector(32-1 downto 0) := x"80001004";
@@ -72,6 +80,10 @@ package tb_WardRV_debug_pkg is
   procedure test_trigger_execute(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_trigger_store  (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_trigger_load   (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure test_trigger_ge     (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure test_trigger_lt     (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure test_trigger_range_execute(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure test_trigger_range_store  (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_resethaltreq   (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_interrupt      (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
   procedure test_exc_ebreak     (signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
@@ -444,6 +456,8 @@ package body tb_WardRV_debug_pkg is
     run      (jtag_ini, jtag_tgt, 5 us, "trigger of M-mode");
 
     log(ID_LOG_HDR, "Execute trigger", C_TB_SCOPE);
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"68001944");         -- chain, match >= : not implemented
+    reg_check  (jtag_ini, jtag_tgt, TDATA1, x"68001044", "tdata1 : match equal, no chain");
     reg_write  (jtag_ini, jtag_tgt, TDATA1, x"68001044");         -- dmode, action 1, m, execute
     reg_check  (jtag_ini, jtag_tgt, TDATA1, x"68001044", "tdata1");
     mem_read   (jtag_ini, jtag_tgt, C_COUNTER, v_mem);
@@ -485,6 +499,93 @@ package body tb_WardRV_debug_pkg is
   procedure test_trigger_load(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
   begin
     trigger_memory(jtag_ini, jtag_tgt, x"68001041", C_FLAG, C_LW_FLAG, "load trigger");
+  end procedure;
+
+  -----------------------------------------------------------------------------
+  -- trigger_ge / trigger_lt / trigger_range_execute / trigger_range_store
+  -- (TRIGGER_RANGE_ENABLE) : tdata1 = dmode, action 1, m, match, chain, type
+  -----------------------------------------------------------------------------
+  procedure trigger_set(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+                        index : natural; tdata1_val : std_logic_vector; tdata2_val : std_logic_vector) is
+  begin
+    reg_write(jtag_ini, jtag_tgt, TSELECT, std_logic_vector(to_unsigned(index, 32)));
+    reg_write(jtag_ini, jtag_tgt, TDATA2 , tdata2_val);
+    reg_write(jtag_ini, jtag_tgt, TDATA1 , tdata1_val);
+    reg_check(jtag_ini, jtag_tgt, TDATA1 , tdata1_val, "tdata1 of trigger " & integer'image(index));
+  end procedure;
+
+  -- Resume from start_pc, the trigger stops the core at the instruction stop_pc
+  procedure trigger_run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+                        start_pc : std_logic_vector; stop_pc : std_logic_vector; msg : string) is
+  begin
+    reg_write  (jtag_ini, jtag_tgt, DPC, start_pc);
+    resume     (jtag_ini, jtag_tgt);
+    wait_halted(jtag_ini, jtag_tgt, msg);
+    check_cause(jtag_ini, jtag_tgt, DCSR_CAUSE_TRIGGER, msg);
+    reg_check  (jtag_ini, jtag_tgt, DPC, stop_pc, "dpc " & msg);
+  end procedure;
+
+  procedure test_trigger_ge(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  begin
+    connect    (jtag_ini, jtag_tgt);
+    halt       (jtag_ini, jtag_tgt);
+    -- pc >= beqz : the first instruction of the loop that matches is beqz
+    trigger_set(jtag_ini, jtag_tgt, 0, x"68001144", C_BEQZ);
+    trigger_run(jtag_ini, jtag_tgt, C_LOOP, C_BEQZ, "trigger >=");
+  end procedure;
+
+  procedure test_trigger_lt(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  begin
+    connect    (jtag_ini, jtag_tgt);
+    halt       (jtag_ini, jtag_tgt);
+    -- pc < sw : resumed on the sw, the trigger fires on the addi of the next loop
+    trigger_set(jtag_ini, jtag_tgt, 0, x"680011C4", C_SW_COUNTER);
+    trigger_run(jtag_ini, jtag_tgt, C_SW_COUNTER, C_LOOP, "trigger <");
+  end procedure;
+
+  procedure test_trigger_range_execute(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  begin
+    connect    (jtag_ini, jtag_tgt);
+    halt       (jtag_ini, jtag_tgt);
+
+    log(ID_LOG_HDR, "chain of M-mode triggers : tdata2 writable, dmode not set", C_TB_SCOPE);
+    reg_write  (jtag_ini, jtag_tgt, TSELECT, x"00000000");
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"60000804");          -- dmode 0, chain
+    reg_check  (jtag_ini, jtag_tgt, TDATA1, x"60000804", "tdata1 : chain of M-mode triggers");
+    reg_write  (jtag_ini, jtag_tgt, TSELECT, x"00000001");
+    reg_write  (jtag_ini, jtag_tgt, TDATA2, x"08000000");          -- bit 27 : dmode in tdata1
+    reg_check  (jtag_ini, jtag_tgt, TDATA2, x"08000000", "tdata2 : written after a chain of M-mode");
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"680011C4");
+    reg_check  (jtag_ini, jtag_tgt, TDATA1, x"60000000", "tdata1 : dmode not set after a chain of M-mode");
+    reg_write  (jtag_ini, jtag_tgt, TSELECT, x"00000000");
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"60000000");          -- No chain
+
+    log(ID_LOG_HDR, "chain : not on the last trigger, not from M-mode into the debugger", C_TB_SCOPE);
+    trigger_set(jtag_ini, jtag_tgt, 1, x"680011C4", C_BEQZ);      -- pc < beqz
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"680019C4");
+    reg_check  (jtag_ini, jtag_tgt, TDATA1, x"680011C4", "tdata1 : no chain on the last trigger");
+    reg_write  (jtag_ini, jtag_tgt, TSELECT, x"00000000");
+    reg_write  (jtag_ini, jtag_tgt, TDATA1, x"60000844");          -- dmode 0, chain
+    reg_check  (jtag_ini, jtag_tgt, TDATA1, x"60000004", "tdata1 : no chain from M-mode into the debugger");
+
+    log(ID_LOG_HDR, "Range [lw, beqz) : addi and sw match the < trigger only", C_TB_SCOPE);
+    trigger_set(jtag_ini, jtag_tgt, 0, x"68001944", C_LW_FLAG);   -- pc >= lw, chain
+    trigger_run(jtag_ini, jtag_tgt, C_LOOP, C_LW_FLAG, "range trigger on the pc");
+  end procedure;
+
+  procedure test_trigger_range_store(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+    variable v_data : std_logic_vector(32-1 downto 0);
+  begin
+    connect    (jtag_ini, jtag_tgt);
+    halt       (jtag_ini, jtag_tgt);
+    -- Range [flag, flag + 4) of stores : the store of the counter matches
+    -- the < trigger only, the store that clears the flag both
+    trigger_set(jtag_ini, jtag_tgt, 1, x"680011C2", std_logic_vector(unsigned(C_FLAG) + 4));
+    trigger_set(jtag_ini, jtag_tgt, 0, x"68001942", C_FLAG);
+    mem_write  (jtag_ini, jtag_tgt, C_FLAG, x"00000001");          -- ebreak (NOP), then flag cleared
+    trigger_run(jtag_ini, jtag_tgt, C_LOOP, C_SW_FLAG, "range trigger on the store address");
+    mem_read   (jtag_ini, jtag_tgt, C_FLAG, v_data);
+    check_value(v_data, x"00000001", ERROR, "store not executed (timing before)", C_TB_SCOPE);
   end procedure;
 
   -----------------------------------------------------------------------------

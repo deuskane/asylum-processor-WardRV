@@ -8,7 +8,7 @@ lint_ghdl_synth_byte_addr             : Synthesis check of WardRV_wrapper, byte 
 lint_ghdl_synth_debug                 : Synthesis check of WardRV_wrapper, debug unit, abstract commands and program buffer of 2 words, no trigger
 lint_ghdl_synth_debug_full            : Synthesis check of WardRV_wrapper, debug unit, 2 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE
 lint_ghdl_synth_debug_large           : Synthesis check of WardRV_wrapper, debug unit, 4 triggers, program buffer of 8 words, 12 data registers
-lint_ghdl_synth_debug_max             : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
+lint_ghdl_synth_debug_max             : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers with ranges, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
 lint_ghdl_synth_debug_pb0             : Synthesis check of WardRV_wrapper, debug unit without program buffer
 lint_ghdl_synth_debug_sba             : Synthesis check of WardRV_wrapper, debug unit, System Bus Access
 lint_ghdl_synth_debug_trig2           : Synthesis check of WardRV_wrapper, debug unit, 2 triggers
@@ -120,7 +120,7 @@ sim_dbg_openocd_pb0_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 0
 sim_dbg_openocd_pb0_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 0, no SBA, 2 triggers
 sim_dbg_openocd_pb0_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 0, SBA, 0 triggers
 sim_dbg_openocd_pb0_sba1_tr2          : Debug - OpenOCD + GDB - program buffer 0, SBA, 2 triggers
-sim_dbg_openocd_pb16_sba1_tr8         : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers, aarpostincrement
+sim_dbg_openocd_pb16_sba1_tr8         : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers with ranges, aarpostincrement
 sim_dbg_openocd_pb2_sba0_tr0          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 0 triggers
 sim_dbg_openocd_pb2_sba0_tr2          : Debug - OpenOCD + GDB - program buffer 2, no SBA, 2 triggers
 sim_dbg_openocd_pb2_sba1_tr0          : Debug - OpenOCD + GDB - program buffer 2, SBA, 0 triggers
@@ -135,8 +135,12 @@ sim_dbg_system_progbuf                : Debug - System - memory read / write thr
 sim_dbg_system_registers              : Debug - System - GPR / CSR access with abstract commands, dpc write
 sim_dbg_system_resethaltreq           : Debug - System - ndmreset with resethaltreq (cause 5) and with haltreq (cause 3), dpc = reset address
 sim_dbg_system_step                   : Debug - System - dcsr.step (cause 4, dpc of each instruction)
-sim_dbg_system_trigger_execute        : Debug - System - tselect / tinfo / tdata1, execute trigger (cause 2, instruction not executed)
+sim_dbg_system_trigger_execute        : Debug - System - tselect / tinfo / tdata1 WARL (match and chain read 0 without TRIGGER_RANGE_ENABLE), execute trigger (cause 2, instruction not executed)
+sim_dbg_system_trigger_ge             : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match >= (fires on pc = tdata2)
 sim_dbg_system_trigger_load           : Debug - System - load trigger (cause 2, dpc of the load)
+sim_dbg_system_trigger_lt             : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match < (not on pc = tdata2)
+sim_dbg_system_trigger_range_execute  : Debug - System - TRIGGER_RANGE_ENABLE, range of pc [A, B) with two chained triggers, chain WARL, chain of M-mode triggers
+sim_dbg_system_trigger_range_store    : Debug - System - TRIGGER_RANGE_ENABLE, range of store addresses [A, B) with two chained triggers
 sim_dbg_system_trigger_store          : Debug - System - store trigger (cause 2, dpc of the store)
 sim_irq                               : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
 

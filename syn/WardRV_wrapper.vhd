@@ -44,6 +44,7 @@ entity WardRV_wrapper is
    ;DATA_COUNT              : positive := 2
    ;SBA_ENABLE              : boolean  := false
    ;AARPOSTINCREMENT_ENABLE : boolean  := false
+   ;TRIGGER_RANGE_ENABLE    : boolean  := false
   );
   port (
     -- Clock and Reset
@@ -119,12 +120,13 @@ begin  -- architecture rtl
 
   ins_sbi_WardRV_fsm : entity asylum.sbi_WardRV_fsm
     generic map
-    (IADDR_WIDTH         => IADDR_WIDTH
-    ,IADDR_ALIGN_BITS    => IADDR_ALIGN_BITS
-    ,DEBUG_ENABLE        => DEBUG_ENABLE
-    ,NB_TRIGGERS         => NB_TRIGGERS
-    ,EBREAK_EXCEPTION    => EBREAK_EXCEPTION
-    ,RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
+    (IADDR_WIDTH          => IADDR_WIDTH
+    ,IADDR_ALIGN_BITS     => IADDR_ALIGN_BITS
+    ,DEBUG_ENABLE         => DEBUG_ENABLE
+    ,NB_TRIGGERS          => NB_TRIGGERS
+    ,EBREAK_EXCEPTION     => EBREAK_EXCEPTION
+    ,RESETHALTREQ_ENABLE  => RESETHALTREQ_ENABLE
+    ,TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
     )
     port map
     (clk_i               => clk_i

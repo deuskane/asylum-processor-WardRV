@@ -680,7 +680,7 @@ targets:
   lint_ghdl_synth_debug_max :
   #---------------------------------------
     << : *lint_ghdl_synth
-    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
+    description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers with ranges, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
     parameters      :
       - DEBUG_ENABLE=true
       - NB_TRIGGERS=8
@@ -690,6 +690,7 @@ targets:
       - EBREAK_EXCEPTION=true
       - RESETHALTREQ_ENABLE=true
       - AARPOSTINCREMENT_ENABLE=true
+      - TRIGGER_RANGE_ENABLE=true
 
   #---------------------------------------
   sim_basic:
@@ -822,7 +823,7 @@ targets:
     << : *dbg_jtag
     description     : Base of sim_dbg_system_* (DON'T RUN alone), WardRV_fsm + WardRV_debug through JTAG, scenario TEST
     toplevel        : tb_WardRV_debug
-    parameters      : [TEST, EBREAK_EXCEPTION, VERBOSE]
+    parameters      : [TEST, EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE, VERBOSE]
 
   sim_dbg_system_halt_resume:
     << : *dbg_system
@@ -856,7 +857,7 @@ targets:
 
   sim_dbg_system_trigger_execute:
     << : *dbg_system
-    description     : Debug - System - tselect / tinfo / tdata1, execute trigger (cause 2, instruction not executed)
+    description     : Debug - System - tselect / tinfo / tdata1 WARL (match and chain read 0 without TRIGGER_RANGE_ENABLE), execute trigger (cause 2, instruction not executed)
     parameters      : [TEST=trigger_execute]
 
   sim_dbg_system_trigger_store:
@@ -879,6 +880,26 @@ targets:
     description     : Debug - System - interrupt masked in debug mode, step without / with dcsr.stepie
     parameters      : [TEST=interrupt]
 
+  sim_dbg_system_trigger_ge:
+    << : *dbg_system
+    description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match >= (fires on pc = tdata2)
+    parameters      : [TEST=trigger_ge, TRIGGER_RANGE_ENABLE=true]
+
+  sim_dbg_system_trigger_lt:
+    << : *dbg_system
+    description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match < (not on pc = tdata2)
+    parameters      : [TEST=trigger_lt, TRIGGER_RANGE_ENABLE=true]
+
+  sim_dbg_system_trigger_range_execute:
+    << : *dbg_system
+    description     : Debug - System - TRIGGER_RANGE_ENABLE, range of pc [A, B) with two chained triggers, chain WARL, chain of M-mode triggers
+    parameters      : [TEST=trigger_range_execute, TRIGGER_RANGE_ENABLE=true]
+
+  sim_dbg_system_trigger_range_store:
+    << : *dbg_system
+    description     : Debug - System - TRIGGER_RANGE_ENABLE, range of store addresses [A, B) with two chained triggers
+    parameters      : [TEST=trigger_range_store, TRIGGER_RANGE_ENABLE=true]
+
   sim_dbg_system_exc_ebreak:
     << : *dbg_system
     description     : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode
@@ -900,7 +921,7 @@ targets:
     description     : Base of sim_dbg_openocd_* (DON'T RUN alone), OpenOCD + GDB co-simulation
     toplevel        : tb_WardRV_openocd
     filesets_append : [files_sim, files_sim_openocd]
-    parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS, AARPOSTINCREMENT_ENABLE]
+    parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS, AARPOSTINCREMENT_ENABLE, TRIGGER_RANGE_ENABLE]
     hooks :
       pre_build     : [cosim_build]
       pre_run       : [cosim_start]
@@ -948,8 +969,8 @@ targets:
 
   sim_dbg_openocd_pb16_sba1_tr8:
     << : *dbg_openocd
-    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers, aarpostincrement
-    parameters      : [PROGBUF_SIZE=16, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8, AARPOSTINCREMENT_ENABLE=true]
+    description     : Debug - OpenOCD + GDB - maximum configuration, program buffer 16, 12 data, SBA, 8 triggers with ranges, aarpostincrement
+    parameters      : [PROGBUF_SIZE=16, DATA_COUNT=12, SBA_ENABLE=true, NB_TRIGGERS=8, AARPOSTINCREMENT_ENABLE=true, TRIGGER_RANGE_ENABLE=true]
 
   #---------------------------------------
   # Compliance Testcases : ACT3 (riscv-arch-test 3.10.0, signature)
@@ -1542,6 +1563,12 @@ parameters :
     description : Debug Module - number of data registers
     datatype    : int
     default     : 2
+    paramtype   : generic
+
+  TRIGGER_RANGE_ENABLE :
+    description : WardRV_fsm - triggers with match >= / < and chain (address ranges)
+    datatype    : bool
+    default     : false
     paramtype   : generic
 
   AARPOSTINCREMENT_ENABLE :

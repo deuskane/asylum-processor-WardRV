@@ -15,6 +15,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.1      mrosiere Debug generics and ports (to WardRV_fsm)
+-- 2026-11-18  1.2      mrosiere TRIGGER_RANGE_ENABLE
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -35,10 +36,11 @@ entity sbi_WardRV_fsm is
      IADDR_ALIGN_BITS  : natural := 0;  -- byte address : IADDR_WIDTH + IADDR_ALIGN_BITS <= 32
 
      -- Debug (see WardRV_fsm)
-     DEBUG_ENABLE        : boolean := false;
-     NB_TRIGGERS         : natural := 0;
-     EBREAK_EXCEPTION    : boolean := false;
-     RESETHALTREQ_ENABLE : boolean := false
+     DEBUG_ENABLE         : boolean := false;
+     NB_TRIGGERS          : natural := 0;
+     EBREAK_EXCEPTION     : boolean := false;
+     RESETHALTREQ_ENABLE  : boolean := false;
+     TRIGGER_RANGE_ENABLE : boolean := false
   );
   port (
     clk_i            : in    std_logic;
@@ -94,12 +96,13 @@ begin
 
   ins_WardRV_fsm : entity work.WardRV_fsm
     generic map (
-      HARTID              => HARTID,
-      RESET_ADDR          => RESET_ADDR,
-      DEBUG_ENABLE        => DEBUG_ENABLE,
-      NB_TRIGGERS         => NB_TRIGGERS,
-      EBREAK_EXCEPTION    => EBREAK_EXCEPTION,
-      RESETHALTREQ_ENABLE => RESETHALTREQ_ENABLE
+      HARTID               => HARTID,
+      RESET_ADDR           => RESET_ADDR,
+      DEBUG_ENABLE         => DEBUG_ENABLE,
+      NB_TRIGGERS          => NB_TRIGGERS,
+      EBREAK_EXCEPTION     => EBREAK_EXCEPTION,
+      RESETHALTREQ_ENABLE  => RESETHALTREQ_ENABLE,
+      TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
     )
     port map (
       clk_i      => clk_i,

@@ -25,7 +25,8 @@
 --    masked during the step if dcsr.stepie = 0.
 --  * Breakpoint exception (EBREAK_EXCEPTION) : ebreak without dcsr.ebreakm,
 --    or a trigger of M-mode, traps in EXECUTE (mcause 3, mepc = pc).
---  * Triggers (NB_TRIGGERS, chapter 5) : WardRV_fsm_trigger.
+--  * Triggers (NB_TRIGGERS, chapter 5) : WardRV_fsm_trigger, address ranges
+--    with TRIGGER_RANGE_ENABLE.
 -- With DEBUG_ENABLE and EBREAK_EXCEPTION false, every output is '0'.
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
@@ -33,6 +34,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-18  1.1      mrosiere TRIGGER_RANGE_ENABLE
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -44,10 +46,11 @@ use     asylum.WardRV_debug_pkg.all;
 
 entity WardRV_fsm_debug is
   generic (
-    DEBUG_ENABLE        : boolean := false                        -- Debug mode
-   ;NB_TRIGGERS         : natural := 0                            -- Triggers (with DEBUG_ENABLE)
-   ;EBREAK_EXCEPTION    : boolean := false                        -- Breakpoint exception
-   ;RESETHALTREQ_ENABLE : boolean := false                        -- Halt on reset request
+    DEBUG_ENABLE         : boolean := false                        -- Debug mode
+   ;NB_TRIGGERS          : natural := 0                            -- Triggers (with DEBUG_ENABLE)
+   ;EBREAK_EXCEPTION     : boolean := false                        -- Breakpoint exception
+   ;RESETHALTREQ_ENABLE  : boolean := false                        -- Halt on reset request
+   ;TRIGGER_RANGE_ENABLE : boolean := false                        -- Triggers : match >= / < and chain
   );
   port (
     clk_i               : in  std_logic
@@ -126,23 +129,24 @@ begin  -- architecture rtl
   generate
     ins_trigger : entity work.WardRV_fsm_trigger
       generic map
-      (NB_TRIGGERS      => NB_TRIGGERS
-      ,EBREAK_EXCEPTION => EBREAK_EXCEPTION
+      (NB_TRIGGERS          => NB_TRIGGERS
+      ,EBREAK_EXCEPTION     => EBREAK_EXCEPTION
+      ,TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
       )
       port map
-      (clk_i            => clk_i
-      ,arst_b_i         => arst_b_i
-      ,debug_mode_i     => debug_mode_r
-      ,csr_addr_i       => csr_addr_i
-      ,csr_we_i         => csr_we_i
-      ,csr_wdata_i      => csr_wdata_i
-      ,csr_rdata_o      => csr_rdata_trigger
-      ,pc_i             => pc_i
-      ,mem_req_i        => mem_req_i
-      ,mem_we_i         => mem_we_i
-      ,mem_addr_i       => mem_addr_i
-      ,hit_o            => trig_hit
-      ,hit_debug_o      => trig_hit_debug
+      (clk_i                => clk_i
+      ,arst_b_i             => arst_b_i
+      ,debug_mode_i         => debug_mode_r
+      ,csr_addr_i           => csr_addr_i
+      ,csr_we_i             => csr_we_i
+      ,csr_wdata_i          => csr_wdata_i
+      ,csr_rdata_o          => csr_rdata_trigger
+      ,pc_i                 => pc_i
+      ,mem_req_i            => mem_req_i
+      ,mem_we_i             => mem_we_i
+      ,mem_addr_i           => mem_addr_i
+      ,hit_o                => trig_hit
+      ,hit_debug_o          => trig_hit_debug
       );
   end generate gen_trigger;
 

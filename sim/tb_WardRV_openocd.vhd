@@ -46,6 +46,7 @@ entity tb_WardRV_openocd is
    ;DATA_COUNT              : positive := 2
    ;SBA_ENABLE              : boolean  := true
    ;AARPOSTINCREMENT_ENABLE : boolean  := false
+   ;TRIGGER_RANGE_ENABLE    : boolean  := false
    ;NB_TRIGGERS             : natural  := 2
    ;FIRMWARE_FILE           : string   := "openocd/fw/fw.hex"
    ;VERBOSE                 : boolean  := false
@@ -97,6 +98,7 @@ begin  -- architecture sim
     ,DEBUG_ENABLE        => true
     ,NB_TRIGGERS         => NB_TRIGGERS
     ,RESETHALTREQ_ENABLE => true
+    ,TRIGGER_RANGE_ENABLE => TRIGGER_RANGE_ENABLE
     )
     port map
     (clk_i               => clk_i
@@ -211,7 +213,8 @@ begin  -- architecture sim
     file_close(f_cfg);
     log(ID_LOG_HDR, "Co-simulation : PROGBUF_SIZE " & integer'image(PROGBUF_SIZE) &
         ", DATA_COUNT " & integer'image(DATA_COUNT) & ", SBA_ENABLE " & boolean'image(SBA_ENABLE) &
-        ", NB_TRIGGERS " & integer'image(NB_TRIGGERS) & ", AARPOSTINCREMENT_ENABLE " & boolean'image(AARPOSTINCREMENT_ENABLE), C_SCOPE);
+        ", NB_TRIGGERS " & integer'image(NB_TRIGGERS) & ", AARPOSTINCREMENT_ENABLE " & boolean'image(AARPOSTINCREMENT_ENABLE) &
+        ", TRIGGER_RANGE_ENABLE " & boolean'image(TRIGGER_RANGE_ENABLE), C_SCOPE);
 
     wait until quit for C_TIMEOUT;
     if quit
