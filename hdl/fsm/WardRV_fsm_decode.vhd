@@ -17,6 +17,8 @@
 -- 2026-04-06  1.0      mrosiere Created
 -- 2026-10-05  1.1      mrosiere CSRRC / CSRRCI use ALU_CLR (csr and not rs1/zimm)
 -- 2026-11-17  1.2      mrosiere Decode EBREAK and DRET (debug)
+-- 2026-11-20  1.3      mrosiere imm_o : the immediate of the instruction (one
+--                               ALU source for every format)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -39,6 +41,7 @@ entity WardRV_fsm_decode is
     imm_u_o                  : out std_logic_vector(31 downto 0);
     imm_j_o                  : out std_logic_vector(31 downto 0);
     imm_csr_o                : out std_logic_vector(31 downto 0);
+    imm_o                    : out std_logic_vector(31 downto 0); -- Immediate of the instruction
 
     -- Register File Control
     rd_addr_o                : out std_logic_vector(4 downto 0);
@@ -52,7 +55,7 @@ entity WardRV_fsm_decode is
     -- ALU Control       
     alu_op_o                 : out alu_op_t;
     alu_src_a_sel_o          : out alu_src_a_sel_t; -- 0: RS1, 1: PC
-    alu_src_b_sel_o          : out alu_src_b_sel_t; -- 0:RS2, 1:ImmI, 2:ImmS, 3:ImmU, 4:ImmJ
+    alu_src_b_sel_o          : out alu_src_b_sel_t; -- ALU_SRC_B_* : RS2, IMM (imm_o), IMM_4, CSR
     -- Memory Control       
     mem_req_o                : out std_logic;
     mem_we_o                 : out std_logic;
@@ -88,15 +91,29 @@ architecture behavioural of WardRV_fsm_decode is
   alias rs1_addr : std_logic_vector(4 downto 0) is inst_i(19 downto 15);
   alias rs2_addr : std_logic_vector(4 downto 0) is inst_i(24 downto 20);
 
+  signal imm_i   : std_logic_vector(31 downto 0);
+  signal imm_s   : std_logic_vector(31 downto 0);
+  signal imm_b   : std_logic_vector(31 downto 0);
+  signal imm_u   : std_logic_vector(31 downto 0);
+  signal imm_j   : std_logic_vector(31 downto 0);
+
 begin
   inst_bv    <= to_bitvector(inst_i);
   
   -- Immediate Decoding
-  imm_i_o    <= std_logic_vector(resize(signed(inst_i(31 downto 20)), 32));
-  imm_s_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31 downto 25) & inst_i(11 downto 7))), 32));
-  imm_b_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(7) & inst_i(30 downto 25) & inst_i(11 downto 8) & '0')), 32));
-  imm_u_o    <= inst_i(31 downto 12) & x"000";
-  imm_j_o    <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(19 downto 12) & inst_i(20) & inst_i(30 downto 21) & '0')), 32));
+  imm_i      <= std_logic_vector(resize(signed(inst_i(31 downto 20)), 32));
+  imm_s      <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31 downto 25) & inst_i(11 downto 7))), 32));
+  imm_b      <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(7) & inst_i(30 downto 25) & inst_i(11 downto 8) & '0')), 32));
+  imm_u      <= inst_i(31 downto 12) & x"000";
+  imm_j      <= std_logic_vector(resize(signed(std_logic_vector'(inst_i(31) & inst_i(19 downto 12) & inst_i(20) & inst_i(30 downto 21) & '0')), 32));
+
+  -- Immediate of each format, for the simulation trace (imm_o is selected in
+  -- the decode process, by the format of the instruction)
+  imm_i_o    <= imm_i;
+  imm_s_o    <= imm_s;
+  imm_b_o    <= imm_b;
+  imm_u_o    <= imm_u;
+  imm_j_o    <= imm_j;
   imm_csr_o  <= std_logic_vector(resize(unsigned(inst_i(19 downto 15)), 32));
 
   -- Register Addresses
@@ -114,6 +131,7 @@ begin
     alu_op_o                 <= ALU_ADD;
     alu_src_a_sel_o          <= ALU_SRC_A_RS1; 
     alu_src_b_sel_o          <= ALU_SRC_B_RS2;
+    imm_o                    <= (others => '0');
     mem_req_o                <= '0'; 
     mem_we_o                 <= '0';
     mem_be_o                 <= (others => '0');
@@ -136,32 +154,37 @@ begin
       when OPC_LUI =>
         rd_we_o         <= '1'; 
         alu_op_o        <= ALU_OR; 
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_U; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_u;
         inst_type_o     <= I_LUI;
       when OPC_AUIPC =>
         rd_we_o         <= '1';
         alu_src_a_sel_o <= ALU_SRC_A_PC;
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_U;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_u;
         inst_type_o     <= I_AUIPC;
       when OPC_JAL =>
         rd_we_o         <= '1';
         rd_src_o        <= RD_SRC_PC_PLUS4;
         alu_src_a_sel_o <= ALU_SRC_A_PC;
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_J;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_j;
         pc_sel_o        <= PC_SEL_JUMP;
         inst_type_o     <= I_JAL;
       when OPC_JALR =>
         rd_we_o         <= '1';
         rd_src_o        <= RD_SRC_PC_PLUS4;
         rs1_re_o        <= '1';
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_i;
         pc_sel_o        <= PC_SEL_JUMP;
         inst_type_o     <= I_JALR;
       when OPC_BRANCH =>
         rs1_re_o        <= '1';
         rs2_re_o        <= '1';
         alu_src_a_sel_o <= ALU_SRC_A_PC;
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_B;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_b;
         alu_op_o        <= ALU_ADD;
         is_branch_o     <= '1';
         pc_sel_o        <= PC_SEL_BRANCH;
@@ -193,7 +216,8 @@ begin
         rd_we_o         <= '1'; 
         rd_src_o        <= RD_SRC_MEM;
         rs1_re_o        <= '1'; 
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_I; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_i;
         mem_req_o       <= '1';
 
         case funct3 is
@@ -219,7 +243,8 @@ begin
       when OPC_STORE =>
         rs1_re_o        <= '1'; 
         rs2_re_o        <= '1'; 
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_S; 
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_s;
         mem_req_o       <= '1'; 
         mem_we_o        <= '1';
         case funct3 is
@@ -237,7 +262,8 @@ begin
       when OPC_OP_IMM =>
         rd_we_o         <= '1'; 
         rs1_re_o        <= '1'; 
-        alu_src_b_sel_o <= ALU_SRC_B_IMM_I;
+        alu_src_b_sel_o <= ALU_SRC_B_IMM;
+        imm_o           <= imm_i;
         case funct3 is
           when F3_ADD  =>
             alu_op_o    <= ALU_ADD;

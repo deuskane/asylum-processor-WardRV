@@ -22,6 +22,7 @@
 -- 2026-11-17  1.2      mrosiere MRET effect only in WRITEBACK
 -- 2026-11-17  1.3      mrosiere Debug hooks (WardRV_fsm_debug, WardRV_fsm_debug_bus)
 -- 2026-11-20  1.4      mrosiere trap_mtval removed (mtval read-only zero)
+-- 2026-11-20  1.5      mrosiere ALU source B : one immediate from the decoder
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -153,6 +154,7 @@ architecture behavioural of WardRV_fsm is
   signal dec_imm_u                  : std_logic_vector(31 downto 0);
   signal dec_imm_j                  : std_logic_vector(31 downto 0);
   signal dec_imm_csr                : std_logic_vector(31 downto 0);
+  signal dec_imm                    : std_logic_vector(31 downto 0);
   signal dec_rd_addr                : std_logic_vector(4 downto 0);
   signal dec_rs1_addr               : std_logic_vector(4 downto 0);
   signal dec_rs2_addr               : std_logic_vector(4 downto 0);
@@ -256,6 +258,7 @@ begin
     imm_u_o                  => dec_imm_u,
     imm_j_o                  => dec_imm_j,
     imm_csr_o                => dec_imm_csr,
+    imm_o                    => dec_imm,
     rd_addr_o                => dec_rd_addr,
     rs1_addr_o               => dec_rs1_addr,
     rs2_addr_o               => dec_rs2_addr,
@@ -402,13 +405,9 @@ begin
                dec_imm_csr   when alu_src_a_sel = ALU_SRC_A_IMM_CSR else
                src_a_val;  --when alu_src_a_sel = ALU_SRC_A_RS1
 
-  alu_src_b <= dec_imm_i     when alu_src_b_sel = ALU_SRC_B_IMM_I else 
-               dec_imm_s     when alu_src_b_sel = ALU_SRC_B_IMM_S else
-               dec_imm_u     when alu_src_b_sel = ALU_SRC_B_IMM_U else
-               dec_imm_j     when alu_src_b_sel = ALU_SRC_B_IMM_J else
-               dec_imm_b     when alu_src_b_sel = ALU_SRC_B_IMM_B else
+  alu_src_b <= dec_imm       when alu_src_b_sel = ALU_SRC_B_IMM   else
                C_IMM_4       when alu_src_b_sel = ALU_SRC_B_IMM_4 else
-               csr_rdata     when alu_src_b_sel = ALU_SRC_B_CSR     else
+               csr_rdata     when alu_src_b_sel = ALU_SRC_B_CSR   else
                src_b_val;  --when alu_src_b_sel = ALU_SRC_B_RS2 
                
   inst_alu : entity work.WardRV_fsm_alu
