@@ -198,6 +198,13 @@ filesets:
       - asylum:utils:ghdl_synth
 
   #---------------------------------------
+  syn_yosys:
+  #---------------------------------------
+    # yosys_synth.sh / yosys_synth.mk / yosys_synth.py (pre_run hook of syn_*)
+    depend       :
+      - asylum:utils:yosys_synth
+
+  #---------------------------------------
   # Compliance Testcases : one fileset per test
   #---------------------------------------
   files_act3_add_01:
@@ -726,6 +733,49 @@ targets:
   #---------------------------------------
     << : *lint_ghdl_synth
     description     : Synthesis check of WardRV_wrapper, debug unit, maximum configuration (program buffer of 16 words, 12 data registers, 8 triggers with ranges, SBA, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, aarpostincrement)
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=8
+      - PROGBUF_SIZE=16
+      - DATA_COUNT=12
+      - SBA_ENABLE=true
+      - EBREAK_EXCEPTION=true
+      - RESETHALTREQ_ENABLE=true
+      - AARPOSTINCREMENT_ENABLE=true
+      - TRIGGER_RANGE_ENABLE=true
+
+  #---------------------------------------
+  # Synthesis : size of WardRV_wrapper with the generics of the target,
+  # Xilinx Artix-7 (LUT, FF, BRAM, DSP) and sky130 (area), by Yosys and
+  # its GHDL plugin. Three configurations of lint_ghdl_synth_* : the core
+  # alone, with the debug unit, with the debug unit in its maximum
+  # configuration.
+  # The pre_run hook (yosys_synth.sh of asylum:utils:yosys_synth) adds
+  # yosys_synth.mk to the edalize Makefile.
+  #---------------------------------------
+  syn_default : &syn
+    << : *lint_ghdl
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, core without debug unit (default generics)
+    filesets_append : [syn, syn_yosys]
+    tools :
+      ghdl :
+        run_options     : ["--no-run"]
+    hooks :
+      pre_run : [yosys_synth]
+
+  #---------------------------------------
+  syn_debug :
+  #---------------------------------------
+    << : *syn
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit (generics of lint_ghdl_synth_debug)
+    parameters      :
+      - DEBUG_ENABLE=true
+
+  #---------------------------------------
+  syn_debug_max :
+  #---------------------------------------
+    << : *syn
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit, maximum configuration (generics of lint_ghdl_synth_debug_max)
     parameters      :
       - DEBUG_ENABLE=true
       - NB_TRIGGERS=8
@@ -1550,6 +1600,12 @@ scripts :
     cmd : [bash, ghdl_synth.sh]
 
   #---------------------------------------
+  # pre_run hook of syn_* (cwd = work_root)
+  #---------------------------------------
+  yosys_synth :
+    cmd : [bash, yosys_synth.sh]
+
+  #---------------------------------------
   # Hooks of sim_dbg_openocd_* (cwd = work_root)
   #---------------------------------------
   cosim_build :
@@ -1653,7 +1709,7 @@ parameters :
     paramtype   : generic
 
   #---------------------------------------
-  # Generics of WardRV_wrapper (lint_ghdl_synth_*), the debug generics
+  # Generics of WardRV_wrapper (lint_ghdl_synth_*, syn_*), the debug generics
   # below are also used by the testbenches
   #---------------------------------------
   DEBUG_ENABLE :

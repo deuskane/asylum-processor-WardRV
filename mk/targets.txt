@@ -145,4 +145,7 @@ sim_dbg_system_trigger_range_execute  : Debug - System - TRIGGER_RANGE_ENABLE, r
 sim_dbg_system_trigger_range_store    : Debug - System - TRIGGER_RANGE_ENABLE, range of store addresses [A, B) with two chained triggers
 sim_dbg_system_trigger_store          : Debug - System - store trigger (cause 2, dpc of the store)
 sim_irq                               : Interrupt - meip_i pending during the CSR instruction that clears / sets mstatus.MIE or mie.MEIE (esw/irq)
+syn_debug                             : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit (generics of lint_ghdl_synth_debug)
+syn_debug_max                         : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit, maximum configuration (generics of lint_ghdl_synth_debug_max)
+syn_default                           : Synthesis (Artix-7, sky130) of WardRV_wrapper, core without debug unit (default generics)
 
