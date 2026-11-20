@@ -21,6 +21,7 @@
 --                               Add instruction type to report
 -- 2026-11-17  1.2      mrosiere MRET effect only in WRITEBACK
 -- 2026-11-17  1.3      mrosiere Debug hooks (WardRV_fsm_debug, WardRV_fsm_debug_bus)
+-- 2026-11-20  1.4      mrosiere trap_mtval removed (mtval read-only zero)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -194,7 +195,6 @@ architecture behavioural of WardRV_fsm is
   signal trap_mirq                  : std_logic;
   signal trap_cause                 : std_logic_vector(31 downto 0);
   signal trap_pc                    : std_logic_vector(31 downto 0);
-  signal trap_mtval                 : std_logic_vector(31 downto 0);
 
   -- Mux selection signals for ALU inputs, determined by the FSM state or decoder.
   signal alu_src_a_sel              : alu_src_a_sel_t;
@@ -310,7 +310,6 @@ begin
     trap_i              => trap,
     trap_cause_i        => trap_cause,
     trap_pc_i           => trap_pc,
-    trap_mtval_i        => trap_mtval,
   
     inst_is_mret_i      => inst_is_mret,
     
@@ -331,7 +330,6 @@ begin
   trap_cause <= x"00000003" when dbg_trap_bkpt = '1' else -- Breakpoint
                 x"8000000B";                              -- External Interrupt
   trap_pc    <= pc_r       ;--when trap_mirq = '1' else (others => '0');
-  trap_mtval <= (others => '0'); -- No additional info for external interrupts
 
   --------------------------------------------------------------------
   -- Register File Instance

@@ -14,6 +14,8 @@
 //   6 : mtvec written with MODE = 3 reads back the aligned handler address
 //       (MODE is read-only zero), and the next trap enters the handler
 //   7 : mret with mstatus.MPIE = 0 : MIE = 0 after it (MIE <= MPIE applied once)
+//   8 : WARL : mstatus, mie and mtval written with all ones read back only
+//       their implemented bits (MPP = 3, MPIE, MIE ; MEIE ; mtval = 0)
 //
 // Build : make (needs a RISC-V toolchain), irq_fw.hex / irq_fw.lst committed
 // ----------------------------------------------------------------------------
@@ -118,6 +120,20 @@ ret5:
 ret7:
     csrr  s3, mstatus
     bne   s3, a7, fail            // MPP = 3, MPIE = 1, MIE = 0
+
+    // 8 : only the implemented bits of mstatus, mie and mtval (no interrupt pending)
+    li    t6, 8
+    li    a6, -1
+    csrw  mstatus, a6
+    csrr  s3, mstatus
+    li    a5, MSTATUS_MRET
+    bne   s3, a5, fail            // MPP = 3, MPIE = 1, MIE = 1, other bits 0
+    csrw  mie, a6
+    csrr  s3, mie
+    bne   s3, a4, fail            // MEIE only
+    csrw  mtval, a6
+    csrr  s3, mtval
+    bnez  s3, fail                // mtval read-only zero
 
 pass:
     sw    a3, 0(a1)               // tohost = 1 : pass
