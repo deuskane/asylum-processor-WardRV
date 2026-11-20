@@ -238,15 +238,17 @@ Figures of the `syn_*` targets (`make nonreg_syn`, see [Targets](#targets)): [sy
 
 | Configuration | LUT¹ | LUTRAM¹ | FF¹ | CARRY4¹ | MUXF7/F8¹ | BRAM¹ | DSP¹ | Area² (µm²) | kGE³ |
 |---|---|---|---|---|---|---|---|---|---|
-| `syn_default` (core, no debug unit) | 1978 | 48 | 444 | 24 | 452 | 0 | 0 | 76061.70 | 20.264 |
-| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 3173 | 48 | 899 | 31 | 520 | 0 | 0 | 99960.87 | 26.631 |
-| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 6658 | 48 | 2141 | 144 | 461 | 0 | 0 | 172765.70 | 46.027 |
+| `syn_default` (core, no debug unit) | 1326 | 48 | 325 | 13 | 160 | 0 | 0 | 66461.24 | 17.706 |
+| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 2646 | 48 | 780 | 20 | 254 | 0 | 0 | 90155.22 | 24.018 |
+| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 6604 | 48 | 2022 | 133 | 563 | 0 | 0 | 163834.63 | 43.647 |
 
 ¹ Xilinx Artix-7 (LUT6), Yosys 0.33 `synth_xilinx -flatten -noiopad -noclkbuf`, before place and route: every cell of the netlist is counted, Vivado may differ. An `INV` counts as a `LUT1`: `synth_xilinx` puts one on the reset pin of each flip-flop with the active-low reset. The register file (`ram_2r1w`, 32 x 32 bits, asynchronous read) is in LUTRAM, not in BRAM.
 
 ² SkyWater sky130 `sky130_fd_sc_hd`, typical corner (tt, 25 °C, 1.80 V), Yosys 0.33 `synth` + `dfflibmap` + `abc -liberty`: standard-cell area only, no timing constraint, no buffering, clock tree or placement; the register file becomes flip-flops (no SRAM macro).
 
 ³ Area in thousands of NAND2 gate equivalents (`sky130_fd_sc_hd__nand2_1` = 3.7536 µm²).
+
+In `syn_default`, 339 of the 1326 LUTs are these `INV` (the reset of the flip-flops). For comparison, [PicoRV32](https://github.com/YosysHQ/picorv32) in the small configuration of its README (`top_small` of `scripts/vivado/synth_area_top.v`: no counters, no IRQ, synchronous reset, native 32-bit memory interface) gives in the same flow 1003 LUT (105 `INV`), 48 LUTRAM, 437 FF, 64 CARRY4, 24 MUXF7/F8, 68831 µm², 18.337 kGE.
 
 ## Theory of Operation
 
@@ -257,11 +259,11 @@ Figures of the `syn_*` targets (`make nonreg_syn`, see [Targets](#targets)): [sy
 | [hdl/fsm/sbi_WardRV_fsm.vhd](hdl/fsm/sbi_WardRV_fsm.vhd) | `sbi_WardRV_fsm` | Top level: `WardRV_fsm` + `dmem2sbi`, instruction port for a synchronous ROM |
 | [hdl/fsm/WardRV_fsm.vhd](hdl/fsm/WardRV_fsm.vhd) | `WardRV_fsm` | The core: FSM, pc, datapath multiplexers, instances below |
 | [hdl/fsm/WardRV_fsm_fetch.vhd](hdl/fsm/WardRV_fsm_fetch.vhd) | `WardRV_fsm_fetch` | Instruction request (`imem`) and instruction register `inst_r` |
-| [hdl/fsm/WardRV_fsm_decode.vhd](hdl/fsm/WardRV_fsm_decode.vhd) | `WardRV_fsm_decode` | Combinational decoder: immediates, register addresses, control signals |
+| [hdl/fsm/WardRV_fsm_decode.vhd](hdl/fsm/WardRV_fsm_decode.vhd) | `WardRV_fsm_decode` | Combinational decoder: the immediate of the instruction, register addresses, control signals |
 | [hdl/fsm/WardRV_fsm_regfile.vhd](hdl/fsm/WardRV_fsm_regfile.vhd) | `WardRV_fsm_regfile` | 32 x 32-bit register file (`ram_2r1w`), reads of `x0` return 0 |
-| [hdl/fsm/WardRV_fsm_alu.vhd](hdl/fsm/WardRV_fsm_alu.vhd) | `WardRV_fsm_alu` | 32-bit ALU (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND, CLR) with zero, carry and sign flags |
+| [hdl/fsm/WardRV_fsm_alu.vhd](hdl/fsm/WardRV_fsm_alu.vhd) | `WardRV_fsm_alu` | 32-bit ALU (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND, CLR) with zero, borrow and signed less-than flags: one adder, one shifter |
 | [hdl/fsm/WardRV_fsm_memory.vhd](hdl/fsm/WardRV_fsm_memory.vhd) | `WardRV_fsm_memory` | Data request (`dmem`): byte enables and store data shifted by `addr(1:0)`, load data shifted back, sign / zero extended, registered |
-| [hdl/fsm/WardRV_fsm_csr.vhd](hdl/fsm/WardRV_fsm_csr.vhd) | `WardRV_fsm_csr` | Machine CSRs, trap entry, MRET, interrupt request |
+| [hdl/fsm/WardRV_fsm_csr.vhd](hdl/fsm/WardRV_fsm_csr.vhd) | `WardRV_fsm_csr` | Machine CSRs (only their implemented bits), trap entry, MRET, interrupt request |
 | [hdl/fsm/WardRV_fsm_debug.vhd](hdl/fsm/WardRV_fsm_debug.vhd), [WardRV_fsm_trigger.vhd](hdl/fsm/WardRV_fsm_trigger.vhd), [WardRV_fsm_debug_bus.vhd](hdl/fsm/WardRV_fsm_debug_bus.vhd) | `WardRV_fsm_debug`, `_trigger`, `_debug_bus` | Debug support of the core (`DEBUG_ENABLE`), see [Debug unit](#debug-unit) |
 | [hdl/bridge/dmem2sbi.vhd](hdl/bridge/dmem2sbi.vhd) | `dmem2sbi` | 32-bit `dmem` request to 8-bit SBI accesses (one per enabled byte) |
 | [hdl/bridge/imem2sbi.vhd](hdl/bridge/imem2sbi.vhd) | `imem2sbi` | 32-bit `imem` request to four 8-bit SBI reads (not instantiated in this repository) |
@@ -288,14 +290,20 @@ Cycles per instruction: FETCH lasts until the instruction is ready, 2 cycles in 
 
 ### Datapath
 
-The ALU sources are chosen by the FSM state: `pc` and 4 in FETCH, `rs1` and `rs2` in BRANCH_DECISION, the selections of the decoder otherwise (`rs1`, `pc` or the CSR immediate; `rs2`, an immediate or the CSR value). The register file is read asynchronously, written in WRITEBACK. CSRRC / CSRRCI use the ALU operation CLR (`csr and not rs1`), CSRRS / CSRRSI an OR.
+The ALU sources are chosen by the FSM state: `pc` and 4 in FETCH, `rs1` and `rs2` in BRANCH_DECISION, the selections of the decoder otherwise (`rs1`, `pc` or the CSR immediate; `rs2`, the immediate of the instruction or the CSR value). The decoder selects the immediate by the format of the instruction (I, S, B, U or J), so the ALU sees one immediate. The register file is read asynchronously, written in WRITEBACK. CSRRC / CSRRCI use the ALU operation CLR (`csr and not rs1`), CSRRS / CSRRSI an OR.
+
+The ALU has one adder and one shifter, shared by the operations:
+
+- ADD, SUB, SLT and SLTU use the adder: `src_a - src_b = src_a + not src_b + 1`. Unsigned less-than (SLTU, BLTU / BGEU) is the borrow (no carry out of the subtraction); signed less-than (SLT, BLT / BGE) is the sign of `src_a` when the signs differ (the difference may overflow), else the sign of the difference.
+- SLL, SRL and SRA use one 33-bit arithmetic right shift of `fill & operand`: the fill bit is the sign of `src_a` for SRA and 0 for SRL; SLL shifts the bit-reversed operand and reverses the result (`a << n = reverse(reverse(a) >> n)`).
 
 ### Traps and CSRs
 
 - The only trap without the debug options is the machine external interrupt: `interrupt_i` is registered in `mip.MEIP`; the trap is taken at the end of WRITEBACK when `mip.MEIP`, `mie.MEIE` and `mstatus.MIE` are set. The enables written by the instruction itself count at once: no trap after the instruction that clears `MIE` / `MEIE`, a trap right after the one that sets them while the interrupt is pending.
-- Trap entry: `mepc` = pc of the next instruction, `mcause = 0x8000000B`, `mtval = 0`, `MPIE <= MIE`, `MIE <= 0`, `pc <= mtvec` (direct mode: `mtvec.MODE` reads 0).
+- Trap entry: `mepc` = pc of the next instruction, `mcause = 0x8000000B`, `MPIE <= MIE`, `MIE <= 0`, `pc <= mtvec` (direct mode: `mtvec.MODE` reads 0).
+- The CSRs keep only their implemented bits; the other bits read 0 and ignore writes (WARL): `mstatus` = MIE, MPIE and MPP read-only 3 (machine mode only), `mie` = MEIE, `mip` = MEIP, `mcause` = Interrupt and the Exception Code (bits 4..0, WLRL: holds 0 to 31), `mtval` read-only 0 (no trap writes a non-zero value). For example `csrw mstatus, -1` reads back `0x00001888`.
 - MRET (applied once, in WRITEBACK): `MIE <= MPIE`, `MPIE <= 1`, `pc <= mepc`.
-- With `EBREAK_EXCEPTION`, `ebreak` (without `dcsr.ebreakm`) and a trigger of M-mode trap from EXECUTE: `mcause = 3`, `mepc` = address of the instruction, `mtval = 0`.
+- With `EBREAK_EXCEPTION`, `ebreak` (without `dcsr.ebreakm`) and a trigger of M-mode trap from EXECUTE: `mcause = 3`, `mepc` = address of the instruction.
 - Not implemented: exceptions for illegal instructions, ECALL or misaligned accesses. Unknown instructions, FENCE, ECALL, WFI, EBREAK (without `EBREAK_EXCEPTION` nor `dcsr.ebreakm`) and DRET outside debug mode execute as NOPs.
 
 ### Debug unit
@@ -389,17 +397,17 @@ RV32I (unprivileged ISA 2.1) and Zicsr (2.0) in machine mode, IALIGN = 32:
 | Zicsr | CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI |
 | Privileged | MRET; DRET and EBREAK with the debug unit; FENCE, ECALL, WFI execute as NOPs |
 
-Machine CSRs (every other CSR address reads 0 and ignores writes):
+Machine CSRs (every other CSR address reads 0 and ignores writes; in each CSR, the bits not listed read 0 and ignore writes):
 
 | CSR | Address | Reset | Notes |
 |-----|---------|-------|-------|
-| `mstatus` | `0x300` | `0x00001800` | MPP = 11; MIE (bit 3) / MPIE (bit 7) updated on trap and MRET |
-| `mie` | `0x304` | `0` | MEIE (bit 11) enables the external interrupt |
+| `mstatus` | `0x300` | `0x00001800` | MIE (bit 3), MPIE (bit 7), updated on trap and MRET; MPP (bits 12..11) read-only 11 |
+| `mie` | `0x304` | `0` | MEIE (bit 11) enables the external interrupt, the only bit |
 | `mtvec` | `0x305` | `0` | Trap address, MODE (bits 1..0) read-only 0 (direct mode only) |
 | `mscratch` | `0x340` | `0` | Scratch |
 | `mepc` | `0x341` | `0` | Return address of MRET, bits 1..0 read-only 0 |
-| `mcause` | `0x342` | `0` | `0x8000000B` on the external interrupt, 3 on a breakpoint exception |
-| `mtval` | `0x343` | `0` | Written with 0 on a trap |
+| `mcause` | `0x342` | `0` | Interrupt (bit 31) and Exception Code (bits 4..0, WLRL); `0x8000000B` on the external interrupt, 3 on a breakpoint exception |
+| `mtval` | `0x343` | `0` | Read-only 0 |
 | `mip` | `0x344` | `0` | MEIP (bit 11) = `interrupt_i` (registered), read-only |
 | `mhartid` | `0xF14` | `HARTID` | Read-only |
 
@@ -483,7 +491,7 @@ The programs and reference signatures are committed in `esw/compliance_act3/benc
 | Target | Firmware | Description |
 |--------|----------|-------------|
 | `sim_basic` | [esw/testcase/](esw/testcase/) (`start.S`, `main.c`) | Arithmetic, shifts, comparisons, immediates, loads / stores of every width in C, `tohost` = 1 or the failing check |
-| `sim_irq` | [esw/irq/irq.S](esw/irq/irq.S) | `meip_i` pending during `csrci mstatus` / `csrc mie` (no trap) and during `csrsi mstatus` / `csrs mie` (trap right after: `mepc`, `mcause`, `mstatus.MPIE`), `mtvec.MODE` read back as 0, `mret` with `MPIE = 0` |
+| `sim_irq` | [esw/irq/irq.S](esw/irq/irq.S) | `meip_i` pending during `csrci mstatus` / `csrc mie` (no trap) and during `csrsi mstatus` / `csrs mie` (trap right after: `mepc`, `mcause`, `mstatus.MPIE`), `mtvec.MODE` read back as 0, `mret` with `MPIE = 0`, `mstatus` / `mie` / `mtval` written with all ones read back only their implemented bits |
 
 The firmwares are built by the `Makefile` of their directory with the RISC-V toolchain; the `.hex` / `.lst` are committed.
 
