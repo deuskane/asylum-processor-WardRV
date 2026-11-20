@@ -7,7 +7,9 @@
 -------------------------------------------------------------------------------
 -- Description: WardRV_dbg_jtag (TAP + DTM + DMI CDC) driven by the JTAG VIP,
 --              with a fake Debug Module (128 registers, answer in the cycle
---              of the request). Scenarios in tb_WardRV_dbg_jtag_pkg (TEST).
+--              of the request). Scenarios chosen at run time with TESTS_LIST
+--              (names in tb_WardRV_dbg_jtag_tests_pkg, one package per
+--              scenario), each one after a reset pulse and TRST*.
 --              CLK_PERIOD_NS : clk period, TCK period = 50 ns.
 --              A monitor checks that TDO / tdo_en change on the falling edge
 --              of TCK only.
@@ -17,6 +19,8 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
+--                               pulse before each scenario
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -29,13 +33,15 @@ context uvvm_util.uvvm_util_context;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
+use     asylum.string_pkg.all;
 
 use     work.WardRV_vips.all;
-use     work.tb_WardRV_dbg_jtag_pkg.all;
+use     work.tb_WardRV_dbg_jtag_bfm_pkg.all;
+use     work.tb_WardRV_dbg_jtag_tests_pkg.all;
 
 entity tb_WardRV_dbg_jtag is
   generic (
-    TEST           : string  := "reset"
+    TESTS_LIST     : string  := ""                              -- Scenarios, "" : build only
    ;CLK_PERIOD_NS  : natural := 10
    ;VERBOSE        : boolean := false
   );
@@ -47,7 +53,7 @@ architecture sim of tb_WardRV_dbg_jtag is
 
   signal   clk_i       : std_logic;
   signal   clk_ena     : boolean := true;
-  signal   arst_b_i    : std_logic;
+  signal   arst_b_i    : std_logic := '0';
   signal   jtag_ini    : jtag_ini_t := (tck => '0', trst_n => '0', tms => '1', tdi => '0');
   signal   jtag_tgt    : jtag_tgt_t;
   signal   dmi_req     : dmi_req_t;
@@ -58,7 +64,6 @@ architecture sim of tb_WardRV_dbg_jtag is
 begin  -- architecture sim
 
   clock_generator(clk_i, clk_ena, CLK_PERIOD_NS * 1 ns, "TB Clock");
-  arst_b_i <= '0', '1' after 100 ns;
 
   -----------------------------------------------------------------------------
   -- DUT
@@ -79,11 +84,15 @@ begin  -- architecture sim
     );
 
   -----------------------------------------------------------------------------
-  -- Fake Debug Module
+  -- Fake Debug Module (registers and request counter cleared by the reset)
   -----------------------------------------------------------------------------
-  p_dm : process(clk_i)
+  p_dm : process(clk_i, arst_b_i)
   begin
-    if rising_edge(clk_i) and dmi_req.valid = '1'
+    if arst_b_i = '0'
+    then
+      dm_regs   <= (others => (others => '0'));
+      dm_nb_req <= 0;
+    elsif rising_edge(clk_i) and dmi_req.valid = '1'
     then
       if dmi_req.we = '1'
       then
@@ -120,27 +129,26 @@ begin  -- architecture sim
       disable_log_msg(ID_BFM);
     end if;
 
-    log(ID_LOG_HDR, "TEST " & TEST & ", clk period " & integer'image(CLK_PERIOD_NS) & " ns", C_SCOPE);
-    wait until arst_b_i = '1';
-    vip_jtag_init(jtag_ini);
+    log(ID_LOG_HDR, "clk period " & integer'image(CLK_PERIOD_NS) & " ns, TESTS_LIST : " & TESTS_LIST, C_SCOPE);
 
-    if    TEST = "reset"
-    then
-      test_reset(jtag_ini, jtag_tgt);
-    elsif TEST = "tap"
-    then
-      test_tap  (jtag_ini, jtag_tgt);
-    elsif TEST = "dmi"
-    then
-      test_dmi  (jtag_ini, jtag_tgt, dm_nb_req);
-    elsif TEST = "busy"
-    then
-      test_busy (jtag_ini, jtag_tgt, dm_nb_req);
-    else
-      alert(TB_ERROR, "Unknown TEST " & TEST, C_SCOPE);
-    end if;
+    -- Every name is checked before the first scenario
+    for i in 1 to list_length(TESTS_LIST) loop
+      if not list_contains(C_TESTS, list_item(TESTS_LIST, i))
+      then
+        alert(TB_ERROR, "Unknown test """ & list_item(TESTS_LIST, i) & """ (tests : " & C_TESTS & ")", C_SCOPE);
+      end if;
+    end loop;
 
-    wait for 1 us;
+    for i in 1 to list_length(TESTS_LIST) loop
+      -- Reset pulse, then TRST* (Test-Logic-Reset) : each scenario starts from reset
+      vip_reset_scenario(clk_i, arst_b_i, 100 ns);
+      vip_jtag_init(jtag_ini);
+
+      log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
+      run_test(list_item(TESTS_LIST, i), jtag_ini, jtag_tgt, dm_nb_req);
+      wait for 1 us;
+    end loop;
+
     report_alert_counters(FINAL);
     std.env.stop;
     wait;

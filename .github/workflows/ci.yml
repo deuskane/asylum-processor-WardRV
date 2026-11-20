@@ -477,6 +477,11 @@ jobs:
     with:
       name: sim_dbg_dm_progbuf0
 
+  sim_dbg_dm_reset:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_dm_reset
+
   sim_dbg_dm_resethaltreq:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
@@ -501,6 +506,11 @@ jobs:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
       name: sim_dbg_jtag_dmi
+
+  sim_dbg_jtag_reset:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_jtag_reset
 
   sim_dbg_jtag_slow_dmi:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
@@ -601,6 +611,11 @@ jobs:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
     with:
       name: sim_dbg_system_registers
+
+  sim_dbg_system_reset:
+    uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main
+    with:
+      name: sim_dbg_system_reset
 
   sim_dbg_system_resethaltreq:
     uses: deuskane/asylum-ci/.github/workflows/vhdl-ci.yml@main

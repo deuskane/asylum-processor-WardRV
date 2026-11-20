@@ -6,7 +6,7 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: VIPs for WardRV simulation
---  * Reset pulse
+--  * Reset pulse, reset pulse before a scenario (TESTS_LIST)
 --  * JTAG : TMS / TDI change while TCK is low, TDO is sampled just before the
 --    rising edge of TCK, vectors are shifted LSB first. Every scan starts and
 --    ends in Run-Test/Idle.
@@ -19,6 +19,7 @@
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
 -- 2026-11-17  1.1      mrosiere JTAG and DMI procedures of the debug unit
+-- 2026-11-20  1.2      mrosiere vip_reset_scenario (reset pulse of TESTS_LIST)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -49,6 +50,14 @@ package WardRV_vips is
     signal   reset_n  : out std_logic;
     constant width    : in  time;
     constant msg      : in  string := ""
+  );
+
+  -- Reset pulse before a scenario (TESTS_LIST) : asserted during width,
+  -- released on the falling (inactive) edge of the clock
+  procedure vip_reset_scenario(
+    signal   clk      : in  std_logic;
+    signal   reset_n  : out std_logic;
+    constant width    : in  time
   );
 
   -- ===========================================================================
@@ -150,6 +159,18 @@ package body WardRV_vips is
     wait for width;
     reset_n <= '1';
     log(ID_BFM, "Deasserting Reset " & msg);
+  end procedure;
+
+  procedure vip_reset_scenario(
+    signal   clk      : in  std_logic;
+    signal   reset_n  : out std_logic;
+    constant width    : in  time
+  ) is
+  begin
+    reset_n <= '0';
+    wait for width;
+    wait until falling_edge(clk);
+    reset_n <= '1';
   end procedure;
 
   -- ===========================================================================
