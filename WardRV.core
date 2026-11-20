@@ -867,7 +867,7 @@ targets:
     << : *sim_dbg_jtag
     description     : Debug - Debug Module - build and elaboration of tb_WardRV_dbg_dm (base of sim_dbg_dm_*, WardRV_dbg_dm unit test)
     toplevel        : tb_WardRV_dbg_dm
-    parameters      : [TESTS_LIST, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE, VERBOSE=false]
+    parameters      : [TESTS_LIST, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE]
 
   sim_dbg_dm_reset:
     << : *sim_dbg_dm

@@ -21,6 +21,7 @@
 -- 2026-11-17  1.0      mrosiere Created
 -- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
 --                               pulse before each scenario
+--                               generic VERBOSE removed (unused)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -44,7 +45,6 @@ entity tb_WardRV_dbg_dm is
     TESTS_LIST              : string  := ""                     -- Scenarios, "" : build only
    ;PROGBUF_SIZE            : natural := 2
    ;AARPOSTINCREMENT_ENABLE : boolean := false
-   ;VERBOSE                 : boolean := false
   );
 end entity tb_WardRV_dbg_dm;
 
