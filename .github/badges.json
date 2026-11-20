@@ -1,0 +1,1 @@
+[{"name": "act3_rv32i", "label": "ACT3 RV32I", "prefix": "sim_compliance_act3_"}, {"name": "act4_rv32i", "label": "ACT4 RV32I", "prefix": "sim_compliance_act4_i_"}, {"name": "act4_zicsr", "label": "ACT4 Zicsr", "prefix": "sim_compliance_act4_zicsr_"}]
