@@ -17,6 +17,7 @@
 --                               (N xor V) for ALU_SUB
 -- 2026-11-20  1.2      mrosiere One adder for ADD, SUB, SLT and SLTU (flags of the
 --                               subtraction for the branches and SLT / SLTU)
+-- 2026-11-20  1.3      mrosiere One shifter for SLL, SRL and SRA
 -------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
@@ -37,6 +38,7 @@ use     ieee.numeric_std.all;
 
 library asylum;
 use     asylum.WardRV_fsm_alu_pkg.all;
+use     asylum.logic_pkg.all;
 
 entity WardRV_fsm_alu is
   port (
@@ -56,6 +58,10 @@ architecture behavioural of WardRV_fsm_alu is
   signal sum      : unsigned(32 downto 0);         -- bit 32 : carry out
   signal lt_u     : std_logic;                     -- unsigned src_a < src_b
   signal lt_s     : std_logic;                     -- signed   src_a < src_b
+  -- One shifter for SLL, SRL and SRA
+  signal fill     : std_logic;                     -- Bit shifted in : src_a(31) for SRA, else '0'
+  signal shift_in : std_logic_vector(31 downto 0); -- src_a, bit-reversed for SLL
+  signal shifted  : std_logic_vector(32 downto 0);
   signal res      : std_logic_vector(31 downto 0);
 begin
 
@@ -68,6 +74,14 @@ begin
   -- difference may overflow), else the sign of the difference
   lt_s <= src_a_i(31) when src_a_i(31) /= src_b_i(31) else sum(31);
 
+  -- One shifter : a 33-bit arithmetic right shift. shift_right of a signed
+  -- copies bit 32 (fill) into the vacated bits : '0' gives SRL, the sign of
+  -- src_a gives SRA. SLL uses a << n = reverse(reverse(a) >> n).
+  fill     <= src_a_i(31) when op_i = ALU_SRA else '0';
+  shift_in <= reverse_bits(src_a_i) when op_i = ALU_SLL else src_a_i;
+  shifted  <= std_logic_vector(shift_right(signed(fill & shift_in),
+                                           to_integer(unsigned(src_b_i(4 downto 0)))));
+
   process(all)
   begin
     res <= (others => '0');
@@ -77,10 +91,10 @@ begin
            ALU_SUB    => res    <= std_logic_vector(sum(31 downto 0));
       when ALU_SLT    => res(0) <= lt_s;
       when ALU_SLTU   => res(0) <= lt_u;
-      when ALU_SLL    => res    <= std_logic_vector(shift_left(unsigned(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
+      when ALU_SLL    => res    <= reverse_bits(shifted(31 downto 0));
       when ALU_XOR    => res    <= src_a_i xor src_b_i;
-      when ALU_SRL    => res    <= std_logic_vector(shift_right(unsigned(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
-      when ALU_SRA    => res    <= std_logic_vector(shift_right(  signed(src_a_i), to_integer(unsigned(src_b_i(4 downto 0)))));
+      when ALU_SRL |
+           ALU_SRA    => res    <= shifted(31 downto 0);
       when ALU_OR     => res    <= src_a_i or  src_b_i;
       when ALU_AND    => res    <= src_a_i and src_b_i;
       when ALU_CLR    => res    <= src_b_i and not src_a_i;

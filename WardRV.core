@@ -83,7 +83,7 @@ filesets:
     file_type    : vhdlSource-2008
     logical_name : asylum
     depend       :
-      - ">=asylum:utils:pkg:1.0.0"
+      - ">=asylum:utils:pkg:1.5.2"
       - ">=asylum:component:ram:1.0.0"
       - ">=asylum:target:techmap:1.0.0"
 
