@@ -8,8 +8,10 @@
 -- Description: WardRV_dbg_dm (DATA_COUNT 2, SBA, resethaltreq,
 --              AARPOSTINCREMENT_ENABLE generic) driven on its
 --              DMI and debug memory ports, with a memory on the System Bus
---              Access (64 words, one wait state). Scenarios in
---              tb_WardRV_dbg_dm_pkg (TEST). PROGBUF_SIZE : 2, or 0 for the
+--              Access (64 words, one wait state, not reset). Scenarios
+--              chosen at run time with TESTS_LIST (names in
+--              tb_WardRV_dbg_dm_tests_pkg, one package per scenario), each
+--              one after a reset pulse. PROGBUF_SIZE : 2, or 0 for the
 --              scenario progbuf0.
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
@@ -17,6 +19,9 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
+--                               pulse before each scenario
+--                               generic VERBOSE removed (unused)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -29,15 +34,17 @@ context uvvm_util.uvvm_util_context;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
+use     asylum.string_pkg.all;
 
-use     work.tb_WardRV_dbg_dm_pkg.all;
+use     work.WardRV_vips.all;
+use     work.tb_WardRV_dbg_dm_bfm_pkg.all;
+use     work.tb_WardRV_dbg_dm_tests_pkg.all;
 
 entity tb_WardRV_dbg_dm is
   generic (
-    TEST                    : string  := "reset"
+    TESTS_LIST              : string  := ""                     -- Scenarios, "" : build only
    ;PROGBUF_SIZE            : natural := 2
    ;AARPOSTINCREMENT_ENABLE : boolean := false
-   ;VERBOSE                 : boolean := false
   );
 end entity tb_WardRV_dbg_dm;
 
@@ -47,7 +54,7 @@ architecture sim of tb_WardRV_dbg_dm is
 
   signal   clk_i       : std_logic;
   signal   clk_ena     : boolean := true;
-  signal   arst_b_i    : std_logic;
+  signal   arst_b_i    : std_logic := '0';
   signal   ini         : dm_ini_t := DM_INI_IDLE;
   signal   tgt         : dm_tgt_t;
   signal   sba_ini     : dmem_ini_t;
@@ -57,7 +64,6 @@ architecture sim of tb_WardRV_dbg_dm is
 begin  -- architecture sim
 
   clock_generator(clk_i, clk_ena, 10 ns, "TB Clock");
-  arst_b_i <= '0', '1' after 100 ns;
 
   -----------------------------------------------------------------------------
   -- DUT
@@ -115,54 +121,31 @@ begin  -- architecture sim
   begin
     report_global_ctrl(VOID);
     enable_log_msg(ALL_MESSAGES);
-    if not VERBOSE
-    then
-      disable_log_msg(ID_POS_ACK);
-    end if;
 
-    log(ID_LOG_HDR, "TEST " & TEST & ", PROGBUF_SIZE " & integer'image(PROGBUF_SIZE), C_SCOPE);
-    if (TEST = "progbuf0") /= (PROGBUF_SIZE = 0) or (TEST = "postincrement") /= AARPOSTINCREMENT_ENABLE
-    then
-      alert(TB_ERROR, "TEST progbuf0 needs PROGBUF_SIZE = 0, postincrement AARPOSTINCREMENT_ENABLE, the others the defaults", C_SCOPE);
-    end if;
-    wait until arst_b_i = '1';
-    wait until rising_edge(clk_i);
+    log(ID_LOG_HDR, "PROGBUF_SIZE " & integer'image(PROGBUF_SIZE) & ", AARPOSTINCREMENT_ENABLE " & boolean'image(AARPOSTINCREMENT_ENABLE) & ", TESTS_LIST : " & TESTS_LIST, C_SCOPE);
 
-    if    TEST = "reset"
-    then
-      test_reset       (clk_i, ini, tgt);
-    elsif TEST = "dmcontrol"
-    then
-      test_dmcontrol   (clk_i, ini, tgt);
-    elsif TEST = "halt_resume"
-    then
-      test_halt_resume (clk_i, ini, tgt);
-    elsif TEST = "abstract"
-    then
-      test_abstract    (clk_i, ini, tgt);
-    elsif TEST = "cmderr"
-    then
-      test_cmderr      (clk_i, ini, tgt);
-    elsif TEST = "autoexec"
-    then
-      test_autoexec    (clk_i, ini, tgt);
-    elsif TEST = "resethaltreq"
-    then
-      test_resethaltreq(clk_i, ini, tgt);
-    elsif TEST = "sba"
-    then
-      test_sba         (clk_i, ini, tgt);
-    elsif TEST = "progbuf0"
-    then
-      test_progbuf0    (clk_i, ini, tgt);
-    elsif TEST = "postincrement"
-    then
-      test_postincrement(clk_i, ini, tgt);
-    else
-      alert(TB_ERROR, "Unknown TEST " & TEST, C_SCOPE);
-    end if;
+    -- Every name is checked before the first scenario
+    for i in 1 to list_length(TESTS_LIST) loop
+      if not list_contains(C_TESTS, list_item(TESTS_LIST, i))
+      then
+        alert(TB_ERROR, "Unknown test """ & list_item(TESTS_LIST, i) & """ (tests : " & C_TESTS & ")", C_SCOPE);
+      elsif not test_applies(list_item(TESTS_LIST, i), PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE)
+      then
+        alert(TB_ERROR, "Test " & list_item(TESTS_LIST, i) & " : progbuf0 needs PROGBUF_SIZE = 0, postincrement AARPOSTINCREMENT_ENABLE, the others the defaults", C_SCOPE);
+      end if;
+    end loop;
 
-    wait for 100 ns;
+    for i in 1 to list_length(TESTS_LIST) loop
+      -- Reset pulse, DMI and debug memory idle : each scenario starts from reset
+      ini <= DM_INI_IDLE;
+      vip_reset_scenario(clk_i, arst_b_i, 100 ns);
+      wait until rising_edge(clk_i);
+
+      log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
+      run_test(list_item(TESTS_LIST, i), clk_i, ini, tgt);
+      wait for 100 ns;
+    end loop;
+
     report_alert_counters(FINAL);
     std.env.stop;
     wait;

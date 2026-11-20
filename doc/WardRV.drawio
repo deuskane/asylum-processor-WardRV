@@ -1,0 +1,469 @@
+<mxfile host="Electron">
+  <diagram name="Overview" id="wrv-ov">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="wrv-ov-1" value="generics: HARTID, RESET_ADDR, IADDR_WIDTH, IADDR_ALIGN_BITS, DEBUG_ENABLE, NB_TRIGGERS, EBREAK_EXCEPTION, RESETHALTREQ_ENABLE, TRIGGER_RANGE_ENABLE" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="760" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="760" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-3" value="sbi_WardRV_fsm" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="220" y="140" width="580" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-5" value="WardRV_fsm" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="220" y="140" width="90" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-6" value="FSM&lt;br&gt;state_r (8 states)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="240" y="180" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-7" value="sequences the shared ALU,&lt;br&gt;the registers and the buses" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="375" y="180" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-8" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="240" y="260" width="150" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-9" value="fetch" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="240" y="260" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-10" value="inst_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="260" y="295" width="110" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-11" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="240" y="380" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-12" value="decode" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="240" y="380" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-13" value="immediates, rd / rs1 / rs2,&lt;br&gt;control signals" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="245" y="405" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="315" y="325" as="sourcePoint"/>
+            <mxPoint x="315" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-15" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-16" value="regfile" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-17" value="32 x 32 bits&lt;br&gt;ram_2r1w, x0 = 0" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="245" y="505" width="140" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="315" y="450" as="sourcePoint"/>
+            <mxPoint x="315" y="480" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-19" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="380" width="140" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-20" value="ALU" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="440" y="380" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-21" value="" style="points=[];aspect=fixed;html=1;align=center;shadow=0;dashed=0;fillColor=#FF6A00;strokeColor=none;shape=mxgraph.alibaba_cloud.multi-cloud_finops;" vertex="1" parent="1">
+          <mxGeometry x="485" y="410" width="50" height="35.7" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-22" value="+ - &amp;lt;&amp;lt; &amp;gt;&amp;gt; &amp;lt; ^ | &amp;amp;&lt;br&gt;flags zero, carry, sign" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="445" y="450" width="130" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="390" y="515" as="sourcePoint"/>
+            <mxPoint x="420" y="515" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="515" as="sourcePoint"/>
+            <mxPoint x="420" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="420" as="sourcePoint"/>
+            <mxPoint x="440" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-26" value="rs1,&lt;br&gt;rs2" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="380" y="522" width="40" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-27" value="alu_res_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="610" y="380" width="90" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-28" value="pc_seq_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="610" y="416" width="90" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-29" value="branch_taken_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="610" y="452" width="90" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="393" as="sourcePoint"/>
+            <mxPoint x="610" y="393" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="429" as="sourcePoint"/>
+            <mxPoint x="610" y="429" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="465" as="sourcePoint"/>
+            <mxPoint x="610" y="465" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-33" value="pc + 4" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="705" y="416" width="90" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-34" value="pc_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="610" y="262" width="90" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-35" value="next pc : pc + 4, target, mtvec, mepc, dpc" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="612" y="292" width="190" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="276" as="sourcePoint"/>
+            <mxPoint x="390" y="276" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-37" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="440" y="520" width="140" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-38" value="csr" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="440" y="520" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-39" value="mstatus, mie, mip, mtvec,&lt;br&gt;mscratch, mepc, mcause,&lt;br&gt;mtval, mhartid" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="445" y="545" width="130" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-40" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="610" y="520" width="170" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-41" value="memory" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="610" y="520" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-42" value="byte enables, store data&lt;br&gt;shift, load sign / zero ext." style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="615" y="545" width="160" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-43" value="dmem_rdata_r" style="rounded=0;whiteSpace=wrap;html=1;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="640" y="585" width="110" height="26" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-44" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="160" width="170" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-45" value="debug" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="610" y="160" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-46" value="dcsr, dpc, dscratch0, triggers" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="615" y="180" width="165" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-47" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="212" width="170" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-48" value="debug_bus" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="610" y="212" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-49" value="0xFFFF_F800 -&amp;gt; dbg_mem" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="615" y="231" width="165" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-50" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="120" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-51" value="dmem2sbi" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-52" value="32-bit request&lt;br&gt;-&amp;gt; byte accesses" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="825" y="525" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="780" y="560" as="sourcePoint"/>
+            <mxPoint x="820" y="560" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-54" value="dmem" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="535" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="276" as="sourcePoint"/>
+            <mxPoint x="980" y="276" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-56" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="980" y="266" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-57" value="ics_o, iaddr_o (pc)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="261" width="190" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-58" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="980" y="320" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-59" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="330" as="sourcePoint"/>
+            <mxPoint x="390" y="330" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-60" value="idata_i [31:0]" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="315" width="190" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-61" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="980" y="172" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-62" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="182" as="sourcePoint"/>
+            <mxPoint x="780" y="182" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-63" value="dbg_hart_req_i (haltreq)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="167" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-64" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="980" y="222" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-65" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=classic;startFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="780" y="232" as="sourcePoint"/>
+            <mxPoint x="980" y="232" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-66" value="dbg_mem_ini_o / dbg_mem_tgt_i" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="217" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-67" value="to WardRV_debug (DEBUG_ENABLE)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="130" width="220" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-68" value="M" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="530" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-69" value="S" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="530" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-70" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=classic;startFill=1;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="960" y="540" as="sourcePoint"/>
+            <mxPoint x="1060" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-71" value="SBI 8-bit" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="970" y="512" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-72" value="sbi_ini_o / sbi_tgt_i" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="525" width="150" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-73" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="190" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-74" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="200" as="sourcePoint"/>
+            <mxPoint x="200" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-75" value="clk_i" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=right;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="185" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-76" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="230" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-77" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="240" as="sourcePoint"/>
+            <mxPoint x="200" y="240" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-78" value="arstn_i" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=right;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="225" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-79" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="290" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-80" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="300" as="sourcePoint"/>
+            <mxPoint x="200" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-81" value="cke_i (idata ready)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=right;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="285" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-82" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="560" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-83" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="570" as="sourcePoint"/>
+            <mxPoint x="440" y="570" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-84" value="interrupt_i (meip)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=right;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="555" width="170" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-85" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="600" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-ov-86" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="610" as="sourcePoint"/>
+            <mxPoint x="160" y="610" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-ov-87" value="interrupt_ack_o = 0" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=right;" vertex="1" parent="1">
+          <mxGeometry x="-35" y="595" width="170" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="FSM" id="wrv-fsm">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="wrv-fsm-1" value="S_RESET" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-2" value="S_FETCH" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="280" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-3" value="S_DECODE" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="500" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-4" value="S_EXECUTE" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="720" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-5" value="S_BRANCH_DECISION" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="940" y="170" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-6" value="S_MEMORY" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="950" y="430" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-7" value="S_WRITEBACK" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="300" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-8" value="S_TRAP" style="rounded=1;arcSize=40;whiteSpace=wrap;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="560" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-9" value="" style="ellipse;html=1;fillColor=#333333;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="-10" y="315" width="20" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-9" target="wrv-fsm-1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-11" value="reset" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="-30" y="291" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-1" target="wrv-fsm-2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-13" value="imem ready" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-2" target="wrv-fsm-3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-3" target="wrv-fsm-4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-15" value="other instructions" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-4" target="wrv-fsm-7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-16" value="branch" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-4" target="wrv-fsm-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="195"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-5" target="wrv-fsm-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1255" y="195"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-4" target="wrv-fsm-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="455"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-19" value="load / store" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="845" y="430" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-6" target="wrv-fsm-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1255" y="455"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-21" value="dmem ready" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="430" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-22" value="interrupt pending&lt;br&gt;(trap_valid)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-7" target="wrv-fsm-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="325"/>
+              <mxPoint x="1400" y="585"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-7" target="wrv-fsm-2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1217" y="520"/>
+              <mxPoint x="392" y="520"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-24" value="next instruction (pc &amp;lt;= next pc)" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="495" width="260" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-25" value="pc &amp;lt;= mtvec, mepc &amp;lt;= pc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-8" target="wrv-fsm-2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1255" y="640"/>
+              <mxPoint x="355" y="640"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-26" value="debug mode entry / exit, ebreak in debug mode (pc &amp;lt;= dbg_pc)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-4" target="wrv-fsm-2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="757" y="100"/>
+              <mxPoint x="355" y="100"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-27" value="breakpoint exception&lt;br&gt;(EBREAK_EXCEPTION)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;strokeColor=#4d4d4d;fontColor=#333333;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wrv-fsm-4" target="wrv-fsm-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="832" y="585"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wrv-fsm-28" value="S_FETCH waits&lt;br&gt;imem ready" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="355" width="110" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-29" value="waits dmem ready" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="485" width="150" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrv-fsm-30" value="One instruction : FETCH (imem request, ALU computes pc + 4), DECODE, EXECUTE (ALU, result in alu_res_r), BRANCH_DECISION (ALU computes rs1 - rs2) or MEMORY (dmem request), WRITEBACK (rd, CSR, pc). 4 cycles at least, plus the wait states of the memories." style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#666666;fontStyle=2;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="10" width="900" height="60" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -8,10 +8,12 @@
 -- Description: WardRV_fsm (DEBUG_ENABLE, 2 triggers, RESETHALTREQ_ENABLE,
 --              EBREAK_EXCEPTION generic) + WardRV_debug (JTAG, Debug Module
 --              with a program buffer of 2 words, 2 data registers), driven
---              by the JTAG VIP like a debugger. Scenarios in
---              tb_WardRV_debug_pkg (TEST). The core runs FIRMWARE_FILE
---              (esw/debug/debug_fw.hex) from a memory answering in one
---              cycle ; a store at C_MEIP_ADDR sets meip_i to wdata(0).
+--              by the JTAG VIP like a debugger. Scenarios chosen at run
+--              time with TESTS_LIST (names in tb_WardRV_debug_tests_pkg,
+--              one package per scenario), each one after a reset pulse.
+--              The core runs FIRMWARE_FILE (esw/debug/debug_fw.hex) from a
+--              memory answering in one cycle, loaded again by each reset
+--              pulse ; a store at C_MEIP_ADDR sets meip_i to wdata(0).
 --              ndmreset resets the core, not the debug unit.
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
@@ -19,6 +21,8 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
+--                               pulse before each scenario
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -31,14 +35,16 @@ context uvvm_util.uvvm_util_context;
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
+use     asylum.string_pkg.all;
 
 use     work.WardRV_vips.all;
 use     work.tb_WardRV_pkg.all;
-use     work.tb_WardRV_debug_pkg.all;
+use     work.tb_WardRV_debug_bfm_pkg.all;
+use     work.tb_WardRV_debug_tests_pkg.all;
 
 entity tb_WardRV_debug is
   generic (
-    TEST                 : string  := "reset"
+    TESTS_LIST           : string  := ""                        -- Scenarios, "" : build only
    ;EBREAK_EXCEPTION     : boolean := false
    ;TRIGGER_RANGE_ENABLE : boolean := false
    ;FIRMWARE_FILE        : string  := "debug/debug_fw.hex"
@@ -52,7 +58,7 @@ architecture sim of tb_WardRV_debug is
 
   signal   clk_i       : std_logic;
   signal   clk_ena     : boolean := true;
-  signal   arst_b_i    : std_logic;                               -- Power-on reset
+  signal   arst_b_i    : std_logic := '0';                        -- Power-on reset
   signal   hart_rst_b  : std_logic;                               -- Power-on reset and ndmreset
   signal   ndmreset    : std_logic;
   signal   meip        : std_logic := '0';
@@ -72,7 +78,6 @@ architecture sim of tb_WardRV_debug is
 begin  -- architecture sim
 
   clock_generator(clk_i, clk_ena, C_CLK_PERIOD, "TB Clock");
-  arst_b_i   <= '0', '1' after 100 ns;
   hart_rst_b <= arst_b_i and not ndmreset;
 
   -----------------------------------------------------------------------------
@@ -124,13 +129,20 @@ begin  -- architecture sim
     );
 
   -----------------------------------------------------------------------------
-  -- Memory : answer in one cycle, meip_i written at C_MEIP_ADDR
+  -- Memory : answer in one cycle, meip_i written at C_MEIP_ADDR. Each reset
+  -- pulse of the sequencer loads the firmware again and clears meip_i : a
+  -- scenario does not see the memory writes of the previous one
   -----------------------------------------------------------------------------
   p_mem : process
     variable v_rdata : std_logic_vector(32-1 downto 0);
   begin
-    init_ram(FIRMWARE_FILE, mem);
     loop
+      if arst_b_i = '0'
+      then
+        init_ram(FIRMWARE_FILE, mem);
+        meip <= '0';
+        wait until arst_b_i = '1';
+      end if;
       wait until rising_edge(clk_i);
       imem_tgt <= (ready => '0', inst  => (others => '0'));
       dmem_tgt <= (ready => '0', rdata => (others => '0'), err => '0');
@@ -167,80 +179,34 @@ begin  -- architecture sim
   begin
     report_global_ctrl(VOID);
     enable_log_msg(ALL_MESSAGES);
-    disable_log_msg(ID_POS_ACK);
     if not VERBOSE
     then
       disable_log_msg(ID_BFM);
     end if;
 
-    log(ID_LOG_HDR, "TEST " & TEST & ", EBREAK_EXCEPTION " & boolean'image(EBREAK_EXCEPTION), C_SCOPE);
-    if (TEST(1 to minimum(4, TEST'length)) = "exc_") /= EBREAK_EXCEPTION or
-       (TEST = "trigger_ge" or TEST = "trigger_lt" or TEST = "trigger_range_execute" or TEST = "trigger_range_store") /= TRIGGER_RANGE_ENABLE
-    then
-      alert(TB_ERROR, "TEST exc_* needs EBREAK_EXCEPTION, trigger_ge / _lt / _range_* TRIGGER_RANGE_ENABLE", C_SCOPE);
-    end if;
-    wait until arst_b_i = '1';
-    vip_jtag_init(jtag_ini);
+    log(ID_LOG_HDR, "EBREAK_EXCEPTION " & boolean'image(EBREAK_EXCEPTION) & ", TRIGGER_RANGE_ENABLE " & boolean'image(TRIGGER_RANGE_ENABLE) & ", TESTS_LIST : " & TESTS_LIST, C_SCOPE);
 
-    if    TEST = "reset"
-    then
-      test_reset          (jtag_ini, jtag_tgt, mem);
-    elsif TEST = "halt_resume"
-    then
-      test_halt_resume    (jtag_ini, jtag_tgt);
-    elsif TEST = "registers"
-    then
-      test_registers      (jtag_ini, jtag_tgt);
-    elsif TEST = "cmderr"
-    then
-      test_cmderr         (jtag_ini, jtag_tgt);
-    elsif TEST = "progbuf"
-    then
-      test_progbuf        (jtag_ini, jtag_tgt);
-    elsif TEST = "step"
-    then
-      test_step           (jtag_ini, jtag_tgt);
-    elsif TEST = "ebreak"
-    then
-      test_ebreak         (jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_execute"
-    then
-      test_trigger_execute(jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_store"
-    then
-      test_trigger_store  (jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_load"
-    then
-      test_trigger_load   (jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_ge"
-    then
-      test_trigger_ge     (jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_lt"
-    then
-      test_trigger_lt     (jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_range_execute"
-    then
-      test_trigger_range_execute(jtag_ini, jtag_tgt);
-    elsif TEST = "trigger_range_store"
-    then
-      test_trigger_range_store(jtag_ini, jtag_tgt);
-    elsif TEST = "resethaltreq"
-    then
-      test_resethaltreq   (jtag_ini, jtag_tgt);
-    elsif TEST = "interrupt"
-    then
-      test_interrupt      (jtag_ini, jtag_tgt);
-    elsif TEST = "exc_ebreak"
-    then
-      test_exc_ebreak     (jtag_ini, jtag_tgt);
-    elsif TEST = "exc_trigger"
-    then
-      test_exc_trigger    (jtag_ini, jtag_tgt);
-    else
-      alert(TB_ERROR, "Unknown TEST " & TEST, C_SCOPE);
-    end if;
+    -- Every name is checked before the first scenario
+    for i in 1 to list_length(TESTS_LIST) loop
+      if not list_contains(C_TESTS, list_item(TESTS_LIST, i))
+      then
+        alert(TB_ERROR, "Unknown test """ & list_item(TESTS_LIST, i) & """ (tests : " & C_TESTS & ")", C_SCOPE);
+      elsif not test_applies(list_item(TESTS_LIST, i), EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE)
+      then
+        alert(TB_ERROR, "Test " & list_item(TESTS_LIST, i) & " : exc_* needs EBREAK_EXCEPTION, trigger_ge / _lt / _range_* TRIGGER_RANGE_ENABLE, the others the default generics", C_SCOPE);
+      end if;
+    end loop;
 
-    wait for 1 us;
+    for i in 1 to list_length(TESTS_LIST) loop
+      -- Reset pulse (firmware loaded again), then TRST* : each scenario starts from reset
+      vip_reset_scenario(clk_i, arst_b_i, 100 ns);
+      vip_jtag_init(jtag_ini);
+
+      log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
+      run_test(list_item(TESTS_LIST, i), jtag_ini, jtag_tgt, mem);
+      wait for 1 us;
+    end loop;
+
     report_alert_counters(FINAL);
     std.env.stop;
     wait;

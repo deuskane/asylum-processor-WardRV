@@ -91,15 +91,17 @@ filesets:
   files_sim:
   #---------------------------------------
     files        :
-      - sim/WardRV_vips.vhd                                          
-      - sim/tb_WardRV_pkg.vhd                                        
-      - sim/tb_WardRV.vhd                                            
-      - sim/tb_WardRV_iss.vhd                                        
+      - sim/common/WardRV_vips.vhd
+      - sim/common/tb_WardRV_pkg.vhd
+      - sim/wardrv/tb_WardRV.vhd
+      - sim/wardrv/tb_WardRV_iss.vhd
       - esw/testcase/firmware.hex                                    : {file_type : user, copyto : firmware.hex}
 
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
+      # string_pkg list_length / list_item / list_contains (TESTS_LIST)
+      - ">=asylum:utils:pkg:1.10.0"
 
   #---------------------------------------
   files_sim_irq:
@@ -111,12 +113,50 @@ filesets:
   files_sim_debug:
   #---------------------------------------
     files        :
-      - sim/tb_WardRV_dbg_jtag_pkg.vhd
-      - sim/tb_WardRV_dbg_jtag.vhd
-      - sim/tb_WardRV_dbg_dm_pkg.vhd
-      - sim/tb_WardRV_dbg_dm.vhd
-      - sim/tb_WardRV_debug_pkg.vhd
-      - sim/tb_WardRV_debug.vhd
+      # JTAG unit test
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_bfm_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_reset_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_tap_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_dmi_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_busy_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag_tests_pkg.vhd
+      - sim/dbg_jtag/tb_WardRV_dbg_jtag.vhd
+      # Debug Module unit test
+      - sim/dbg_dm/tb_WardRV_dbg_dm_bfm_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_reset_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_dmcontrol_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_halt_resume_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_abstract_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_cmderr_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_autoexec_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_resethaltreq_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_sba_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_progbuf0_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_postincrement_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm_tests_pkg.vhd
+      - sim/dbg_dm/tb_WardRV_dbg_dm.vhd
+      # System test
+      - sim/dbg_system/tb_WardRV_debug_bfm_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_reset_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_halt_resume_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_registers_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_cmderr_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_progbuf_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_step_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_ebreak_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_execute_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_store_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_load_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_resethaltreq_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_interrupt_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_ge_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_lt_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_range_execute_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_trigger_range_store_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_exc_ebreak_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_exc_trigger_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug_tests_pkg.vhd
+      - sim/dbg_system/tb_WardRV_debug.vhd
       - esw/debug/debug_fw.hex                                       : {file_type : user, copyto : debug/debug_fw.hex}
 
     file_type    : vhdlSource-2008
@@ -126,7 +166,7 @@ filesets:
   #---------------------------------------
     files        :
       - sim/openocd/rbb_pkg.vhd
-      - sim/tb_WardRV_openocd.vhd
+      - sim/openocd/tb_WardRV_openocd.vhd
       - sim/openocd/remote_bitbang.c                                 : {file_type : user, copyto : openocd/remote_bitbang.c}
       - sim/openocd/wardrv.cfg                                       : {file_type : user, copyto : openocd/wardrv.cfg}
       - sim/openocd/scenario.py                                      : {file_type : user, copyto : openocd/scenario.py}
@@ -142,7 +182,7 @@ filesets:
   files_sim_bridge:
   #---------------------------------------
     files        :
-      - sim/tb_imem2sbi.vhd
+      - sim/bridge/tb_imem2sbi.vhd
 
     file_type    : vhdlSource-2008
 
@@ -156,6 +196,13 @@ filesets:
     # ghdl_synth.sh / ghdl_synth.mk (pre_run hook of lint_ghdl_synth_*)
     depend       :
       - asylum:utils:ghdl_synth
+
+  #---------------------------------------
+  syn_yosys:
+  #---------------------------------------
+    # yosys_synth.sh / yosys_synth.mk / yosys_synth.py (pre_run hook of syn_*)
+    depend       :
+      - asylum:utils:yosys_synth
 
   #---------------------------------------
   # Compliance Testcases : one fileset per test
@@ -698,6 +745,49 @@ targets:
       - TRIGGER_RANGE_ENABLE=true
 
   #---------------------------------------
+  # Synthesis : size of WardRV_wrapper with the generics of the target,
+  # Xilinx Artix-7 (LUT, FF, BRAM, DSP) and sky130 (area), by Yosys and
+  # its GHDL plugin. Three configurations of lint_ghdl_synth_* : the core
+  # alone, with the debug unit, with the debug unit in its maximum
+  # configuration.
+  # The pre_run hook (yosys_synth.sh of asylum:utils:yosys_synth) adds
+  # yosys_synth.mk to the edalize Makefile.
+  #---------------------------------------
+  syn_default : &syn
+    << : *lint_ghdl
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, core without debug unit (default generics)
+    filesets_append : [syn, syn_yosys]
+    tools :
+      ghdl :
+        run_options     : ["--no-run"]
+    hooks :
+      pre_run : [yosys_synth]
+
+  #---------------------------------------
+  syn_debug :
+  #---------------------------------------
+    << : *syn
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit (generics of lint_ghdl_synth_debug)
+    parameters      :
+      - DEBUG_ENABLE=true
+
+  #---------------------------------------
+  syn_debug_max :
+  #---------------------------------------
+    << : *syn
+    description     : Synthesis (Artix-7, sky130) of WardRV_wrapper, debug unit, maximum configuration (generics of lint_ghdl_synth_debug_max)
+    parameters      :
+      - DEBUG_ENABLE=true
+      - NB_TRIGGERS=8
+      - PROGBUF_SIZE=16
+      - DATA_COUNT=12
+      - SBA_ENABLE=true
+      - EBREAK_EXCEPTION=true
+      - RESETHALTREQ_ENABLE=true
+      - AARPOSTINCREMENT_ENABLE=true
+      - TRIGGER_RANGE_ENABLE=true
+
+  #---------------------------------------
   sim_basic:
   #---------------------------------------
     << : *sim
@@ -725,190 +815,207 @@ targets:
     parameters      : [FIRMWARE_FILE=irq/irq_fw.hex, VERBOSE=false]
 
   #---------------------------------------
-  # Debug unit : one sim_dbg_<testbench>_<scenario> target per scenario,
-  # chosen at run time by the generic TEST. The bases sim_dbg_<testbench>
-  # run the scenario reset (state after reset), or any scenario :
-  #   fusesoc --cores-root . run --target sim_dbg_jtag <VLNV> --TEST=<scenario>
+  # Debug unit : scenarios chosen at run time by the generic TESTS_LIST
+  # (names separated by ','). The bases sim_dbg_<testbench> only build and
+  # elaborate the testbench (TESTS_LIST empty) ; the reference configuration
+  # has one target sim_dbg_<testbench>_<scenario> per scenario, every other
+  # configuration one target with its list. Any list on a base :
+  #   fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_jtag <VLNV> --TESTS_LIST=tap,dmi
   # No waveform (long simulations) : add --fst=dut.fst to run_options.
   #---------------------------------------
   sim_dbg_jtag: &sim_dbg_jtag
   #---------------------------------------
     << : *default
-    description     : Debug - JTAG - after reset, IDCODE selected, dtmcs (base of sim_dbg_jtag_*, WardRV_dbg_jtag unit test)
+    description     : Debug - JTAG - build and elaboration of tb_WardRV_dbg_jtag (base of sim_dbg_jtag_*, WardRV_dbg_jtag unit test)
     default_tool    : ghdl
     toplevel        : tb_WardRV_dbg_jtag
     filesets_append : [files_sim, files_sim_debug]
-    parameters      : [TEST=reset, CLK_PERIOD_NS, VERBOSE=false]
+    parameters      : [TESTS_LIST, CLK_PERIOD_NS, VERBOSE=false]
     tools :
       ghdl :
         analyze_options : ["-Wall","-fsynopsys","-frelaxed","--no-vital-checks"]
         run_options     : ["--ieee-asserts=disable"]
 
+  sim_dbg_jtag_reset:
+    << : *sim_dbg_jtag
+    description     : Debug - JTAG - after reset, IDCODE selected, dtmcs
+    parameters      : [TESTS_LIST=reset]
+
   sim_dbg_jtag_tap:
     << : *sim_dbg_jtag
     description     : Debug - JTAG TAP - Test-Logic-Reset (TRST*, TMS), Capture-IR, IDCODE, BYPASS
-    parameters      : [TEST=tap]
+    parameters      : [TESTS_LIST=tap]
 
   sim_dbg_jtag_dmi:
     << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 5x faster than TCK)
-    parameters      : [TEST=dmi]
+    parameters      : [TESTS_LIST=dmi]
 
   sim_dbg_jtag_slow_dmi:
     << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - DMI reads and writes through the CDC (clk 40x slower than TCK, busy retries, requests in the end of the handshake)
-    parameters      : [TEST=dmi, CLK_PERIOD_NS=2000]
+    parameters      : [TESTS_LIST=dmi, CLK_PERIOD_NS=2000]
 
   sim_dbg_jtag_busy:
     << : *sim_dbg_jtag
     description     : Debug - JTAG DTM - sticky busy status, request ignored, dmireset, dmihardreset
-    parameters      : [TEST=busy]
+    parameters      : [TESTS_LIST=busy]
 
   #---------------------------------------
   sim_dbg_dm: &sim_dbg_dm
   #---------------------------------------
     << : *sim_dbg_jtag
-    description     : Debug - Debug Module - after reset, dmcontrol, dmstatus, abstractcs, sbcs, hartinfo, haltsum0 (base of sim_dbg_dm_*, WardRV_dbg_dm unit test)
+    description     : Debug - Debug Module - build and elaboration of tb_WardRV_dbg_dm (base of sim_dbg_dm_*, WardRV_dbg_dm unit test)
     toplevel        : tb_WardRV_dbg_dm
-    parameters      : [TEST=reset, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE, VERBOSE=false]
+    parameters      : [TESTS_LIST, PROGBUF_SIZE, AARPOSTINCREMENT_ENABLE]
+
+  sim_dbg_dm_reset:
+    << : *sim_dbg_dm
+    description     : Debug - Debug Module - after reset, dmcontrol, dmstatus, abstractcs, sbcs, hartinfo, haltsum0
+    parameters      : [TESTS_LIST=reset]
 
   sim_dbg_dm_dmcontrol:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - dmactive, ackhavereset, ndmreset, dmactive = 0 resets the DM
-    parameters      : [TEST=dmcontrol]
+    parameters      : [TESTS_LIST=dmcontrol]
 
   sim_dbg_dm_halt_resume:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - haltreq, halted, resumereq, resumeack
-    parameters      : [TEST=halt_resume]
+    parameters      : [TESTS_LIST=halt_resume]
 
   sim_dbg_dm_abstract:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - abstract command programs (GPR / CSR read and write), postexec, program buffer, data registers
-    parameters      : [TEST=abstract]
+    parameters      : [TESTS_LIST=abstract]
 
   sim_dbg_dm_cmderr:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - abstractcs.cmderr (not supported, exception, halt / resume, busy)
-    parameters      : [TEST=cmderr]
+    parameters      : [TESTS_LIST=cmderr]
 
   sim_dbg_dm_autoexec:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - abstractauto on data and program buffer accesses
-    parameters      : [TEST=autoexec]
+    parameters      : [TESTS_LIST=autoexec]
 
   sim_dbg_dm_resethaltreq:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - set / clrresethaltreq, hart reset (havereset, unavail)
-    parameters      : [TEST=resethaltreq]
+    parameters      : [TESTS_LIST=resethaltreq]
 
   sim_dbg_dm_sba:
     << : *sim_dbg_dm
     description     : Debug - Debug Module - System Bus Access, 8 / 16 / 32 bits, autoincrement, readonaddr, readondata, sberror, sbbusyerror
-    parameters      : [TEST=sba]
+    parameters      : [TESTS_LIST=sba]
 
   sim_dbg_dm_progbuf0:
     << : *sim_dbg_dm
     description     : Debug - Debug Module without program buffer - progbufsize 0, postexec not supported, abstract register access
-    parameters      : [TEST=progbuf0, PROGBUF_SIZE=0]
+    parameters      : [TESTS_LIST=progbuf0, PROGBUF_SIZE=0]
 
   sim_dbg_dm_postincrement:
     << : *sim_dbg_dm
     description     : Debug - Debug Module with AARPOSTINCREMENT_ENABLE - aarpostincrement with abstractauto
-    parameters      : [TEST=postincrement, AARPOSTINCREMENT_ENABLE=true]
+    parameters      : [TESTS_LIST=postincrement, AARPOSTINCREMENT_ENABLE=true]
 
   #---------------------------------------
   sim_dbg_system: &sim_dbg_system
   #---------------------------------------
     << : *sim_dbg_jtag
-    description     : Debug - System - after reset, the core runs its firmware (allrunning), Debug Module idle (base of sim_dbg_system_*, WardRV_fsm + WardRV_debug through JTAG)
+    description     : Debug - System - build and elaboration of tb_WardRV_debug (base of sim_dbg_system_*, WardRV_fsm + WardRV_debug through JTAG)
     toplevel        : tb_WardRV_debug
-    parameters      : [TEST=reset, EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE, VERBOSE=false]
+    parameters      : [TESTS_LIST, EBREAK_EXCEPTION, TRIGGER_RANGE_ENABLE, VERBOSE=false]
+
+  sim_dbg_system_reset:
+    << : *sim_dbg_system
+    description     : Debug - System - after reset, the core runs its firmware (allrunning), Debug Module idle
+    parameters      : [TESTS_LIST=reset]
 
   sim_dbg_system_halt_resume:
     << : *sim_dbg_system
     description     : Debug - System - haltreq (cause 3, dpc), resume
-    parameters      : [TEST=halt_resume]
+    parameters      : [TESTS_LIST=halt_resume]
 
   sim_dbg_system_registers:
     << : *sim_dbg_system
     description     : Debug - System - GPR / CSR access with abstract commands, dpc write
-    parameters      : [TEST=registers]
+    parameters      : [TESTS_LIST=registers]
 
   sim_dbg_system_cmderr:
     << : *sim_dbg_system
     description     : Debug - System - register that does not exist, command while running
-    parameters      : [TEST=cmderr]
+    parameters      : [TESTS_LIST=cmderr]
 
   sim_dbg_system_progbuf:
     << : *sim_dbg_system
     description     : Debug - System - memory read / write through the program buffer
-    parameters      : [TEST=progbuf]
+    parameters      : [TESTS_LIST=progbuf]
 
   sim_dbg_system_step:
     << : *sim_dbg_system
     description     : Debug - System - dcsr.step (cause 4, dpc of each instruction)
-    parameters      : [TEST=step]
+    parameters      : [TESTS_LIST=step]
 
   sim_dbg_system_ebreak:
     << : *sim_dbg_system
     description     : Debug - System - ebreak with dcsr.ebreakm (cause 1), NOP without
-    parameters      : [TEST=ebreak]
+    parameters      : [TESTS_LIST=ebreak]
 
   sim_dbg_system_trigger_execute:
     << : *sim_dbg_system
     description     : Debug - System - tselect / tinfo / tdata1 WARL (match and chain read 0 without TRIGGER_RANGE_ENABLE), execute trigger (cause 2, instruction not executed)
-    parameters      : [TEST=trigger_execute]
+    parameters      : [TESTS_LIST=trigger_execute]
 
   sim_dbg_system_trigger_store:
     << : *sim_dbg_system
     description     : Debug - System - store trigger (cause 2, dpc of the store)
-    parameters      : [TEST=trigger_store]
+    parameters      : [TESTS_LIST=trigger_store]
 
   sim_dbg_system_trigger_load:
     << : *sim_dbg_system
     description     : Debug - System - load trigger (cause 2, dpc of the load)
-    parameters      : [TEST=trigger_load]
+    parameters      : [TESTS_LIST=trigger_load]
 
   sim_dbg_system_resethaltreq:
     << : *sim_dbg_system
     description     : Debug - System - ndmreset with resethaltreq (cause 5) and with haltreq (cause 3), dpc = reset address
-    parameters      : [TEST=resethaltreq]
+    parameters      : [TESTS_LIST=resethaltreq]
 
   sim_dbg_system_interrupt:
     << : *sim_dbg_system
     description     : Debug - System - interrupt masked in debug mode, step without / with dcsr.stepie
-    parameters      : [TEST=interrupt]
+    parameters      : [TESTS_LIST=interrupt]
 
   sim_dbg_system_trigger_ge:
     << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match >= (fires on pc = tdata2)
-    parameters      : [TEST=trigger_ge, TRIGGER_RANGE_ENABLE=true]
+    parameters      : [TESTS_LIST=trigger_ge, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_lt:
     << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, execute trigger with match < (not on pc = tdata2)
-    parameters      : [TEST=trigger_lt, TRIGGER_RANGE_ENABLE=true]
+    parameters      : [TESTS_LIST=trigger_lt, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_range_execute:
     << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, range of pc [A, B) with two chained triggers, chain WARL, chain of M-mode triggers
-    parameters      : [TEST=trigger_range_execute, TRIGGER_RANGE_ENABLE=true]
+    parameters      : [TESTS_LIST=trigger_range_execute, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_trigger_range_store:
     << : *sim_dbg_system
     description     : Debug - System - TRIGGER_RANGE_ENABLE, range of store addresses [A, B) with two chained triggers
-    parameters      : [TEST=trigger_range_store, TRIGGER_RANGE_ENABLE=true]
+    parameters      : [TESTS_LIST=trigger_range_store, TRIGGER_RANGE_ENABLE=true]
 
   sim_dbg_system_exc_ebreak:
     << : *sim_dbg_system
     description     : Debug - System - EBREAK_EXCEPTION, ebreak without dcsr.ebreakm traps (mcause 3), with it enters debug mode
-    parameters      : [TEST=exc_ebreak, EBREAK_EXCEPTION=true]
+    parameters      : [TESTS_LIST=exc_ebreak, EBREAK_EXCEPTION=true]
 
   sim_dbg_system_exc_trigger:
     << : *sim_dbg_system
     description     : Debug - System - EBREAK_EXCEPTION, trigger of M-mode (dmode 0) raises a breakpoint exception
-    parameters      : [TEST=exc_trigger, EBREAK_EXCEPTION=true]
+    parameters      : [TESTS_LIST=exc_trigger, EBREAK_EXCEPTION=true]
 
   #---------------------------------------
   # OpenOCD + GDB co-simulation : one target per configuration of the debug
@@ -1493,6 +1600,12 @@ scripts :
     cmd : [bash, ghdl_synth.sh]
 
   #---------------------------------------
+  # pre_run hook of syn_* (cwd = work_root)
+  #---------------------------------------
+  yosys_synth :
+    cmd : [bash, yosys_synth.sh]
+
+  #---------------------------------------
   # Hooks of sim_dbg_openocd_* (cwd = work_root)
   #---------------------------------------
   cosim_build :
@@ -1541,8 +1654,8 @@ parameters :
   #---------------------------------------
   # Debug unit testbenches
   #---------------------------------------
-  TEST :
-    description : Scenario of the debug unit testbenches (run time)
+  TESTS_LIST :
+    description : Scenarios of the debug unit testbenches, separated by ',' (run time, empty = build only)
     datatype    : str
     default     : ""
     paramtype   : generic
@@ -1596,7 +1709,7 @@ parameters :
     paramtype   : generic
 
   #---------------------------------------
-  # Generics of WardRV_wrapper (lint_ghdl_synth_*), the debug generics
+  # Generics of WardRV_wrapper (lint_ghdl_synth_*, syn_*), the debug generics
   # below are also used by the testbenches
   #---------------------------------------
   DEBUG_ENABLE :
