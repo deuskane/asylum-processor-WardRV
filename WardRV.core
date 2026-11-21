@@ -29,9 +29,12 @@ CAPI=2:
 #                               triggers (address ranges), EBREAK_EXCEPTION (generics, off by default),
 #                               debug ROM and firmwares in assembly, sim_dbg_* (unit, system,
 #                               OpenOCD + GDB co-simulation), lint_ghdl_synth debug configurations
+# 2026-11-21  1.1.0    mrosiere fsm : area (CSR implemented bits only (WARL), mtval read-only zero,
+#                               one adder for ADD / SUB / SLT / SLTU, one shifter, one immediate),
+#                               tb : TESTS_LIST, syn_* targets, README
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:1.0.0
+name        : asylum:processor:WardRV:1.1.0
 description : WardRV - Academic RISCV processor
 
 #=========================================
@@ -83,7 +86,7 @@ filesets:
     file_type    : vhdlSource-2008
     logical_name : asylum
     depend       :
-      - ">=asylum:utils:pkg:1.0.0"
+      - ">=asylum:utils:pkg:1.5.2"
       - ">=asylum:component:ram:1.0.0"
       - ">=asylum:target:techmap:1.0.0"
 

@@ -14,6 +14,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
+-- 2026-11-20  1.1      mrosiere ALU source B : 2 bits (RS2, IMM, IMM_4, CSR)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -29,16 +30,11 @@ package WardRV_decode_pkg is
   constant ALU_SRC_A_IMM_CSR : std_logic_vector(1 downto 0):= "10";
 
   -- ALU Source B Selection
-  --type alu_src_b_sel_t is (ALU_SRC_B_RS2, ALU_SRC_B_IMM_I, ALU_SRC_B_IMM_S, ALU_SRC_B_IMM_U, ALU_SRC_B_IMM_J, ALU_SRC_B_IMM_B, ALU_SRC_B_IMM_4);
-  subtype alu_src_b_sel_t is std_logic_vector(2 downto 0);
-  constant ALU_SRC_B_RS2     : std_logic_vector(2 downto 0) := "000";
-  constant ALU_SRC_B_IMM_I   : std_logic_vector(2 downto 0) := "001";
-  constant ALU_SRC_B_IMM_S   : std_logic_vector(2 downto 0) := "010";
-  constant ALU_SRC_B_IMM_U   : std_logic_vector(2 downto 0) := "011";
-  constant ALU_SRC_B_IMM_J   : std_logic_vector(2 downto 0) := "100";
-  constant ALU_SRC_B_IMM_B   : std_logic_vector(2 downto 0) := "101";
-  constant ALU_SRC_B_IMM_4   : std_logic_vector(2 downto 0) := "110"; 
-  constant ALU_SRC_B_CSR     : std_logic_vector(2 downto 0) := "111";
+  subtype alu_src_b_sel_t is std_logic_vector(1 downto 0);
+  constant ALU_SRC_B_RS2     : std_logic_vector(1 downto 0) := "00";
+  constant ALU_SRC_B_IMM     : std_logic_vector(1 downto 0) := "01"; -- Immediate of the instruction
+  constant ALU_SRC_B_IMM_4   : std_logic_vector(1 downto 0) := "10";
+  constant ALU_SRC_B_CSR     : std_logic_vector(1 downto 0) := "11";
 
 
   -- PC Source Selection
