@@ -238,17 +238,17 @@ Figures of the `syn_*` targets (`make nonreg_syn`, see [Targets](#targets)): [sy
 
 | Configuration | LUT¹ | LUTRAM¹ | FF¹ | CARRY4¹ | MUXF7/F8¹ | BRAM¹ | DSP¹ | Area² (µm²) | kGE³ |
 |---|---|---|---|---|---|---|---|---|---|
-| `syn_default` (core, no debug unit) | 1326 | 48 | 325 | 13 | 160 | 0 | 0 | 66461.24 | 17.706 |
-| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 2646 | 48 | 780 | 20 | 254 | 0 | 0 | 90155.22 | 24.018 |
-| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 6604 | 48 | 2022 | 133 | 563 | 0 | 0 | 163834.63 | 43.647 |
+| `syn_default` (core, no debug unit) | 985 | 48 | 325 | 13 | 152 | 0 | 0 | 66461.24 | 17.706 |
+| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 1926 | 48 | 780 | 20 | 245 | 0 | 0 | 90155.22 | 24.018 |
+| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 4458 | 48 | 2022 | 133 | 533 | 0 | 0 | 163834.63 | 43.647 |
 
-¹ Xilinx Artix-7 (LUT6), Yosys 0.33 `synth_xilinx -flatten -noiopad -noclkbuf`, before place and route: every cell of the netlist is counted, Vivado may differ. An `INV` counts as a `LUT1`: `synth_xilinx` puts one on the reset pin of each flip-flop with the active-low reset. The register file (`ram_2r1w`, 32 x 32 bits, asynchronous read) is in LUTRAM, not in BRAM.
+¹ Xilinx Artix-7 (LUT6), Yosys 0.33 `synth_xilinx -flatten -noiopad -noclkbuf`, before place and route: every cell of the netlist is counted, Vivado may differ. Identical cells are merged as a vendor tool does (`opt_merge -share_all`): the inverters of an active-low reset net become one; every remaining cell is counted, an `INV` as a `LUT1`. The register file (`ram_2r1w`, 32 x 32 bits, asynchronous read) is in LUTRAM, not in BRAM.
 
 ² SkyWater sky130 `sky130_fd_sc_hd`, typical corner (tt, 25 °C, 1.80 V), Yosys 0.33 `synth` + `dfflibmap` + `abc -liberty`: standard-cell area only, no timing constraint, no buffering, clock tree or placement; the register file becomes flip-flops (no SRAM macro).
 
 ³ Area in thousands of NAND2 gate equivalents (`sky130_fd_sc_hd__nand2_1` = 3.7536 µm²).
 
-In `syn_default`, 339 of the 1326 LUTs are these `INV` (the reset of the flip-flops). For comparison, [PicoRV32](https://github.com/YosysHQ/picorv32) in the small configuration of its README (`top_small` of `scripts/vivado/synth_area_top.v`: no counters, no IRQ, synchronous reset, native 32-bit memory interface) gives in the same flow 1003 LUT (105 `INV`), 48 LUTRAM, 437 FF, 64 CARRY4, 24 MUXF7/F8, 68831 µm², 18.337 kGE.
+In `syn_default`, 15 of the 985 LUTs are `INV`. For comparison, [PicoRV32](https://github.com/YosysHQ/picorv32) in the small configuration of its README (`top_small` of `scripts/vivado/synth_area_top.v`: no counters, no IRQ, synchronous reset, native 32-bit memory interface) gives in the same flow 936 LUT (39 `INV`), 48 LUTRAM, 437 FF, 62 CARRY4, 24 MUXF7/F8, 68831 µm², 18.337 kGE.
 
 ## Theory of Operation
 
