@@ -8,9 +8,9 @@
 -- Description:
 -- JTAG Debug Transport (Debug Spec 1.0 chapter 6) : JTAG pins in (TCK
 -- domain), DMI requests out (clk domain).
---   jtag_tap           : IEEE 1149.1 TAP, IDCODE, BYPASS (asylum-debug-jtag),
---                        DTMCS and DMI decoded here (user_tdo_en)
---   WardRV_dbg_dtm     : dtmcs and dmi registers
+--   jtag_tap           : IEEE 1149.1 TAP, IDCODE, BYPASS (asylum-debug-jtag)
+--   WardRV_dbg_dtm     : dtmcs and dmi registers, DTMCS and DMI decoded
+--                        (user_tdo_en)
 --   WardRV_dbg_dmi_cdc : TCK -> clk handshake
 -- arst_b_i is the power-on reset of the debug unit (never ndmreset).
 -------------------------------------------------------------------------------
@@ -20,6 +20,7 @@
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
 -- 2026-11-22  1.1      mrosiere TAP : jtag_tap of asylum-debug-jtag
+-- 2026-11-22  1.2      mrosiere DTMCS / DMI decoder in WardRV_dbg_dtm
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -89,11 +90,6 @@ begin  -- architecture rtl
     ,user_tdo_i      => user_tdo
     );
 
-  -- User instructions : DTMCS and DMI select the TDO of WardRV_dbg_dtm,
-  -- every other opcode but IDCODE is BYPASS
-  user_tdo_en <= '1' when ir = JTAG_IR_DTMCS or ir = JTAG_IR_DMI else
-                 '0';
-
   ins_dtm : entity work.WardRV_dbg_dtm
     generic map
     (IDLE_CYCLES     => DTM_IDLE_CYCLES
@@ -108,6 +104,7 @@ begin  -- architecture rtl
     ,update_dr_i     => update_dr
     ,tdi_i           => tdi
     ,tdo_o           => user_tdo
+    ,tdo_en_o        => user_tdo_en
     ,dmi_req_o       => tck_dmi_req
     ,dmi_busy_i      => tck_busy
     ,dmi_rdata_i     => tck_rdata
