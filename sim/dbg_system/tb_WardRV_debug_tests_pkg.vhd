@@ -23,8 +23,10 @@ use     ieee.std_logic_1164.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
-use     asylum.jtag_pkg.all;
 use     asylum.WardRV_pkg.all;
 use     asylum.string_pkg.all;
 
@@ -53,8 +55,7 @@ package tb_WardRV_debug_tests_pkg is
   -- Run the scenario name
   procedure run_test
     (constant name     : in    string
-    ;signal   jtag_ini : out   jtag_ini_t
-    ;signal   jtag_tgt : in    jtag_tgt_t
+    ;signal   jtag_if  : inout t_jtag_if
     ;signal   mem      : in    ram_t
     );
 
@@ -74,65 +75,64 @@ package body tb_WardRV_debug_tests_pkg is
 
   procedure run_test
     (constant name     : in    string
-    ;signal   jtag_ini : out   jtag_ini_t
-    ;signal   jtag_tgt : in    jtag_tgt_t
+    ;signal   jtag_if  : inout t_jtag_if
     ;signal   mem      : in    ram_t
     ) is
   begin
     if    string_eq(name, "reset")
     then
-      work.tb_WardRV_debug_reset_pkg.run                (jtag_ini, jtag_tgt, mem);
+      work.tb_WardRV_debug_reset_pkg.run                (jtag_if, mem);
     elsif string_eq(name, "halt_resume")
     then
-      work.tb_WardRV_debug_halt_resume_pkg.run          (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_halt_resume_pkg.run          (jtag_if);
     elsif string_eq(name, "registers")
     then
-      work.tb_WardRV_debug_registers_pkg.run            (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_registers_pkg.run            (jtag_if);
     elsif string_eq(name, "cmderr")
     then
-      work.tb_WardRV_debug_cmderr_pkg.run               (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_cmderr_pkg.run               (jtag_if);
     elsif string_eq(name, "progbuf")
     then
-      work.tb_WardRV_debug_progbuf_pkg.run              (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_progbuf_pkg.run              (jtag_if);
     elsif string_eq(name, "step")
     then
-      work.tb_WardRV_debug_step_pkg.run                 (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_step_pkg.run                 (jtag_if);
     elsif string_eq(name, "ebreak")
     then
-      work.tb_WardRV_debug_ebreak_pkg.run               (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_ebreak_pkg.run               (jtag_if);
     elsif string_eq(name, "trigger_execute")
     then
-      work.tb_WardRV_debug_trigger_execute_pkg.run      (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_execute_pkg.run      (jtag_if);
     elsif string_eq(name, "trigger_store")
     then
-      work.tb_WardRV_debug_trigger_store_pkg.run        (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_store_pkg.run        (jtag_if);
     elsif string_eq(name, "trigger_load")
     then
-      work.tb_WardRV_debug_trigger_load_pkg.run         (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_load_pkg.run         (jtag_if);
     elsif string_eq(name, "resethaltreq")
     then
-      work.tb_WardRV_debug_resethaltreq_pkg.run         (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_resethaltreq_pkg.run         (jtag_if);
     elsif string_eq(name, "interrupt")
     then
-      work.tb_WardRV_debug_interrupt_pkg.run            (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_interrupt_pkg.run            (jtag_if);
     elsif string_eq(name, "trigger_ge")
     then
-      work.tb_WardRV_debug_trigger_ge_pkg.run           (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_ge_pkg.run           (jtag_if);
     elsif string_eq(name, "trigger_lt")
     then
-      work.tb_WardRV_debug_trigger_lt_pkg.run           (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_lt_pkg.run           (jtag_if);
     elsif string_eq(name, "trigger_range_execute")
     then
-      work.tb_WardRV_debug_trigger_range_execute_pkg.run(jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_range_execute_pkg.run(jtag_if);
     elsif string_eq(name, "trigger_range_store")
     then
-      work.tb_WardRV_debug_trigger_range_store_pkg.run  (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_trigger_range_store_pkg.run  (jtag_if);
     elsif string_eq(name, "exc_ebreak")
     then
-      work.tb_WardRV_debug_exc_ebreak_pkg.run           (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_exc_ebreak_pkg.run           (jtag_if);
     elsif string_eq(name, "exc_trigger")
     then
-      work.tb_WardRV_debug_exc_trigger_pkg.run          (jtag_ini, jtag_tgt);
+      work.tb_WardRV_debug_exc_trigger_pkg.run          (jtag_if);
     else
       alert(TB_ERROR, "Unknown test " & name, C_TB_SCOPE);
     end if;

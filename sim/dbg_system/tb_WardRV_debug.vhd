@@ -8,7 +8,7 @@
 -- Description: WardRV_fsm (DEBUG_ENABLE, 2 triggers, RESETHALTREQ_ENABLE,
 --              EBREAK_EXCEPTION generic) + WardRV_debug (JTAG, Debug Module
 --              with a program buffer of 2 words, 2 data registers), driven
---              by the JTAG VIP like a debugger. Scenarios chosen at run
+--              by the JTAG BFM like a debugger. Scenarios chosen at run
 --              time with TESTS_LIST (names in tb_WardRV_debug_tests_pkg,
 --              one package per scenario), each one after a reset pulse.
 --              The core runs FIRMWARE_FILE (esw/debug/debug_fw.hex) from a
@@ -23,6 +23,7 @@
 -- 2026-11-17  1.0      mrosiere Created
 -- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
 --                               pulse before each scenario
+-- 2026-11-22  1.2      mrosiere JTAG BFM of asylum-verification-uvvm
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -31,6 +32,9 @@ use     ieee.numeric_std.all;
 
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
+
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
 
 library asylum;
 use     asylum.jtag_pkg.all;
@@ -70,7 +74,7 @@ architecture sim of tb_WardRV_debug is
   signal   dmem_ini    : dmem_ini_t;
   signal   dmem_tgt    : dmem_tgt_t;
 
-  signal   jtag_ini    : jtag_ini_t := (tck => '0', trst_n => '0', tms => '1', tdi => '0');
+  signal   jtag_if     : t_jtag_if := init_jtag_if_signals;
   signal   jtag_tgt    : jtag_tgt_t;
   signal   dbg_hart_req: dbg_hart_req_t;
   signal   dbg_mem_ini : dmem_ini_t;
@@ -117,7 +121,10 @@ begin  -- architecture sim
     ,RESETHALTREQ_ENABLE => true
     )
     port map
-    (jtag_ini_i          => jtag_ini
+    (jtag_ini_i.tck      => jtag_if.tck
+    ,jtag_ini_i.trst_n   => jtag_if.trst_b
+    ,jtag_ini_i.tms      => jtag_if.tms
+    ,jtag_ini_i.tdi      => jtag_if.tdi
     ,jtag_tgt_o          => jtag_tgt
     ,clk_i               => clk_i
     ,arst_b_i            => arst_b_i
@@ -128,6 +135,13 @@ begin  -- architecture sim
     ,ndmreset_o          => ndmreset
     ,sba_dmem_ini_o      => open
     );
+
+  -- TDO tri-stated by tdo_en (pad)
+  jtag_if.tdo <= jtag_tgt.tdo when jtag_tgt.tdo_en = '1' else
+                 'Z';
+
+  -- Capture-IR value of each IR scan
+  vip_jtag_ir_capture_monitor(jtag_if);
 
   -----------------------------------------------------------------------------
   -- Memory : answer in one cycle, meip_i written at C_MEIP_ADDR. Each reset
@@ -201,10 +215,10 @@ begin  -- architecture sim
     for i in 1 to list_length(TESTS_LIST) loop
       -- Reset pulse (firmware loaded again), then TRST* : each scenario starts from reset
       vip_reset_scenario(clk_i, arst_b_i, 100 ns);
-      vip_jtag_init(jtag_ini);
+      vip_jtag_trst(jtag_if);
 
       log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
-      run_test(list_item(TESTS_LIST, i), jtag_ini, jtag_tgt, mem);
+      run_test(list_item(TESTS_LIST, i), jtag_if, mem);
       wait for 1 us;
     end loop;
 
