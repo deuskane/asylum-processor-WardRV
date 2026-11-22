@@ -22,6 +22,9 @@ use     ieee.numeric_std.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
@@ -36,24 +39,24 @@ package tb_WardRV_debug_trigger_range_store_pkg is
 
   -- TRIGGER_RANGE_ENABLE, chain >= A, < B on
   -- the store address
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure run(signal jtag_if : inout t_jtag_if);
 
 end package tb_WardRV_debug_trigger_range_store_pkg;
 
 package body tb_WardRV_debug_trigger_range_store_pkg is
 
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  procedure run(signal jtag_if : inout t_jtag_if) is
     variable v_data : std_logic_vector(32-1 downto 0);
   begin
-    connect    (jtag_ini, jtag_tgt);
-    halt       (jtag_ini, jtag_tgt);
+    connect    (jtag_if);
+    halt       (jtag_if);
     -- Range [flag, flag + 4) of stores : the store of the counter matches
     -- the < trigger only, the store that clears the flag both
-    trigger_set(jtag_ini, jtag_tgt, 1, x"680011C2", std_logic_vector(unsigned(C_FLAG) + 4));
-    trigger_set(jtag_ini, jtag_tgt, 0, x"68001942", C_FLAG);
-    mem_write  (jtag_ini, jtag_tgt, C_FLAG, x"00000001");          -- ebreak (NOP), then flag cleared
-    trigger_run(jtag_ini, jtag_tgt, C_LOOP, C_SW_FLAG, "range trigger on the store address");
-    mem_read   (jtag_ini, jtag_tgt, C_FLAG, v_data);
+    trigger_set(jtag_if, 1, x"680011C2", std_logic_vector(unsigned(C_FLAG) + 4));
+    trigger_set(jtag_if, 0, x"68001942", C_FLAG);
+    mem_write  (jtag_if, C_FLAG, x"00000001");          -- ebreak (NOP), then flag cleared
+    trigger_run(jtag_if, C_LOOP, C_SW_FLAG, "range trigger on the store address");
+    mem_read   (jtag_if, C_FLAG, v_data);
     check_value(v_data, x"00000001", ERROR, "store not executed (timing before)", C_TB_SCOPE);
   end procedure;
 

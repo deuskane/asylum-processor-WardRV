@@ -13,6 +13,8 @@
 -- Date        Version  Author   Description
 -- 2026-02-01  1.0      mrosiere Created
 -- 2026-05-09  1.1      mrosiere Rename recorded types
+-- 2026-11-22  1.2      mrosiere JTAG records moved to asylum.jtag_pkg
+--                               (asylum-debug-jtag)
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -44,18 +46,6 @@ package WardRV_pkg is
     rdata        : std_logic_vector(32-1 downto 0);
     err          : std_logic;
   end record dmem_tgt_t;
-
-  type jtag_ini_t is record
-    tck          : std_logic;
-    trst_n       : std_logic;
-    tms          : std_logic;
-    tdi          : std_logic;
-  end record jtag_ini_t;
-
-  type jtag_tgt_t is record
-    tdo          : std_logic;
-    tdo_en       : std_logic;
-  end record jtag_tgt_t;
 
 -- [COMPONENT_INSERT][BEGIN]
 component WardRV_iss is

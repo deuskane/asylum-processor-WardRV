@@ -25,6 +25,9 @@ use     ieee.numeric_std.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
@@ -85,66 +88,66 @@ package tb_WardRV_debug_bfm_pkg is
   constant DM_PROGBUF1  : std_logic_vector(DMI_ABITS-1 downto 0) := 7x"21";
 
   -- Debugger
-  procedure dmi_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure dmi_write(signal jtag_if : inout t_jtag_if;
                       addr : std_logic_vector; data : std_logic_vector);
 
-  procedure dmi_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure dmi_read(signal jtag_if : inout t_jtag_if;
                      addr : std_logic_vector; variable data : out std_logic_vector);
 
   -- dmactive, IDCODE, havereset acknowledged
-  procedure connect(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure connect(signal jtag_if : inout t_jtag_if);
 
-  procedure wait_halted(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string);
+  procedure wait_halted(signal jtag_if : inout t_jtag_if; msg : string);
 
-  procedure halt(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string := "");
+  procedure halt(signal jtag_if : inout t_jtag_if; msg : string := "");
 
-  procedure resume(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string := "");
+  procedure resume(signal jtag_if : inout t_jtag_if; msg : string := "");
 
   -- End of the abstract command, cmderr checked and cleared
-  procedure wait_command(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure wait_command(signal jtag_if : inout t_jtag_if;
                          cmderr : std_logic_vector(2 downto 0); msg : string);
 
-  procedure reg_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_read(signal jtag_if : inout t_jtag_if;
                      regno : natural; variable data : out std_logic_vector);
 
-  procedure reg_check(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_check(signal jtag_if : inout t_jtag_if;
                       regno : natural; exp : std_logic_vector; msg : string);
 
-  procedure reg_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_write(signal jtag_if : inout t_jtag_if;
                       regno : natural; data : std_logic_vector);
 
   -- Memory : a4 written by the abstract command, then the program buffer
-  procedure mem_access(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_access(signal jtag_if : inout t_jtag_if;
                        inst : std_logic_vector; addr : std_logic_vector);
 
-  procedure mem_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_read(signal jtag_if : inout t_jtag_if;
                      addr : std_logic_vector; variable data : out std_logic_vector);
 
-  procedure mem_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_write(signal jtag_if : inout t_jtag_if;
                       addr : std_logic_vector; data : std_logic_vector);
 
-  procedure check_cause(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure check_cause(signal jtag_if : inout t_jtag_if;
                         cause : std_logic_vector(2 downto 0); msg : string);
 
   -- Running for a while, then halted (cause haltreq)
-  procedure run_for(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure run_for(signal jtag_if : inout t_jtag_if;
                     duration : time; msg : string);
 
   -- Address of the next instruction of the loop (flag = 0)
   function next_pc(pc : std_logic_vector(32-1 downto 0)) return std_logic_vector;
 
   -- trigger_store / trigger_load
-  procedure trigger_memory(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_memory(signal jtag_if : inout t_jtag_if;
                            tdata1_val : std_logic_vector; tdata2_val : std_logic_vector;
                            pc : std_logic_vector; msg : string);
 
   -- trigger_ge / trigger_lt / trigger_range_execute / trigger_range_store
   -- (TRIGGER_RANGE_ENABLE) : tdata1 = dmode, action 1, m, match, chain, type
-  procedure trigger_set(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_set(signal jtag_if : inout t_jtag_if;
                         index : natural; tdata1_val : std_logic_vector; tdata2_val : std_logic_vector);
 
   -- Resume from start_pc, the trigger stops the core at the instruction stop_pc
-  procedure trigger_run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_run(signal jtag_if : inout t_jtag_if;
                         start_pc : std_logic_vector; stop_pc : std_logic_vector; msg : string);
 
 end package tb_WardRV_debug_bfm_pkg;
@@ -154,144 +157,146 @@ package body tb_WardRV_debug_bfm_pkg is
   -----------------------------------------------------------------------------
   -- Debugger
   -----------------------------------------------------------------------------
-  procedure dmi_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure dmi_write(signal jtag_if : inout t_jtag_if;
                       addr : std_logic_vector; data : std_logic_vector) is
   begin
-    vip_jtag_dmi_write(jtag_ini, jtag_tgt, addr, data);
+    vip_jtag_dmi_write(jtag_if, addr, data);
   end procedure;
 
-  procedure dmi_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure dmi_read(signal jtag_if : inout t_jtag_if;
                      addr : std_logic_vector; variable data : out std_logic_vector) is
   begin
-    vip_jtag_dmi_read(jtag_ini, jtag_tgt, addr, data);
+    vip_jtag_dmi_read(jtag_if, addr, data);
   end procedure;
 
   -- dmactive, IDCODE, havereset acknowledged
-  procedure connect(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  procedure connect(signal jtag_if : inout t_jtag_if) is
     variable v_data : std_logic_vector(32-1 downto 0);
   begin
-    vip_jtag_reset(jtag_ini);
-    vip_jtag_scan (jtag_ini, jtag_tgt, false, x"00000000", v_data);
+    jtag_reset  (msg        => "Test-Logic-Reset",
+                 jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG);
+    jtag_scan_dr(data_value => x"00000000", data_out => v_data, msg => "IDCODE",
+                 jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG);
     check_value(v_data, C_IDCODE, ERROR, "IDCODE", C_TB_SCOPE);
-    dmi_write(jtag_ini, jtag_tgt, DM_DMCONTROL, x"00000001");
-    dmi_read (jtag_ini, jtag_tgt, DM_DMSTATUS , v_data);
+    dmi_write(jtag_if, DM_DMCONTROL, x"00000001");
+    dmi_read (jtag_if, DM_DMSTATUS , v_data);
     check_value(v_data(19 downto 18), "11", ERROR, "dmstatus.havereset after the power-on reset", C_TB_SCOPE);
     check_value(v_data(11 downto  8), "1100", ERROR, "dmstatus : running", C_TB_SCOPE);
-    dmi_write(jtag_ini, jtag_tgt, DM_DMCONTROL, x"10000001");     -- ackhavereset
+    dmi_write(jtag_if, DM_DMCONTROL, x"10000001");     -- ackhavereset
   end procedure;
 
-  procedure wait_halted(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string) is
+  procedure wait_halted(signal jtag_if : inout t_jtag_if; msg : string) is
     variable v_status : std_logic_vector(32-1 downto 0);
   begin
     for i in 1 to 50 loop
-      dmi_read(jtag_ini, jtag_tgt, DM_DMSTATUS, v_status);
+      dmi_read(jtag_if, DM_DMSTATUS, v_status);
       exit when v_status(9) = '1';
     end loop;
     check_value(v_status(11 downto 8), "0011", ERROR, "dmstatus : halted " & msg, C_TB_SCOPE);
   end procedure;
 
-  procedure halt(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string := "") is
+  procedure halt(signal jtag_if : inout t_jtag_if; msg : string := "") is
   begin
-    dmi_write  (jtag_ini, jtag_tgt, DM_DMCONTROL, x"80000001");   -- haltreq
-    wait_halted(jtag_ini, jtag_tgt, msg);
-    dmi_write  (jtag_ini, jtag_tgt, DM_DMCONTROL, x"00000001");
+    dmi_write  (jtag_if, DM_DMCONTROL, x"80000001");   -- haltreq
+    wait_halted(jtag_if, msg);
+    dmi_write  (jtag_if, DM_DMCONTROL, x"00000001");
   end procedure;
 
-  procedure resume(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t; msg : string := "") is
+  procedure resume(signal jtag_if : inout t_jtag_if; msg : string := "") is
     variable v_status : std_logic_vector(32-1 downto 0);
   begin
-    dmi_write(jtag_ini, jtag_tgt, DM_DMCONTROL, x"40000001");     -- resumereq
+    dmi_write(jtag_if, DM_DMCONTROL, x"40000001");     -- resumereq
     for i in 1 to 50 loop
-      dmi_read(jtag_ini, jtag_tgt, DM_DMSTATUS, v_status);
+      dmi_read(jtag_if, DM_DMSTATUS, v_status);
       exit when v_status(17) = '1';
     end loop;
     check_value(v_status(17), '1', ERROR, "dmstatus.allresumeack " & msg, C_TB_SCOPE);
   end procedure;
 
   -- End of the abstract command, cmderr checked and cleared
-  procedure wait_command(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure wait_command(signal jtag_if : inout t_jtag_if;
                          cmderr : std_logic_vector(2 downto 0); msg : string) is
     variable v_cs : std_logic_vector(32-1 downto 0);
   begin
     for i in 1 to 50 loop
-      dmi_read(jtag_ini, jtag_tgt, DM_ABSTRACTCS, v_cs);
+      dmi_read(jtag_if, DM_ABSTRACTCS, v_cs);
       exit when v_cs(12) = '0';
     end loop;
     check_value(v_cs(12)         , '0'   , ERROR, "abstractcs.busy "   & msg, C_TB_SCOPE);
     check_value(v_cs(10 downto 8), cmderr, ERROR, "abstractcs.cmderr " & msg, C_TB_SCOPE);
     if v_cs(10 downto 8) /= CMDERR_NONE
     then
-      dmi_write(jtag_ini, jtag_tgt, DM_ABSTRACTCS, x"00000700");
+      dmi_write(jtag_if, DM_ABSTRACTCS, x"00000700");
     end if;
   end procedure;
 
-  procedure reg_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_read(signal jtag_if : inout t_jtag_if;
                      regno : natural; variable data : out std_logic_vector) is
   begin
-    dmi_write   (jtag_ini, jtag_tgt, DM_COMMAND, std_logic_vector(to_unsigned(16#00220000# + regno, 32)));
-    wait_command(jtag_ini, jtag_tgt, CMDERR_NONE, "read 0x" & to_hstring(to_unsigned(regno, 16)));
-    dmi_read    (jtag_ini, jtag_tgt, DM_DATA0, data);
+    dmi_write   (jtag_if, DM_COMMAND, std_logic_vector(to_unsigned(16#00220000# + regno, 32)));
+    wait_command(jtag_if, CMDERR_NONE, "read 0x" & to_hstring(to_unsigned(regno, 16)));
+    dmi_read    (jtag_if, DM_DATA0, data);
   end procedure;
 
-  procedure reg_check(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_check(signal jtag_if : inout t_jtag_if;
                       regno : natural; exp : std_logic_vector; msg : string) is
     variable v_data : std_logic_vector(32-1 downto 0);
   begin
-    reg_read(jtag_ini, jtag_tgt, regno, v_data);
+    reg_read(jtag_if, regno, v_data);
     check_value(v_data, exp, ERROR, msg, C_TB_SCOPE);
   end procedure;
 
-  procedure reg_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure reg_write(signal jtag_if : inout t_jtag_if;
                       regno : natural; data : std_logic_vector) is
   begin
-    dmi_write   (jtag_ini, jtag_tgt, DM_DATA0  , data);
-    dmi_write   (jtag_ini, jtag_tgt, DM_COMMAND, std_logic_vector(to_unsigned(16#00230000# + regno, 32)));
-    wait_command(jtag_ini, jtag_tgt, CMDERR_NONE, "write 0x" & to_hstring(to_unsigned(regno, 16)));
+    dmi_write   (jtag_if, DM_DATA0  , data);
+    dmi_write   (jtag_if, DM_COMMAND, std_logic_vector(to_unsigned(16#00230000# + regno, 32)));
+    wait_command(jtag_if, CMDERR_NONE, "write 0x" & to_hstring(to_unsigned(regno, 16)));
   end procedure;
 
   -- Memory : a4 written by the abstract command, then the program buffer
-  procedure mem_access(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_access(signal jtag_if : inout t_jtag_if;
                        inst : std_logic_vector; addr : std_logic_vector) is
   begin
-    dmi_write   (jtag_ini, jtag_tgt, DM_PROGBUF0, inst);
-    dmi_write   (jtag_ini, jtag_tgt, DM_PROGBUF1, rv_i_type(1, 0, F3_PRIV, 0, OPC_SYSTEM));   -- ebreak
-    dmi_write   (jtag_ini, jtag_tgt, DM_DATA0   , addr);
-    dmi_write   (jtag_ini, jtag_tgt, DM_COMMAND , std_logic_vector(to_unsigned(16#00270000# + A4, 32))); -- write a4, postexec
-    wait_command(jtag_ini, jtag_tgt, CMDERR_NONE, "program buffer");
+    dmi_write   (jtag_if, DM_PROGBUF0, inst);
+    dmi_write   (jtag_if, DM_PROGBUF1, rv_i_type(1, 0, F3_PRIV, 0, OPC_SYSTEM));   -- ebreak
+    dmi_write   (jtag_if, DM_DATA0   , addr);
+    dmi_write   (jtag_if, DM_COMMAND , std_logic_vector(to_unsigned(16#00270000# + A4, 32))); -- write a4, postexec
+    wait_command(jtag_if, CMDERR_NONE, "program buffer");
   end procedure;
 
-  procedure mem_read(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_read(signal jtag_if : inout t_jtag_if;
                      addr : std_logic_vector; variable data : out std_logic_vector) is
   begin
-    mem_access(jtag_ini, jtag_tgt, LW_A5_A4, addr);
-    reg_read  (jtag_ini, jtag_tgt, A5, data);
+    mem_access(jtag_if, LW_A5_A4, addr);
+    reg_read  (jtag_if, A5, data);
   end procedure;
 
-  procedure mem_write(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure mem_write(signal jtag_if : inout t_jtag_if;
                       addr : std_logic_vector; data : std_logic_vector) is
   begin
-    reg_write (jtag_ini, jtag_tgt, A5, data);
-    mem_access(jtag_ini, jtag_tgt, SW_A5_A4, addr);
+    reg_write (jtag_if, A5, data);
+    mem_access(jtag_if, SW_A5_A4, addr);
   end procedure;
 
-  procedure check_cause(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure check_cause(signal jtag_if : inout t_jtag_if;
                         cause : std_logic_vector(2 downto 0); msg : string) is
     variable v_dcsr : std_logic_vector(32-1 downto 0);
   begin
-    reg_read(jtag_ini, jtag_tgt, DCSR, v_dcsr);
+    reg_read(jtag_if, DCSR, v_dcsr);
     check_value(v_dcsr(31 downto 28), "0100", ERROR, "dcsr.debugver", C_TB_SCOPE);
     check_value(v_dcsr( 1 downto  0), "11"  , ERROR, "dcsr.prv"     , C_TB_SCOPE);
     check_value(v_dcsr( 8 downto  6), cause , ERROR, "dcsr.cause " & msg, C_TB_SCOPE);
   end procedure;
 
   -- Running for a while, then halted (cause haltreq)
-  procedure run_for(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure run_for(signal jtag_if : inout t_jtag_if;
                     duration : time; msg : string) is
   begin
-    resume(jtag_ini, jtag_tgt, msg);
+    resume(jtag_if, msg);
     wait for duration;
-    halt  (jtag_ini, jtag_tgt, msg);
-    check_cause(jtag_ini, jtag_tgt, DCSR_CAUSE_HALTREQ, msg);
+    halt  (jtag_if, msg);
+    check_cause(jtag_if, DCSR_CAUSE_HALTREQ, msg);
   end procedure;
 
   -- Address of the next instruction of the loop (flag = 0)
@@ -307,44 +312,44 @@ package body tb_WardRV_debug_bfm_pkg is
   -----------------------------------------------------------------------------
   -- trigger_store / trigger_load
   -----------------------------------------------------------------------------
-  procedure trigger_memory(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_memory(signal jtag_if : inout t_jtag_if;
                            tdata1_val : std_logic_vector; tdata2_val : std_logic_vector;
                            pc : std_logic_vector; msg : string) is
   begin
-    connect    (jtag_ini, jtag_tgt);
-    halt       (jtag_ini, jtag_tgt);
-    reg_write  (jtag_ini, jtag_tgt, TSELECT, x"00000001");
-    reg_write  (jtag_ini, jtag_tgt, TDATA2 , tdata2_val);
-    reg_write  (jtag_ini, jtag_tgt, TDATA1 , tdata1_val);
-    reg_check  (jtag_ini, jtag_tgt, TDATA1 , tdata1_val, "tdata1");
-    resume     (jtag_ini, jtag_tgt);
-    wait_halted(jtag_ini, jtag_tgt, msg);
-    check_cause(jtag_ini, jtag_tgt, DCSR_CAUSE_TRIGGER, msg);
-    reg_check  (jtag_ini, jtag_tgt, DPC, pc, "dpc " & msg);
+    connect    (jtag_if);
+    halt       (jtag_if);
+    reg_write  (jtag_if, TSELECT, x"00000001");
+    reg_write  (jtag_if, TDATA2 , tdata2_val);
+    reg_write  (jtag_if, TDATA1 , tdata1_val);
+    reg_check  (jtag_if, TDATA1 , tdata1_val, "tdata1");
+    resume     (jtag_if);
+    wait_halted(jtag_if, msg);
+    check_cause(jtag_if, DCSR_CAUSE_TRIGGER, msg);
+    reg_check  (jtag_if, DPC, pc, "dpc " & msg);
   end procedure;
 
   -----------------------------------------------------------------------------
   -- trigger_ge / trigger_lt / trigger_range_execute / trigger_range_store
   -- (TRIGGER_RANGE_ENABLE) : tdata1 = dmode, action 1, m, match, chain, type
   -----------------------------------------------------------------------------
-  procedure trigger_set(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_set(signal jtag_if : inout t_jtag_if;
                         index : natural; tdata1_val : std_logic_vector; tdata2_val : std_logic_vector) is
   begin
-    reg_write(jtag_ini, jtag_tgt, TSELECT, std_logic_vector(to_unsigned(index, 32)));
-    reg_write(jtag_ini, jtag_tgt, TDATA2 , tdata2_val);
-    reg_write(jtag_ini, jtag_tgt, TDATA1 , tdata1_val);
-    reg_check(jtag_ini, jtag_tgt, TDATA1 , tdata1_val, "tdata1 of trigger " & integer'image(index));
+    reg_write(jtag_if, TSELECT, std_logic_vector(to_unsigned(index, 32)));
+    reg_write(jtag_if, TDATA2 , tdata2_val);
+    reg_write(jtag_if, TDATA1 , tdata1_val);
+    reg_check(jtag_if, TDATA1 , tdata1_val, "tdata1 of trigger " & integer'image(index));
   end procedure;
 
   -- Resume from start_pc, the trigger stops the core at the instruction stop_pc
-  procedure trigger_run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t;
+  procedure trigger_run(signal jtag_if : inout t_jtag_if;
                         start_pc : std_logic_vector; stop_pc : std_logic_vector; msg : string) is
   begin
-    reg_write  (jtag_ini, jtag_tgt, DPC, start_pc);
-    resume     (jtag_ini, jtag_tgt);
-    wait_halted(jtag_ini, jtag_tgt, msg);
-    check_cause(jtag_ini, jtag_tgt, DCSR_CAUSE_TRIGGER, msg);
-    reg_check  (jtag_ini, jtag_tgt, DPC, stop_pc, "dpc " & msg);
+    reg_write  (jtag_if, DPC, start_pc);
+    resume     (jtag_if);
+    wait_halted(jtag_if, msg);
+    check_cause(jtag_if, DCSR_CAUSE_TRIGGER, msg);
+    reg_check  (jtag_if, DPC, stop_pc, "dpc " & msg);
   end procedure;
 
 end package body tb_WardRV_debug_bfm_pkg;

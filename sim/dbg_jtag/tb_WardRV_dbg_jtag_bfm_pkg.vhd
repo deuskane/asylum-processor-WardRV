@@ -6,7 +6,8 @@
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
 -- Description: Constants shared by the scenarios of tb_WardRV_dbg_jtag (the
---              JTAG and DTM procedures are in WardRV_vips)
+--              JTAG BFM configuration and the DTM procedures are in
+--              WardRV_vips)
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------

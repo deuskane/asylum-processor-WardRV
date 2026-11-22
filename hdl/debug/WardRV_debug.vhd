@@ -26,6 +26,7 @@ library ieee;
 use     ieee.std_logic_1164.all;
 
 library asylum;
+use     asylum.jtag_pkg.all;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
 

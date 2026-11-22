@@ -5,14 +5,16 @@
 -- File       : tb_WardRV_dbg_jtag.vhd
 -- Author     : Mathieu Rosiere
 -------------------------------------------------------------------------------
--- Description: WardRV_dbg_jtag (TAP + DTM + DMI CDC) driven by the JTAG VIP,
+-- Description: WardRV_dbg_jtag (TAP + DTM + DMI CDC) driven by the JTAG BFM,
 --              with a fake Debug Module (128 registers, answer in the cycle
 --              of the request). Scenarios chosen at run time with TESTS_LIST
 --              (names in tb_WardRV_dbg_jtag_tests_pkg, one package per
 --              scenario), each one after a reset pulse and TRST*.
 --              CLK_PERIOD_NS : clk period, TCK period = 50 ns.
---              A monitor checks that TDO / tdo_en change on the falling edge
---              of TCK only.
+--              JTAG BFM : jtag_bfm_pkg of asylum-verification-uvvm, TDO
+--              tri-stated by tdo_en as at the pad. Monitors : TDO / tdo_en
+--              change on the falling edge of TCK only, Capture-IR value
+--              (jtag_ir_capture_monitor of the BFM).
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------
@@ -21,6 +23,9 @@
 -- 2026-11-17  1.0      mrosiere Created
 -- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
 --                               pulse before each scenario
+-- 2026-11-22  1.2      mrosiere JTAG BFM of asylum-verification-uvvm
+-- 2026-11-22  1.3      mrosiere jtag_trst and jtag_ir_capture_monitor of the
+--                               BFM
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -30,7 +35,11 @@ use     ieee.numeric_std.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
+use     asylum.jtag_pkg.all;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
 use     asylum.string_pkg.all;
@@ -54,7 +63,7 @@ architecture sim of tb_WardRV_dbg_jtag is
   signal   clk_i       : std_logic;
   signal   clk_ena     : boolean := true;
   signal   arst_b_i    : std_logic := '0';
-  signal   jtag_ini    : jtag_ini_t := (tck => '0', trst_n => '0', tms => '1', tdi => '0');
+  signal   jtag_if     : t_jtag_if := init_jtag_if_signals;
   signal   jtag_tgt    : jtag_tgt_t;
   signal   dmi_req     : dmi_req_t;
   signal   dmi_rdata   : std_logic_vector(32-1 downto 0);
@@ -70,18 +79,25 @@ begin  -- architecture sim
   -----------------------------------------------------------------------------
   dut : entity asylum.WardRV_dbg_jtag
     generic map
-    (IDCODE_VALUE    => C_IDCODE
-    ,TRST_ENABLE     => true
-    ,DTM_IDLE_CYCLES => 5
+    (IDCODE_VALUE      => C_IDCODE
+    ,TRST_ENABLE       => true
+    ,DTM_IDLE_CYCLES   => 5
     )
     port map
-    (jtag_ini_i      => jtag_ini
-    ,jtag_tgt_o      => jtag_tgt
-    ,clk_i           => clk_i
-    ,arst_b_i        => arst_b_i
-    ,dmi_req_o       => dmi_req
-    ,dmi_rdata_i     => dmi_rdata
+    (jtag_ini_i.tck    => jtag_if.tck
+    ,jtag_ini_i.trst_n => jtag_if.trst_b
+    ,jtag_ini_i.tms    => jtag_if.tms
+    ,jtag_ini_i.tdi    => jtag_if.tdi
+    ,jtag_tgt_o        => jtag_tgt
+    ,clk_i             => clk_i
+    ,arst_b_i          => arst_b_i
+    ,dmi_req_o         => dmi_req
+    ,dmi_rdata_i       => dmi_rdata
     );
+
+  -- TDO tri-stated by tdo_en (pad)
+  jtag_if.tdo <= jtag_tgt.tdo when jtag_tgt.tdo_en = '1' else
+                 'Z';
 
   -----------------------------------------------------------------------------
   -- Fake Debug Module (registers and request counter cleared by the reset)
@@ -111,11 +127,19 @@ begin  -- architecture sim
   p_tdo : process
   begin
     wait on jtag_tgt;
-    if arst_b_i = '1' and jtag_ini.tck /= '0'
+    if arst_b_i = '1' and jtag_if.tck /= '0'
     then
       alert(ERROR, "TDO / tdo_en changed while TCK is high", C_SCOPE);
     end if;
   end process;
+
+  -----------------------------------------------------------------------------
+  -- Capture-IR value of each IR scan
+  -----------------------------------------------------------------------------
+  jtag_ir_capture_monitor(jtag_if  => jtag_if,
+                          expected => "00001",
+                          scope    => C_SCOPE,
+                          config   => C_JTAG_BFM_CONFIG);
 
   -----------------------------------------------------------------------------
   -- Sequencer
@@ -142,10 +166,10 @@ begin  -- architecture sim
     for i in 1 to list_length(TESTS_LIST) loop
       -- Reset pulse, then TRST* (Test-Logic-Reset) : each scenario starts from reset
       vip_reset_scenario(clk_i, arst_b_i, 100 ns);
-      vip_jtag_init(jtag_ini);
+      jtag_trst(msg => "TRST*", jtag_if => jtag_if, config => C_JTAG_BFM_CONFIG_TRST);
 
       log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
-      run_test(list_item(TESTS_LIST, i), jtag_ini, jtag_tgt, dm_nb_req);
+      run_test(list_item(TESTS_LIST, i), jtag_if, dm_nb_req);
       wait for 1 us;
     end loop;
 

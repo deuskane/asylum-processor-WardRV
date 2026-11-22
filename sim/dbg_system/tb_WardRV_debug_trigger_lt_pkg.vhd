@@ -22,6 +22,9 @@ use     ieee.numeric_std.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
@@ -36,19 +39,19 @@ package tb_WardRV_debug_trigger_lt_pkg is
 
   -- TRIGGER_RANGE_ENABLE, execute trigger, match <
   -- (not on pc = tdata2)
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure run(signal jtag_if : inout t_jtag_if);
 
 end package tb_WardRV_debug_trigger_lt_pkg;
 
 package body tb_WardRV_debug_trigger_lt_pkg is
 
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  procedure run(signal jtag_if : inout t_jtag_if) is
   begin
-    connect    (jtag_ini, jtag_tgt);
-    halt       (jtag_ini, jtag_tgt);
+    connect    (jtag_if);
+    halt       (jtag_if);
     -- pc < sw : resumed on the sw, the trigger fires on the addi of the next loop
-    trigger_set(jtag_ini, jtag_tgt, 0, x"680011C4", C_SW_COUNTER);
-    trigger_run(jtag_ini, jtag_tgt, C_SW_COUNTER, C_LOOP, "trigger <");
+    trigger_set(jtag_if, 0, x"680011C4", C_SW_COUNTER);
+    trigger_run(jtag_if, C_SW_COUNTER, C_LOOP, "trigger <");
   end procedure;
 
 end package body tb_WardRV_debug_trigger_lt_pkg;

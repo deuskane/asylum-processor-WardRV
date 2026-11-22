@@ -21,6 +21,9 @@ use     ieee.numeric_std.all;
 library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
+library asylum_uvvm;
+use     asylum_uvvm.jtag_bfm_pkg.all;
+
 library asylum;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
@@ -34,15 +37,15 @@ use     work.tb_WardRV_debug_bfm_pkg.all;
 package tb_WardRV_debug_trigger_load_pkg is
 
   -- load trigger (cause 2, dpc of the load)
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t);
+  procedure run(signal jtag_if : inout t_jtag_if);
 
 end package tb_WardRV_debug_trigger_load_pkg;
 
 package body tb_WardRV_debug_trigger_load_pkg is
 
-  procedure run(signal jtag_ini : out jtag_ini_t; signal jtag_tgt : in jtag_tgt_t) is
+  procedure run(signal jtag_if : inout t_jtag_if) is
   begin
-    trigger_memory(jtag_ini, jtag_tgt, x"68001041", C_FLAG, C_LW_FLAG, "load trigger");
+    trigger_memory(jtag_if, x"68001041", C_FLAG, C_LW_FLAG, "load trigger");
   end procedure;
 
 end package body tb_WardRV_debug_trigger_load_pkg;

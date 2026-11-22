@@ -32,9 +32,11 @@ CAPI=2:
 # 2026-11-21  1.1.0    mrosiere fsm : area (CSR implemented bits only (WARL), mtval read-only zero,
 #                               one adder for ADD / SUB / SLT / SLTU, one shifter, one immediate),
 #                               tb : TESTS_LIST, syn_* targets, README
+# 2026-11-22  1.2.0    mrosiere debug : TAP jtag_tap of asylum:debug:jtag (WardRV_dbg_tap removed, JTAG records
+#                               in asylum.jtag_pkg), tb : JTAG BFM of asylum:verification:uvvm
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:1.1.0
+name        : asylum:processor:WardRV:1.2.0
 description : WardRV - Academic RISCV processor
 
 #=========================================
@@ -59,7 +61,6 @@ filesets:
       - hdl/iss/WardRV_iss.vhd
 
       # Debug unit (RISC-V Debug Spec 1.0)
-      - hdl/debug/WardRV_dbg_tap.vhd
       - hdl/debug/WardRV_dbg_dtm.vhd
       - hdl/debug/WardRV_dbg_dmi_cdc.vhd
       - hdl/debug/WardRV_dbg_jtag.vhd
@@ -89,6 +90,8 @@ filesets:
       - ">=asylum:utils:pkg:1.5.2"
       - ">=asylum:component:ram:1.0.0"
       - ">=asylum:target:techmap:1.0.0"
+      # jtag_tap, jtag_pkg (JTAG pins) of the debug unit
+      - ">=asylum:debug:jtag:1.0.0"
 
   #---------------------------------------
   files_sim:
@@ -103,6 +106,8 @@ filesets:
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
+      # jtag_bfm_pkg (JTAG BFM, jtag_trst, jtag_ir_capture_monitor)
+      - ">=asylum:verification:uvvm:1.1.0"
       # string_pkg list_length / list_item / list_contains (TESTS_LIST)
       - ">=asylum:utils:pkg:1.10.0"
 
