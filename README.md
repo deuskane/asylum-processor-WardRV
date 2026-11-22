@@ -191,8 +191,8 @@ To add the debug unit, instantiate `WardRV_debug` next to the core: [syn/WardRV_
 
 | Name | Direction | Type | Description |
 |------|-----------|------|-------------|
-| `jtag_ini_i` | in | jtag_ini_t | TCK, TMS, TDI, TRST* (TCK domain) |
-| `jtag_tgt_o` | out | jtag_tgt_t | TDO, `tdo_en` (TDO driven only in Shift-IR / Shift-DR) |
+| `jtag_ini_i` | in | jtag_ini_t | TCK, TMS, TDI, TRST* (TCK domain); record of `jtag_pkg` ([asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag)) |
+| `jtag_tgt_o` | out | jtag_tgt_t | TDO, `tdo_en` (TDO driven only in Shift-IR / Shift-DR); record of `jtag_pkg` |
 | `clk_i` | in | std_logic | Clock of the core |
 | `arst_b_i` | in | std_logic | Power-on reset of the debug unit (never `ndmreset_o`) |
 | `hart_rst_b_i` | in | std_logic | Reset of the core (`dmstatus.havereset`, `unavail`) |
@@ -239,8 +239,8 @@ Figures of the `syn_*` targets (`make nonreg_syn`, see [Targets](#targets)): [sy
 | Configuration | LUT¹ | LUTRAM¹ | FF¹ | CARRY4¹ | MUXF7/F8¹ | BRAM¹ | DSP¹ | Area² (µm²) | kGE³ |
 |---|---|---|---|---|---|---|---|---|---|
 | `syn_default` (core, no debug unit) | 985 | 48 | 325 | 13 | 152 | 0 | 0 | 66461.24 | 17.706 |
-| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 1926 | 48 | 780 | 20 | 245 | 0 | 0 | 90155.22 | 24.018 |
-| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 4458 | 48 | 2022 | 133 | 533 | 0 | 0 | 163834.63 | 43.647 |
+| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 1925 | 48 | 780 | 20 | 289 | 0 | 0 | 90222.78 | 24.036 |
+| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 4503 | 48 | 2022 | 133 | 591 | 0 | 0 | 163352.92 | 43.519 |
 
 ¹ Xilinx Artix-7 (LUT6), Yosys 0.33 `synth_xilinx -flatten -noiopad -noclkbuf`, before place and route: every cell of the netlist is counted, Vivado may differ. Identical cells are merged as a vendor tool does (`opt_merge -share_all`): the inverters of an active-low reset net become one; every remaining cell is counted, an `INV` as a `LUT1`. The register file (`ram_2r1w`, 32 x 32 bits, asynchronous read) is in LUTRAM, not in BRAM.
 
@@ -267,9 +267,9 @@ In `syn_default`, 15 of the 985 LUTs are `INV`. For comparison, [PicoRV32](https
 | [hdl/fsm/WardRV_fsm_debug.vhd](hdl/fsm/WardRV_fsm_debug.vhd), [WardRV_fsm_trigger.vhd](hdl/fsm/WardRV_fsm_trigger.vhd), [WardRV_fsm_debug_bus.vhd](hdl/fsm/WardRV_fsm_debug_bus.vhd) | `WardRV_fsm_debug`, `_trigger`, `_debug_bus` | Debug support of the core (`DEBUG_ENABLE`), see [Debug unit](#debug-unit) |
 | [hdl/bridge/dmem2sbi.vhd](hdl/bridge/dmem2sbi.vhd) | `dmem2sbi` | 32-bit `dmem` request to 8-bit SBI accesses (one per enabled byte) |
 | [hdl/bridge/imem2sbi.vhd](hdl/bridge/imem2sbi.vhd) | `imem2sbi` | 32-bit `imem` request to four 8-bit SBI reads (not instantiated in this repository) |
-| [hdl/debug/WardRV_debug.vhd](hdl/debug/WardRV_debug.vhd) | `WardRV_debug` | Debug unit: `WardRV_dbg_jtag` (TAP, DTM, DMI CDC) + `WardRV_dbg_dm` (Debug Module, debug memory, System Bus Access) |
+| [hdl/debug/WardRV_debug.vhd](hdl/debug/WardRV_debug.vhd) | `WardRV_debug` | Debug unit: `WardRV_dbg_jtag` (TAP `jtag_tap` of [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag), DTM, DMI CDC) + `WardRV_dbg_dm` (Debug Module, debug memory, System Bus Access) |
 | [hdl/iss/WardRV_iss.vhd](hdl/iss/WardRV_iss.vhd), [WardRV_iss_pkg.vhd](hdl/iss/WardRV_iss_pkg.vhd) | `WardRV_iss` | Behavioural instruction-set simulator (simulation only) |
-| [hdl/RV_pkg.vhd](hdl/RV_pkg.vhd), [WardRV_pkg.vhd](hdl/WardRV_pkg.vhd), [WardRV_stats_pkg.vhd](hdl/WardRV_stats_pkg.vhd), [fsm/WardRV_decode_pkg.vhd](hdl/fsm/WardRV_decode_pkg.vhd), [debug/WardRV_debug_pkg.vhd](hdl/debug/WardRV_debug_pkg.vhd) | packages | RISC-V encodings and CSR addresses, interface records (`imem`, `dmem`, JTAG), trace and statistics, decoder selections, debug constants and records |
+| [hdl/RV_pkg.vhd](hdl/RV_pkg.vhd), [WardRV_pkg.vhd](hdl/WardRV_pkg.vhd), [WardRV_stats_pkg.vhd](hdl/WardRV_stats_pkg.vhd), [fsm/WardRV_decode_pkg.vhd](hdl/fsm/WardRV_decode_pkg.vhd), [debug/WardRV_debug_pkg.vhd](hdl/debug/WardRV_debug_pkg.vhd) | packages | RISC-V encodings and CSR addresses, interface records (`imem`, `dmem`; the JTAG records are in `jtag_pkg` of asylum-debug-jtag), trace and statistics, decoder selections, debug constants and records |
 
 ### FSM
 
@@ -316,8 +316,8 @@ RISC-V Debug Specification 1.0, execution-based (the core executes the debug cod
 ```
             TCK domain                     |                 clk domain
  JTAG   +-------------+  user  +-----------+  dmi_req   +----------------------+
- pins ->| WardRV_dbg_ |  DR    | dbg_dtm + |----------->| WardRV_dbg_dm        |--> ndmreset_o (reset of the system)
-        | tap (1149.1)|<------>| dmi_cdc   |<-----------| dbg_dm_mem, dbg_sba  |--> sba_dmem   (System Bus Access)
+ pins ->| jtag_tap    |  DR    | dbg_dtm + |----------->| WardRV_dbg_dm        |--> ndmreset_o (reset of the system)
+        | (1149.1)    |<------>| dmi_cdc   |<-----------| dbg_dm_mem, dbg_sba  |--> sba_dmem   (System Bus Access)
         +-------------+        +-----------+  dmi_rdata +----------------------+
          WardRV_dbg_jtag                                   | dbg_hart_req   ^ dbg_mem (debug memory, 0xFFFF_F800)
                                                            v                |
@@ -327,6 +327,8 @@ RISC-V Debug Specification 1.0, execution-based (the core executes the debug cod
                                                   |   WardRV_fsm_debug_bus           |
                                                   +----------------------------------+
 ```
+
+The TAP is `jtag_tap` of [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag) (IEEE 1149.1, IR of `JTAG_IR_WIDTH` = 5 bits, IDCODE `00001` selected after reset, BYPASS). `WardRV_dbg_jtag` decodes its two user instructions, DTMCS (`10000`) and DMI (`10001`): `user_tdo_en_i` selects the TDO of `WardRV_dbg_dtm`, every other opcode is BYPASS.
 
 How a debugger uses it:
 
@@ -466,13 +468,13 @@ Compiles with `riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 -O2 -ffree
 | Directory | DUT | Description |
 |-----------|-----|-------------|
 | [sim/wardrv/](sim/wardrv/) | `WardRV_fsm` (`MODEL = "FSM"`, default) or `WardRV_iss` (`MODEL = "ISS"`) | `tb_WardRV` runs a firmware (`FIRMWARE_FILE`, hex) from a memory answering one cycle after each request. `TEST_ENV = "ACT3"` (default): memory at `0x80000000`, the program writes `tohost` (`0x80200000`): 1 = TEST PASSED; with `SIGNATURE_FILE` and `GOLDEN_FILE`, the signature area is dumped and compared word by word with the reference (`TB_ERROR` on the first mismatch); timeout 500 µs. `TEST_ENV = "ACT4"`: 512 KB at `0x00004000`, console at `0x10000000`, PASS / FAIL written at `0x20000000`; timeout 10 ms. A store at `0x80300000` drives `meip_i` from the next instruction fetch. `tb_WardRV_iss` drives the ISS protected type from a process (no target) |
-| [sim/dbg_jtag/](sim/dbg_jtag/) | `WardRV_dbg_jtag` | JTAG VIP, fake Debug Module (128 registers), monitor of TDO (changes on the falling edge of TCK only), clk period `CLK_PERIOD_NS` |
+| [sim/dbg_jtag/](sim/dbg_jtag/) | `WardRV_dbg_jtag` | JTAG BFM, fake Debug Module (128 registers), monitors of TDO (changes on the falling edge of TCK only) and of the Capture-IR value, clk period `CLK_PERIOD_NS` |
 | [sim/dbg_dm/](sim/dbg_dm/) | `WardRV_dbg_dm` (SBA, `PROGBUF_SIZE` 2 or 0, `AARPOSTINCREMENT_ENABLE`) | The sequencer is the debugger (DMI) and the hart (debug memory accesses, abstract programs checked against the GNU as encodings); SBA memory with a wait state |
 | [sim/dbg_system/](sim/dbg_system/) | `WardRV_fsm` (2 triggers) + `WardRV_debug` | System test: a debugger on the JTAG port, the core runs [esw/debug/debug_fw.S](esw/debug/debug_fw.S) (loaded again by each reset pulse) |
 | [sim/openocd/](sim/openocd/) | `WardRV_fsm` + `WardRV_debug` | OpenOCD + GDB co-simulation, see below |
 | [sim/bridge/](sim/bridge/) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with asynchronous and synchronous read): the RAM is filled through SBI, then the bridge fetches aligned, unaligned and out-of-range words; `cs` of the bridge must equal `re` |
 
-Shared code in [sim/common/](sim/common/): `WardRV_vips` (reset pulses, JTAG and DTM procedures with the busy retry of a debugger) and `tb_WardRV_pkg` (memory model, hex loading, signature dump and comparison).
+The JTAG testbenches drive the debug unit with the JTAG BFM `jtag_bfm_pkg` of [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) (TDO tri-stated by `tdo_en`, as at the pad). Shared code in [sim/common/](sim/common/): `WardRV_vips` (reset pulses; the configuration of the JTAG BFM, TCK 50 ns and 5-bit IR; what the BFM does not do: a TRST* pulse alone and a monitor of the full Capture-IR value `00001`, the BFM checks its two LSBs `01`; the DTM procedures with the busy retry of a debugger) and `tb_WardRV_pkg` (memory model, hex loading, signature dump and comparison).
 
 ### Architecture tests
 
@@ -613,9 +615,11 @@ The debug targets do not write a waveform (long simulations): add `--fst=dut.fst
 | `asylum:utils:pkg` | [asylum-utils-pkg](https://github.com/deuskane/asylum-utils-pkg) | Common packages (`sbi_pkg`, ...); the testbenches need >= 1.10.0 (`string_pkg` lists of `TESTS_LIST`) |
 | `asylum:component:ram` | [asylum-component-ram](https://github.com/deuskane/asylum-component-ram) | `ram_2r1w` of the register file; `sbi_ram` of the bridge testbench |
 | `asylum:target:techmap` | [asylum-target-techmap](https://github.com/deuskane/asylum-target-techmap) | `sync2dffrn` synchronizers of the debug unit (DMI CDC, hart reset) |
+| `asylum:debug:jtag` | [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag) | TAP `jtag_tap` of the debug unit and the JTAG records of `jtag_pkg` (>= 1.0.0) |
 | `asylum:utils:ghdl_synth` | [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators) | `ghdl --synth` check of the `lint_ghdl_synth_*` targets |
 | `asylum:utils:yosys_synth` | [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators) | Yosys synthesis of the `syn_*` targets (Artix-7 and sky130) |
 | `bitvis:verification:uvvm` | [UVVM](https://github.com/UVVM/UVVM) | Verification library of the testbenches |
+| `asylum:verification:uvvm` | [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) | JTAG BFM `jtag_bfm_pkg` of the debug testbenches |
 
 Used by [asylum-soc-picosoc](https://github.com/deuskane/asylum-soc-picosoc) (with its programs built by `rvcc_gen` of [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators)). The other CPU of Asylum: [OpenBlaze8](https://github.com/deuskane/asylum-processor-OpenBlaze8). All the IPs: [asylum-project](https://github.com/deuskane/asylum-project).
 
