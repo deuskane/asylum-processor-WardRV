@@ -474,7 +474,7 @@ Compiles with `riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 -O2 -ffree
 | [sim/openocd/](sim/openocd/) | `WardRV_fsm` + `WardRV_debug` | OpenOCD + GDB co-simulation, see below |
 | [sim/bridge/](sim/bridge/) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with asynchronous and synchronous read): the RAM is filled through SBI, then the bridge fetches aligned, unaligned and out-of-range words; `cs` of the bridge must equal `re` |
 
-The JTAG testbenches drive the debug unit with the JTAG BFM `jtag_bfm_pkg` of [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) (TDO tri-stated by `tdo_en`, as at the pad). Shared code in [sim/common/](sim/common/): `WardRV_vips` (reset pulses; the configuration of the JTAG BFM, TCK 50 ns and 5-bit IR; what the BFM does not do: a TRST* pulse alone and a monitor of the full Capture-IR value `00001`, the BFM checks its two LSBs `01`; the DTM procedures with the busy retry of a debugger) and `tb_WardRV_pkg` (memory model, hex loading, signature dump and comparison).
+The JTAG testbenches drive the debug unit with the JTAG BFM `jtag_bfm_pkg` of [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) (TDO tri-stated by `tdo_en`, as at the pad): TRST* pulse alone (`jtag_trst`), scans, and the monitor `jtag_ir_capture_monitor`, which checks the full Capture-IR value `00001` of every IR scan (`jtag_write_ir` checks its two LSBs `01`). Shared code in [sim/common/](sim/common/): `WardRV_vips` (reset pulses; the configuration of the JTAG BFM, TCK 50 ns and 5-bit IR, without TRST* for `jtag_reset` by TMS only and with TRST* for `jtag_trst`; the DTM procedures with the busy retry of a debugger, nothing of the JTAG protocol itself) and `tb_WardRV_pkg` (memory model, hex loading, signature dump and comparison).
 
 ### Architecture tests
 
@@ -619,7 +619,7 @@ The debug targets do not write a waveform (long simulations): add `--fst=dut.fst
 | `asylum:utils:ghdl_synth` | [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators) | `ghdl --synth` check of the `lint_ghdl_synth_*` targets |
 | `asylum:utils:yosys_synth` | [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators) | Yosys synthesis of the `syn_*` targets (Artix-7 and sky130) |
 | `bitvis:verification:uvvm` | [UVVM](https://github.com/UVVM/UVVM) | Verification library of the testbenches |
-| `asylum:verification:uvvm` | [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) | JTAG BFM `jtag_bfm_pkg` of the debug testbenches |
+| `asylum:verification:uvvm` | [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) | JTAG BFM `jtag_bfm_pkg` of the debug testbenches (>= 1.1.0: `jtag_trst`, `jtag_ir_capture_monitor`) |
 
 Used by [asylum-soc-picosoc](https://github.com/deuskane/asylum-soc-picosoc) (with its programs built by `rvcc_gen` of [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators)). The other CPU of Asylum: [OpenBlaze8](https://github.com/deuskane/asylum-processor-OpenBlaze8). All the IPs: [asylum-project](https://github.com/deuskane/asylum-project).
 
