@@ -600,8 +600,8 @@ To run a list of scenarios, build the testbench once, then run the list without 
 
 ```bash
 make sim_dbg_system                          # build and elaboration (TESTS_LIST empty)
-fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.1.0 --TESTS_LIST=halt_resume,step,halt_resume
-fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.1.0 --TESTS_LIST=trigger_ge,trigger_lt --TRIGGER_RANGE_ENABLE=true
+fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.2.0 --TESTS_LIST=halt_resume,step,halt_resume
+fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.2.0 --TESTS_LIST=trigger_ge,trigger_lt --TRIGGER_RANGE_ENABLE=true
 ```
 
 To add a scenario: a `tb_<tb>_<name>_pkg.vhd` with its procedure `run`, its name in `C_TESTS` and its case in `run_test` of the `tests_pkg`, the file in the `files_sim_debug` fileset and a `sim_dbg_<tb>_<name>` target in [WardRV.core](WardRV.core), then `make mk/targets.txt` and `make ci_generate`.

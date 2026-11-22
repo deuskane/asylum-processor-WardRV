@@ -32,9 +32,11 @@ CAPI=2:
 # 2026-11-21  1.1.0    mrosiere fsm : area (CSR implemented bits only (WARL), mtval read-only zero,
 #                               one adder for ADD / SUB / SLT / SLTU, one shifter, one immediate),
 #                               tb : TESTS_LIST, syn_* targets, README
+# 2026-11-22  1.2.0    mrosiere debug : TAP jtag_tap of asylum:debug:jtag (WardRV_dbg_tap removed, JTAG records
+#                               in asylum.jtag_pkg), tb : JTAG BFM of asylum:verification:uvvm
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:1.1.0
+name        : asylum:processor:WardRV:1.2.0
 description : WardRV - Academic RISCV processor
 
 #=========================================
