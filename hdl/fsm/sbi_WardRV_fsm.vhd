@@ -94,7 +94,7 @@ begin
   
   interrupt_ack_o <= '0';
 
-  ins_WardRV_fsm : entity work.WardRV_fsm
+  ins_WardRV_fsm : entity asylum.WardRV_fsm
     generic map (
       HARTID               => HARTID,
       RESET_ADDR           => RESET_ADDR,
@@ -117,7 +117,7 @@ begin
       dbg_mem_tgt_i  => dbg_mem_tgt_i
     );
 
-  ins_dmem2sbi : entity work.dmem2sbi
+  ins_dmem2sbi : entity asylum.dmem2sbi
     port map (
       clk_i      => clk_i,
       arst_b_i   => arstn_i,

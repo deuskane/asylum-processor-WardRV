@@ -413,7 +413,7 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   -- Debug memory
   -----------------------------------------------------------------------------
-  ins_dm_mem : entity work.WardRV_dbg_dm_mem
+  ins_dm_mem : entity asylum.WardRV_dbg_dm_mem
     generic map
     (PROGBUF_SIZE    => PROGBUF_SIZE
     ,DATA_COUNT      => DATA_COUNT
@@ -438,7 +438,7 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   gen_sba : if SBA_ENABLE
   generate
-    ins_sba : entity work.WardRV_dbg_sba
+    ins_sba : entity asylum.WardRV_dbg_sba
       port map
       (clk_i           => clk_i
       ,arst_b_i        => arst_b_i

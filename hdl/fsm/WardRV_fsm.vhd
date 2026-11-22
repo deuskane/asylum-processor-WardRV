@@ -224,7 +224,7 @@ begin
   -- Instruction Fetch Module
   -- Encapsulates the complexity of the instruction bus handshake.
   --------------------------------------------------------------------
-  inst_fetch : entity work.WardRV_fsm_fetch
+  inst_fetch : entity asylum.WardRV_fsm_fetch
   port map (
     clk_i        => clk_i,
     arst_b_i     => arst_b_i,
@@ -249,7 +249,7 @@ begin
   -- This is a purely combinatorial block that interprets the fetched instruction
   -- and generates all necessary control signals and immediate values for the datapath.
   --------------------------------------------------------------------
-  inst_decode : entity work.WardRV_fsm_decode
+  inst_decode : entity asylum.WardRV_fsm_decode
   port map (
     inst_i                   => inst_r,
     imm_i_o                  => dec_imm_i,
@@ -295,7 +295,7 @@ begin
   csr_we                <= dec_csr_we       and state_is_writeback;
   inst_is_mret          <= dec_inst_is_mret and state_is_writeback;
 
-  csr_inst : entity work.WardRV_fsm_csr
+  csr_inst : entity asylum.WardRV_fsm_csr
   generic map (
     HARTID              => HARTID
   )
@@ -349,7 +349,7 @@ begin
                       csr_rdata    when dec_rd_src = RD_SRC_CSR      else
                       alu_res_r; --when dec_rd_src = RD_SRC_ALU      else
                       
-  inst_regfile : entity work.WardRV_fsm_regfile
+  inst_regfile : entity asylum.WardRV_fsm_regfile
   port map (
     clk_i       => clk_i,
     arst_b_i    => arst_b_i,
@@ -410,7 +410,7 @@ begin
                csr_rdata     when alu_src_b_sel = ALU_SRC_B_CSR   else
                src_b_val;  --when alu_src_b_sel = ALU_SRC_B_RS2 
                
-  inst_alu : entity work.WardRV_fsm_alu
+  inst_alu : entity asylum.WardRV_fsm_alu
   port map (
     src_a_i => alu_src_a,
     src_b_i => alu_src_b,
@@ -446,7 +446,7 @@ begin
   -- This section handles the data memory interface (DMEM) for loads and stores.
   --------------------------------------------------------------------
   --------------------------------------------------------------------
-  dmem_inst : entity work.WardRV_fsm_memory
+  dmem_inst : entity asylum.WardRV_fsm_memory
   port map (
     clk_i               => clk_i,
     arst_b_i            => arst_b_i,
@@ -479,7 +479,7 @@ begin
   -- With the default generics every dbg_* signal is '0' and the buses are
   -- wires : the core is the one described in the other sections.
   --------------------------------------------------------------------
-  inst_debug : entity work.WardRV_fsm_debug
+  inst_debug : entity asylum.WardRV_fsm_debug
   generic map (
     DEBUG_ENABLE         => DEBUG_ENABLE,
     NB_TRIGGERS          => NB_TRIGGERS,
@@ -515,7 +515,7 @@ begin
     pc_o                 => dbg_pc
   );
 
-  inst_debug_bus : entity work.WardRV_fsm_debug_bus
+  inst_debug_bus : entity asylum.WardRV_fsm_debug_bus
   generic map (
     DEBUG_ENABLE         => DEBUG_ENABLE
   )

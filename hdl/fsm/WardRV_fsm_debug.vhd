@@ -127,7 +127,7 @@ begin  -- architecture rtl
   -----------------------------------------------------------------------------
   gen_trigger : if DEBUG_ENABLE and NB_TRIGGERS > 0
   generate
-    ins_trigger : entity work.WardRV_fsm_trigger
+    ins_trigger : entity asylum.WardRV_fsm_trigger
       generic map
       (NB_TRIGGERS          => NB_TRIGGERS
       ,EBREAK_EXCEPTION     => EBREAK_EXCEPTION

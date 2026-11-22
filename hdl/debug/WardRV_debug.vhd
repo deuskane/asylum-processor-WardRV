@@ -67,7 +67,7 @@ architecture rtl of WardRV_debug is
 
 begin  -- architecture rtl
 
-  ins_jtag : entity work.WardRV_dbg_jtag
+  ins_jtag : entity asylum.WardRV_dbg_jtag
     generic map
     (IDCODE_VALUE        => IDCODE_VALUE
     ,TRST_ENABLE         => TRST_ENABLE
@@ -82,7 +82,7 @@ begin  -- architecture rtl
     ,dmi_rdata_i         => dmi_rdata
     );
 
-  ins_dm : entity work.WardRV_dbg_dm
+  ins_dm : entity asylum.WardRV_dbg_dm
     generic map
     (PROGBUF_SIZE            => PROGBUF_SIZE
     ,DATA_COUNT              => DATA_COUNT

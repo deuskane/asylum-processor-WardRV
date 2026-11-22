@@ -90,7 +90,7 @@ begin  -- architecture rtl
     ,user_tdo_i      => user_tdo
     );
 
-  ins_dtm : entity work.WardRV_dbg_dtm
+  ins_dtm : entity asylum.WardRV_dbg_dtm
     generic map
     (IDLE_CYCLES     => DTM_IDLE_CYCLES
     )
@@ -110,7 +110,7 @@ begin  -- architecture rtl
     ,dmi_rdata_i     => tck_rdata
     );
 
-  ins_dmi_cdc : entity work.WardRV_dbg_dmi_cdc
+  ins_dmi_cdc : entity asylum.WardRV_dbg_dmi_cdc
     port map
     (tck_i           => tck
     ,tck_arst_b_i    => arst_b_i
