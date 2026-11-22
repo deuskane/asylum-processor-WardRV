@@ -7,11 +7,11 @@
 -------------------------------------------------------------------------------
 -- Description: VIPs for WardRV simulation
 --  * Reset pulse, reset pulse before a scenario (TESTS_LIST)
---  * JTAG : the JTAG BFM jtag_bfm_pkg of asylum-verification-uvvm, with the
---    configuration of the WardRV testbenches (C_JTAG_BFM_CONFIG : TCK 50 ns,
---    5-bit IR). Here only what the BFM does not do : a TRST* pulse alone
---    (jtag_reset always adds the TMS sequence) and a monitor of the full
---    Capture-IR value (jtag_write_ir checks its two LSB "01" only)
+--  * JTAG : configuration of the JTAG BFM jtag_bfm_pkg of
+--    asylum-verification-uvvm for the WardRV testbenches (TCK 50 ns, 5-bit
+--    IR) : C_JTAG_BFM_CONFIG (jtag_reset by TMS only) and
+--    C_JTAG_BFM_CONFIG_TRST (jtag_trst). The JTAG protocol (TRST* pulse,
+--    scans, Capture-IR monitor) is in the BFM
 --  * RISC-V DTM : dtmcs and dmi scans, DMI read / write with the busy retry
 --    of a debugger (dmireset, then more Run-Test/Idle cycles)
 -------------------------------------------------------------------------------
@@ -23,6 +23,9 @@
 -- 2026-11-17  1.1      mrosiere JTAG and DMI procedures of the debug unit
 -- 2026-11-20  1.2      mrosiere vip_reset_scenario (reset pulse of TESTS_LIST)
 -- 2026-11-22  1.3      mrosiere JTAG on the JTAG BFM of asylum-verification-uvvm
+-- 2026-11-22  1.4      mrosiere vip_jtag_trst and vip_jtag_ir_capture_monitor
+--                               removed : jtag_trst and jtag_ir_capture_monitor
+--                               of the BFM
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -41,7 +44,7 @@ package WardRV_vips is
 
   constant C_DMI_IDLE    : natural := 5;                          -- Run-Test/Idle cycles after a dmi scan
 
-  -- JTAG BFM : TCK 50 ns, IR of the debug unit, TRST* by vip_jtag_trst
+  -- JTAG BFM : TCK 50 ns, IR of the debug unit, jtag_reset by TMS only
   constant C_JTAG_BFM_CONFIG : t_jtag_bfm_config := (
     tck_period       => 50 ns,
     ir_width         => JTAG_IR_WIDTH,
@@ -49,6 +52,16 @@ package WardRV_vips is
     trst_enable      => false,
     match_strictness => MATCH_EXACT,
     id_for_bfm       => ID_BFM
+    );
+
+  -- The same with TRST* : configuration of jtag_trst
+  constant C_JTAG_BFM_CONFIG_TRST : t_jtag_bfm_config := (
+    tck_period       => C_JTAG_BFM_CONFIG.tck_period,
+    ir_width         => C_JTAG_BFM_CONFIG.ir_width,
+    idle_cycles      => C_JTAG_BFM_CONFIG.idle_cycles,
+    trst_enable      => true,
+    match_strictness => C_JTAG_BFM_CONFIG.match_strictness,
+    id_for_bfm       => C_JTAG_BFM_CONFIG.id_for_bfm
     );
 
   -- dmi.op
@@ -72,20 +85,6 @@ package WardRV_vips is
     signal   clk      : in  std_logic;
     signal   reset_n  : out std_logic;
     constant width    : in  time
-  );
-
-  -- ===========================================================================
-  -- JTAG VIP
-  -- ===========================================================================
-  -- TRST* pulse alone, TMS = 1 : Test-Logic-Reset
-  procedure vip_jtag_trst(
-    signal   jtag_if  : inout t_jtag_if
-  );
-
-  -- Concurrent procedure : follows the TAP controller on TMS and checks the
-  -- bits shifted out by each IR scan against the Capture-IR value "00001"
-  procedure vip_jtag_ir_capture_monitor(
-    signal   jtag_if  : in    t_jtag_if
   );
 
   -- ===========================================================================
@@ -154,74 +153,6 @@ package body WardRV_vips is
     wait for width;
     wait until falling_edge(clk);
     reset_n <= '1';
-  end procedure;
-
-  -- ===========================================================================
-  -- JTAG VIP
-  -- ===========================================================================
-  procedure vip_jtag_trst(
-    signal   jtag_if  : inout t_jtag_if
-  ) is
-  begin
-    jtag_if.tck    <= '0';
-    jtag_if.tms    <= '1';
-    jtag_if.tdi    <= '0';
-    jtag_if.trst_b <= '0';
-    wait for C_JTAG_BFM_CONFIG.tck_period;
-    jtag_if.trst_b <= '1';
-    wait for C_JTAG_BFM_CONFIG.tck_period;
-  end procedure;
-
-  procedure vip_jtag_ir_capture_monitor(
-    signal   jtag_if  : in    t_jtag_if
-  ) is
-    type     tap_state_t is (TEST_LOGIC_RESET, RUN_TEST_IDLE,
-                             SELECT_DR_SCAN, CAPTURE_DR, SHIFT_DR, EXIT1_DR, PAUSE_DR, EXIT2_DR, UPDATE_DR,
-                             SELECT_IR_SCAN, CAPTURE_IR, SHIFT_IR, EXIT1_IR, PAUSE_IR, EXIT2_IR, UPDATE_IR);
-    variable v_state   : tap_state_t := TEST_LOGIC_RESET;
-    variable v_tms     : std_logic;
-    variable v_capture : std_logic_vector(JTAG_IR_WIDTH-1 downto 0);
-  begin
-    loop
-      wait until rising_edge(jtag_if.tck) or jtag_if.trst_b = '0';
-      if jtag_if.trst_b = '0'
-      then
-        v_state := TEST_LOGIC_RESET;
-      else
-        -- Shift-IR : TDO is the next bit of the captured value, LSB first
-        if v_state = SHIFT_IR
-        then
-          v_capture := jtag_if.tdo & v_capture(JTAG_IR_WIDTH-1 downto 1);
-        end if;
-
-        -- TAP controller (IEEE 1149.1 figure 6-1)
-        v_tms := jtag_if.tms;
-        case v_state is
-          when TEST_LOGIC_RESET => v_state := TEST_LOGIC_RESET when v_tms = '1' else RUN_TEST_IDLE;
-          when RUN_TEST_IDLE    => v_state := SELECT_DR_SCAN   when v_tms = '1' else RUN_TEST_IDLE;
-          when SELECT_DR_SCAN   => v_state := SELECT_IR_SCAN   when v_tms = '1' else CAPTURE_DR;
-          when CAPTURE_DR       => v_state := EXIT1_DR         when v_tms = '1' else SHIFT_DR;
-          when SHIFT_DR         => v_state := EXIT1_DR         when v_tms = '1' else SHIFT_DR;
-          when EXIT1_DR         => v_state := UPDATE_DR        when v_tms = '1' else PAUSE_DR;
-          when PAUSE_DR         => v_state := EXIT2_DR         when v_tms = '1' else PAUSE_DR;
-          when EXIT2_DR         => v_state := UPDATE_DR        when v_tms = '1' else SHIFT_DR;
-          when UPDATE_DR        => v_state := SELECT_DR_SCAN   when v_tms = '1' else RUN_TEST_IDLE;
-          when SELECT_IR_SCAN   => v_state := TEST_LOGIC_RESET when v_tms = '1' else CAPTURE_IR;
-          when CAPTURE_IR       => v_state := EXIT1_IR         when v_tms = '1' else SHIFT_IR;
-          when SHIFT_IR         => v_state := EXIT1_IR         when v_tms = '1' else SHIFT_IR;
-          when EXIT1_IR         => v_state := UPDATE_IR        when v_tms = '1' else PAUSE_IR;
-          when PAUSE_IR         => v_state := EXIT2_IR         when v_tms = '1' else PAUSE_IR;
-          when EXIT2_IR         => v_state := UPDATE_IR        when v_tms = '1' else SHIFT_IR;
-          when UPDATE_IR        => v_state := SELECT_DR_SCAN   when v_tms = '1' else RUN_TEST_IDLE;
-        end case;
-
-        -- End of the IR scan
-        if v_state = EXIT1_IR
-        then
-          check_value(v_capture, "00001", ERROR, "Capture-IR", C_VIP_SCOPE);
-        end if;
-      end if;
-    end loop;
   end procedure;
 
   -- ===========================================================================

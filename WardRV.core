@@ -104,8 +104,8 @@ filesets:
     file_type    : vhdlSource-2008
     depend :
       - bitvis:verification:uvvm
-      # jtag_bfm_pkg (JTAG BFM of WardRV_vips)
-      - asylum:verification:uvvm
+      # jtag_bfm_pkg (JTAG BFM, jtag_trst, jtag_ir_capture_monitor)
+      - ">=asylum:verification:uvvm:1.1.0"
       # string_pkg list_length / list_item / list_contains (TESTS_LIST)
       - ">=asylum:utils:pkg:1.10.0"
 

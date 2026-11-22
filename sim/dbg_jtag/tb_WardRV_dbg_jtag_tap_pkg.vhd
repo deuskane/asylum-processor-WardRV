@@ -13,6 +13,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-20  1.0      mrosiere Created (split of tb_WardRV_dbg_jtag_pkg.vhd)
+-- 2026-11-22  1.1      mrosiere jtag_trst of the BFM
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -86,7 +87,8 @@ package body tb_WardRV_dbg_jtag_tap_pkg is
     log(ID_LOG_HDR, "TRST* : IDCODE", C_TB_SCOPE);
     jtag_write_ir(ir_value   => JTAG_IR_BYPASS, msg => "BYPASS",
                   jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG);
-    vip_jtag_trst(jtag_if);
+    jtag_trst    (msg        => "TRST*",
+                  jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG_TRST);
     jtag_idle    (num_cycles => 1, msg => "Run-Test/Idle",
                   jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG);
     jtag_scan_dr (data_value => x"00000000", data_out => v_data, msg => "IDCODE",

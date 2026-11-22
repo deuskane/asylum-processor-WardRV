@@ -48,7 +48,7 @@ package body tb_WardRV_dbg_jtag_reset_pkg is
   ) is
     variable v_data     : std_logic_vector(32-1 downto 0);
   begin
-    -- TRST* by vip_jtag_trst : IDCODE selected
+    -- TRST* by jtag_trst in the sequencer : IDCODE selected
     jtag_idle   (num_cycles => 1, msg => "Run-Test/Idle",
                  jtag_if    => jtag_if, config => C_JTAG_BFM_CONFIG);
     jtag_scan_dr(data_value => x"00000000", data_out => v_data, msg => "IDCODE",

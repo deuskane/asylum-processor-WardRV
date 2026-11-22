@@ -14,7 +14,7 @@
 --              JTAG BFM : jtag_bfm_pkg of asylum-verification-uvvm, TDO
 --              tri-stated by tdo_en as at the pad. Monitors : TDO / tdo_en
 --              change on the falling edge of TCK only, Capture-IR value
---              (vip_jtag_ir_capture_monitor).
+--              (jtag_ir_capture_monitor of the BFM).
 -------------------------------------------------------------------------------
 -- Copyright (c) 2026
 -------------------------------------------------------------------------------
@@ -24,6 +24,8 @@
 -- 2026-11-20  1.1      mrosiere TESTS_LIST, one package per scenario, reset
 --                               pulse before each scenario
 -- 2026-11-22  1.2      mrosiere JTAG BFM of asylum-verification-uvvm
+-- 2026-11-22  1.3      mrosiere jtag_trst and jtag_ir_capture_monitor of the
+--                               BFM
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -134,7 +136,10 @@ begin  -- architecture sim
   -----------------------------------------------------------------------------
   -- Capture-IR value of each IR scan
   -----------------------------------------------------------------------------
-  vip_jtag_ir_capture_monitor(jtag_if);
+  jtag_ir_capture_monitor(jtag_if  => jtag_if,
+                          expected => "00001",
+                          scope    => C_SCOPE,
+                          config   => C_JTAG_BFM_CONFIG);
 
   -----------------------------------------------------------------------------
   -- Sequencer
@@ -161,7 +166,7 @@ begin  -- architecture sim
     for i in 1 to list_length(TESTS_LIST) loop
       -- Reset pulse, then TRST* (Test-Logic-Reset) : each scenario starts from reset
       vip_reset_scenario(clk_i, arst_b_i, 100 ns);
-      vip_jtag_trst(jtag_if);
+      jtag_trst(msg => "TRST*", jtag_if => jtag_if, config => C_JTAG_BFM_CONFIG_TRST);
 
       log(ID_LOG_HDR, "TEST " & integer'image(i) & "/" & integer'image(list_length(TESTS_LIST)) & " : " & list_item(TESTS_LIST, i), C_SCOPE);
       run_test(list_item(TESTS_LIST, i), jtag_if, dm_nb_req);
