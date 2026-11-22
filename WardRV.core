@@ -59,7 +59,6 @@ filesets:
       - hdl/iss/WardRV_iss.vhd
 
       # Debug unit (RISC-V Debug Spec 1.0)
-      - hdl/debug/WardRV_dbg_tap.vhd
       - hdl/debug/WardRV_dbg_dtm.vhd
       - hdl/debug/WardRV_dbg_dmi_cdc.vhd
       - hdl/debug/WardRV_dbg_jtag.vhd
@@ -89,6 +88,8 @@ filesets:
       - ">=asylum:utils:pkg:1.5.2"
       - ">=asylum:component:ram:1.0.0"
       - ">=asylum:target:techmap:1.0.0"
+      # jtag_tap, jtag_pkg (JTAG pins) of the debug unit
+      - ">=asylum:debug:jtag:1.0.0"
 
   #---------------------------------------
   files_sim:

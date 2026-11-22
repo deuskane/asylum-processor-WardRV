@@ -7,7 +7,7 @@
 -------------------------------------------------------------------------------
 -- Description:
 -- RISC-V JTAG Debug Transport Module (Debug Spec 1.0 chapter 6.1.4 / 6.1.5),
--- TCK domain : the user data registers of WardRV_dbg_tap.
+-- TCK domain : the user data registers of jtag_tap (asylum-debug-jtag).
 --  * dtmcs (32 bits) : version 1, abits 7, dmistat, idle, dmireset and
 --    dmihardreset (both clear the sticky busy status).
 --  * dmi (41 bits)   : address[40:34], data[33:2], op[1:0].

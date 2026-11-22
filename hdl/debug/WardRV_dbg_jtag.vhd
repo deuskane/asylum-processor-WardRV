@@ -8,7 +8,8 @@
 -- Description:
 -- JTAG Debug Transport (Debug Spec 1.0 chapter 6) : JTAG pins in (TCK
 -- domain), DMI requests out (clk domain).
---   WardRV_dbg_tap     : IEEE 1149.1 TAP, IDCODE, BYPASS
+--   jtag_tap           : IEEE 1149.1 TAP, IDCODE, BYPASS (asylum-debug-jtag),
+--                        DTMCS and DMI decoded here (user_tdo_en)
 --   WardRV_dbg_dtm     : dtmcs and dmi registers
 --   WardRV_dbg_dmi_cdc : TCK -> clk handshake
 -- arst_b_i is the power-on reset of the debug unit (never ndmreset).
@@ -18,13 +19,14 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-22  1.1      mrosiere TAP : jtag_tap of asylum-debug-jtag
 -------------------------------------------------------------------------------
 
 library ieee;
 use     ieee.std_logic_1164.all;
 
 library asylum;
-use     asylum.WardRV_pkg.all;
+use     asylum.jtag_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
 
 entity WardRV_dbg_jtag is
@@ -56,6 +58,7 @@ architecture rtl of WardRV_dbg_jtag is
   signal   shift_dr     : std_logic;
   signal   update_dr    : std_logic;
   signal   tdi          : std_logic;
+  signal   user_tdo_en  : std_logic;
   signal   user_tdo     : std_logic;
 
   signal   tck_dmi_req  : dmi_req_t;
@@ -64,9 +67,10 @@ architecture rtl of WardRV_dbg_jtag is
 
 begin  -- architecture rtl
 
-  ins_tap : entity work.WardRV_dbg_tap
+  ins_tap : jtag_tap
     generic map
-    (IDCODE_VALUE    => IDCODE_VALUE
+    (IR_WIDTH        => JTAG_IR_WIDTH
+    ,IDCODE_VALUE    => IDCODE_VALUE
     ,TRST_ENABLE     => TRST_ENABLE
     )
     port map
@@ -81,8 +85,14 @@ begin  -- architecture rtl
     ,shift_dr_o      => shift_dr
     ,update_dr_o     => update_dr
     ,tdi_o           => tdi
+    ,user_tdo_en_i   => user_tdo_en
     ,user_tdo_i      => user_tdo
     );
+
+  -- User instructions : DTMCS and DMI select the TDO of WardRV_dbg_dtm,
+  -- every other opcode but IDCODE is BYPASS
+  user_tdo_en <= '1' when ir = JTAG_IR_DTMCS or ir = JTAG_IR_DMI else
+                 '0';
 
   ins_dtm : entity work.WardRV_dbg_dtm
     generic map

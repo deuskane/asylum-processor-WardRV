@@ -23,6 +23,7 @@ library uvvm_util;
 context uvvm_util.uvvm_util_context;
 
 library asylum;
+use     asylum.jtag_pkg.all;
 use     asylum.WardRV_pkg.all;
 use     asylum.RV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
