@@ -26,6 +26,9 @@
 -- 2026-11-22  1.4      mrosiere vip_jtag_trst and vip_jtag_ir_capture_monitor
 --                               removed : jtag_trst and jtag_ir_capture_monitor
 --                               of the BFM
+-- 2026-11-23  1.5      mrosiere JTAG BFM configurations from
+--                               C_JTAG_BFM_CONFIG_DEFAULT (deferred constants) :
+--                               compatible with asylum-verification-uvvm 1.2.0
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -45,24 +48,11 @@ package WardRV_vips is
   constant C_DMI_IDLE    : natural := 5;                          -- Run-Test/Idle cycles after a dmi scan
 
   -- JTAG BFM : TCK 50 ns, IR of the debug unit, jtag_reset by TMS only
-  constant C_JTAG_BFM_CONFIG : t_jtag_bfm_config := (
-    tck_period       => 50 ns,
-    ir_width         => JTAG_IR_WIDTH,
-    idle_cycles      => 0,
-    trst_enable      => false,
-    match_strictness => MATCH_EXACT,
-    id_for_bfm       => ID_BFM
-    );
+  -- (deferred constants : value in the package body)
+  constant C_JTAG_BFM_CONFIG      : t_jtag_bfm_config;
 
   -- The same with TRST* : configuration of jtag_trst
-  constant C_JTAG_BFM_CONFIG_TRST : t_jtag_bfm_config := (
-    tck_period       => C_JTAG_BFM_CONFIG.tck_period,
-    ir_width         => C_JTAG_BFM_CONFIG.ir_width,
-    idle_cycles      => C_JTAG_BFM_CONFIG.idle_cycles,
-    trst_enable      => true,
-    match_strictness => C_JTAG_BFM_CONFIG.match_strictness,
-    id_for_bfm       => C_JTAG_BFM_CONFIG.id_for_bfm
-    );
+  constant C_JTAG_BFM_CONFIG_TRST : t_jtag_bfm_config;
 
   -- dmi.op
   constant DMI_OP_NOP    : std_logic_vector(1 downto 0) := "00";
@@ -126,6 +116,28 @@ end package WardRV_vips;
 package body WardRV_vips is
 
   constant C_VIP_SCOPE   : string := "WardRV_vips";
+
+  -- ===========================================================================
+  -- JTAG BFM configurations
+  -- ===========================================================================
+  -- C_JTAG_BFM_CONFIG_DEFAULT with the fields set by WardRV : the other fields
+  -- keep their default value (fields added by a later version of the BFM)
+  function vip_jtag_bfm_config(
+    constant trst_enable : in  boolean
+  ) return t_jtag_bfm_config is
+    variable v_config    : t_jtag_bfm_config := C_JTAG_BFM_CONFIG_DEFAULT;
+  begin
+    v_config.tck_period       := 50 ns;
+    v_config.ir_width         := JTAG_IR_WIDTH;
+    v_config.idle_cycles      := 0;
+    v_config.trst_enable      := trst_enable;
+    v_config.match_strictness := MATCH_EXACT;
+    v_config.id_for_bfm       := ID_BFM;
+    return v_config;
+  end function vip_jtag_bfm_config;
+
+  constant C_JTAG_BFM_CONFIG      : t_jtag_bfm_config := vip_jtag_bfm_config(trst_enable => false);
+  constant C_JTAG_BFM_CONFIG_TRST : t_jtag_bfm_config := vip_jtag_bfm_config(trst_enable => true);
 
   -- ===========================================================================
   -- Reset VIP
