@@ -269,7 +269,9 @@ In `syn_default`, 15 of the 985 LUTs are `INV`. For comparison, [PicoRV32](https
 | [hdl/bridge/imem2sbi.vhd](hdl/bridge/imem2sbi.vhd) | `imem2sbi` | 32-bit `imem` request to four 8-bit SBI reads (not instantiated in this repository) |
 | [hdl/debug/WardRV_debug.vhd](hdl/debug/WardRV_debug.vhd) | `WardRV_debug` | Debug unit: `WardRV_dbg_jtag` (TAP `jtag_tap` of [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag), DTM, DMI CDC) + `WardRV_dbg_dm` (Debug Module, debug memory, System Bus Access) |
 | [hdl/iss/WardRV_iss.vhd](hdl/iss/WardRV_iss.vhd), [WardRV_iss_pkg.vhd](hdl/iss/WardRV_iss_pkg.vhd) | `WardRV_iss` | Behavioural instruction-set simulator (simulation only) |
-| [hdl/RV_pkg.vhd](hdl/RV_pkg.vhd), [WardRV_pkg.vhd](hdl/WardRV_pkg.vhd), [WardRV_stats_pkg.vhd](hdl/WardRV_stats_pkg.vhd), [fsm/WardRV_decode_pkg.vhd](hdl/fsm/WardRV_decode_pkg.vhd), [debug/WardRV_debug_pkg.vhd](hdl/debug/WardRV_debug_pkg.vhd) | packages | RISC-V encodings and CSR addresses, interface records (`imem`, `dmem`; the JTAG records are in `jtag_pkg` of asylum-debug-jtag), trace and statistics, decoder selections, debug constants and records |
+| [hdl/RV_pkg.vhd](hdl/RV_pkg.vhd), [WardRV_pkg.vhd](hdl/WardRV_pkg.vhd), [WardRV_stats_pkg.vhd](hdl/WardRV_stats_pkg.vhd), [fsm/WardRV_decode_pkg.vhd](hdl/fsm/WardRV_decode_pkg.vhd), [debug/WardRV_debug_pkg.vhd](hdl/debug/WardRV_debug_pkg.vhd) | packages | RISC-V encodings and CSR addresses, interface records (`imem`, `dmem`; the JTAG records are in `jtag_pkg` of asylum-debug-jtag) and their majority vote (below), trace and statistics, decoder selections, debug constants and records |
+
+`WardRV_pkg` gives the majority vote of three copies of each interface record, for a triple modular redundancy (TMR) of the core (three cores in lockstep, e.g. the safety CPU of PicoSoC): `vote(i0, i1, i2)` for `imem_ini_t`, `imem_tgt_t`, `dmem_ini_t` and `dmem_tgt_t`, each bit of each field takes the value of at least two copies. Each field is voted by the TMR decoder of `ft_pkg` ([asylum-utils-pkg](https://github.com/deuskane/asylum-utils-pkg)): `decode(i2.<field> & i1.<field> & i0.<field>, FT_TMR).data`, a `std_logic` field as a vector of 1 bit.
 
 ### FSM
 
@@ -472,6 +474,7 @@ Compiles with `riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 -O2 -ffree
 | [sim/dbg_dm/](sim/dbg_dm/) | `WardRV_dbg_dm` (SBA, `PROGBUF_SIZE` 2 or 0, `AARPOSTINCREMENT_ENABLE`) | The sequencer is the debugger (DMI) and the hart (debug memory accesses, abstract programs checked against the GNU as encodings); SBA memory with a wait state |
 | [sim/dbg_system/](sim/dbg_system/) | `WardRV_fsm` (2 triggers) + `WardRV_debug` | System test: a debugger on the JTAG port, the core runs [esw/debug/debug_fw.S](esw/debug/debug_fw.S) (loaded again by each reset pulse) |
 | [sim/openocd/](sim/openocd/) | `WardRV_fsm` + `WardRV_debug` | OpenOCD + GDB co-simulation, see below |
+| [sim/pkg/](sim/pkg/) | functions of `WardRV_pkg` | `tb_pkg`, no DUT, scenarios chosen by `TESTS_LIST`: `vote` (96 checks), two values with every bit of every field different, the three copies equal then each copy in turn different from the two others in every field, for both values: the 8 cases of a majority of three bits on every bit of every field of the four records |
 | [sim/bridge/](sim/bridge/) | `imem2sbi` + `sbi_ram` | Two instances (`sbi_ram` with asynchronous and synchronous read): the RAM is filled through SBI, then the bridge fetches aligned, unaligned and out-of-range words; `cs` of the bridge must equal `re` |
 
 The JTAG testbenches drive the debug unit with the JTAG BFM `jtag_bfm_pkg` of [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) (TDO tri-stated by `tdo_en`, as at the pad): TRST* pulse alone (`jtag_trst`), scans, and the monitor `jtag_ir_capture_monitor`, which checks the full Capture-IR value `00001` of every IR scan (`jtag_write_ir` checks its two LSBs `01`). Shared code in [sim/common/](sim/common/): `WardRV_vips` (reset pulses; the configuration of the JTAG BFM, TCK 50 ns and 5-bit IR, without TRST* for `jtag_reset` by TMS only and with TRST* for `jtag_trst`; the DTM procedures with the busy retry of a debugger, nothing of the JTAG protocol itself) and `tb_WardRV_pkg` (memory model, hex loading, signature dump and comparison).
@@ -571,6 +574,7 @@ A campaign of RTL mutants (scratch copies of the RTL, never committed) checks th
 | `sim_basic`, `sim_irq` | `tb_WardRV` | Firmware tests |
 | `sim_compliance_act3_<test>` (39), `sim_compliance_act4_i_<test>` (39), `sim_compliance_act4_zicsr_<test>` (6) | `tb_WardRV` | Architecture tests, one per target |
 | `sim_bridge_imem2sbi` | `tb_imem2sbi` | `imem2sbi` bridge (434 checks) |
+| `sim_pkg_vote` | `tb_pkg` | `vote` of the four interface records of `WardRV_pkg` (96 checks) |
 | `sim_dbg_jtag`, `sim_dbg_dm`, `sim_dbg_system` | `tb_WardRV_dbg_jtag`, `tb_WardRV_dbg_dm`, `tb_WardRV_debug` | Reference configurations of the debug testbenches: build and elaboration only (`TESTS_LIST` empty), base of the scenario targets and of the list runs |
 | `sim_dbg_jtag_<name>`, `sim_dbg_dm_<name>`, `sim_dbg_system_<name>` | same | One target per scenario of the reference configuration |
 | `sim_dbg_jtag_slow_dmi`; `sim_dbg_dm_progbuf0`, `_postincrement`; `sim_dbg_system_trigger_ge`, `_lt`, `_range_execute`, `_range_store`, `_exc_ebreak`, `_exc_trigger` | same | Other configurations (clk period, `PROGBUF_SIZE = 0`, `AARPOSTINCREMENT_ENABLE`, `TRIGGER_RANGE_ENABLE`, `EBREAK_EXCEPTION`), each with the scenario that needs it |
@@ -612,7 +616,7 @@ The debug targets do not write a waveform (long simulations): add `--fst=dut.fst
 
 | Core | Repository | Purpose |
 |------|------------|---------|
-| `asylum:utils:pkg` | [asylum-utils-pkg](https://github.com/deuskane/asylum-utils-pkg) | Common packages (`sbi_pkg`, ...); the testbenches need >= 1.10.0 (`string_pkg` lists of `TESTS_LIST`) |
+| `asylum:utils:pkg` | [asylum-utils-pkg](https://github.com/deuskane/asylum-utils-pkg) | Common packages (`sbi_pkg`, `ft_pkg`, ...); the RTL needs >= 1.8.0 (`ft_pkg` TMR decoder of `vote`), the testbenches >= 1.10.0 (`string_pkg` lists of `TESTS_LIST`) |
 | `asylum:component:ram` | [asylum-component-ram](https://github.com/deuskane/asylum-component-ram) | `ram_2r1w` of the register file; `sbi_ram` of the bridge testbench |
 | `asylum:target:techmap` | [asylum-target-techmap](https://github.com/deuskane/asylum-target-techmap) | `sync2dffrn` synchronizers of the debug unit (DMI CDC, hart reset) |
 | `asylum:debug:jtag` | [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag) | TAP `jtag_tap` of the debug unit and the JTAG records of `jtag_pkg` (>= 1.0.0) |
