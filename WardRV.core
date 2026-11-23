@@ -198,6 +198,21 @@ filesets:
     file_type    : vhdlSource-2008
 
   #---------------------------------------
+  files_sim_pkg:
+  #---------------------------------------
+    files        :
+      - sim/pkg/tb_pkg_bfm_pkg.vhd
+      - sim/pkg/tb_pkg_vote_pkg.vhd
+      - sim/pkg/tb_pkg_tests_pkg.vhd
+      - sim/pkg/tb_pkg.vhd
+
+    file_type    : vhdlSource-2008
+    depend :
+      - bitvis:verification:uvvm
+      # string_pkg list_length / list_item / list_contains (TESTS_LIST)
+      - ">=asylum:utils:pkg:1.10.0"
+
+  #---------------------------------------
   syn:
   #---------------------------------------
     files        :
@@ -815,6 +830,17 @@ targets:
     description     : Bridge - imem2sbi fetching from sbi_ram (asynchronous and synchronous read)
     toplevel        : tb_imem2sbi
     filesets_append : [files_sim, files_sim_bridge]
+
+  #---------------------------------------
+  # Packages : functions of WardRV_pkg (tb_pkg, scenarios chosen by the
+  # generic TESTS_LIST)
+  #---------------------------------------
+  sim_pkg_vote:
+    << : *sim
+    description     : Packages - vote of imem_ini_t, imem_tgt_t, dmem_ini_t and dmem_tgt_t (every bit of every field)
+    toplevel        : tb_pkg
+    filesets_append : [files_sim_pkg]
+    parameters      : [TESTS_LIST=vote]
   
   #---------------------------------------
   # Interrupt : meip_i driven by the program (tb_WardRV, C_MEIP_ADDR)
@@ -1666,7 +1692,7 @@ parameters :
   # Debug unit testbenches
   #---------------------------------------
   TESTS_LIST :
-    description : Scenarios of the debug unit testbenches, separated by ',' (run time, empty = build only)
+    description : Scenarios of the debug unit testbenches and of tb_pkg, separated by ',' (run time, empty = build only)
     datatype    : str
     default     : ""
     paramtype   : generic
