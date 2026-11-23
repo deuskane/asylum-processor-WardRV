@@ -15,11 +15,15 @@
 -- 2026-05-09  1.1      mrosiere Rename recorded types
 -- 2026-11-22  1.2      mrosiere JTAG records moved to asylum.jtag_pkg
 --                               (asylum-debug-jtag)
+-- 2026-11-23  1.3      mrosiere vote : majority of three buses (TMR)
 -------------------------------------------------------------------------------
 
 library IEEE;
 use     IEEE.STD_LOGIC_1164.ALL;
 use     IEEE.NUMERIC_STD.ALL;
+
+library asylum;
+use     asylum.ft_pkg.all;
 
 package WardRV_pkg is
 
@@ -46,6 +50,13 @@ package WardRV_pkg is
     rdata        : std_logic_vector(32-1 downto 0);
     err          : std_logic;
   end record dmem_tgt_t;
+
+  -- Majority vote of three copies of a bus (TMR : three CPUs in lockstep) :
+  -- each bit of each field takes the value of at least two copies
+  function vote (i0, i1, i2 : imem_ini_t) return imem_ini_t;
+  function vote (i0, i1, i2 : imem_tgt_t) return imem_tgt_t;
+  function vote (i0, i1, i2 : dmem_ini_t) return dmem_ini_t;
+  function vote (i0, i1, i2 : dmem_tgt_t) return dmem_tgt_t;
 
 -- [COMPONENT_INSERT][BEGIN]
 component WardRV_iss is
@@ -84,3 +95,46 @@ end component WardRV_iss;
 -- [COMPONENT_INSERT][END]
 
 end WardRV_pkg;
+
+package body WardRV_pkg is
+
+  -- Each field is voted by the TMR decoder of ft_pkg : decode(c2 & c1 & c0,
+  -- FT_TMR).data is the bitwise majority of the copies c0, c1 and c2 (the
+  -- layout of encode(data, FT_TMR)), a std_logic as a vector of 1 bit
+  function vote (i0, i1, i2 : imem_ini_t) return imem_ini_t is
+    variable z : imem_ini_t;
+  begin
+    z.valid := decode(i2.valid & i1.valid & i0.valid, FT_TMR).data(0);
+    z.addr  := decode(i2.addr  & i1.addr  & i0.addr , FT_TMR).data;
+    return z;
+  end function vote;
+
+  function vote (i0, i1, i2 : imem_tgt_t) return imem_tgt_t is
+    variable z : imem_tgt_t;
+  begin
+    z.ready := decode(i2.ready & i1.ready & i0.ready, FT_TMR).data(0);
+    z.inst  := decode(i2.inst  & i1.inst  & i0.inst , FT_TMR).data;
+    return z;
+  end function vote;
+
+  function vote (i0, i1, i2 : dmem_ini_t) return dmem_ini_t is
+    variable z : dmem_ini_t;
+  begin
+    z.valid := decode(i2.valid & i1.valid & i0.valid, FT_TMR).data(0);
+    z.addr  := decode(i2.addr  & i1.addr  & i0.addr , FT_TMR).data;
+    z.wdata := decode(i2.wdata & i1.wdata & i0.wdata, FT_TMR).data;
+    z.we    := decode(i2.we    & i1.we    & i0.we   , FT_TMR).data(0);
+    z.be    := decode(i2.be    & i1.be    & i0.be   , FT_TMR).data;
+    return z;
+  end function vote;
+
+  function vote (i0, i1, i2 : dmem_tgt_t) return dmem_tgt_t is
+    variable z : dmem_tgt_t;
+  begin
+    z.ready := decode(i2.ready & i1.ready & i0.ready, FT_TMR).data(0);
+    z.rdata := decode(i2.rdata & i1.rdata & i0.rdata, FT_TMR).data;
+    z.err   := decode(i2.err   & i1.err   & i0.err  , FT_TMR).data(0);
+    return z;
+  end function vote;
+
+end package body WardRV_pkg;

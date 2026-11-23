@@ -89,7 +89,8 @@ filesets:
     file_type    : vhdlSource-2008
     logical_name : asylum
     depend       :
-      - ">=asylum:utils:pkg:1.5.2"
+      # ft_pkg : decode(FT_TMR) of any index range (vote of WardRV_pkg)
+      - ">=asylum:utils:pkg:1.8.0"
       - ">=asylum:component:ram:1.0.0"
       - ">=asylum:target:techmap:1.0.0"
       # jtag_tap, jtag_pkg (JTAG pins) of the debug unit
