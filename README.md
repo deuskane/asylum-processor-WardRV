@@ -239,8 +239,8 @@ Figures of the `syn_*` targets (`make nonreg_syn`, see [Targets](#targets)): [sy
 | Configuration | LUT¹ | LUTRAM¹ | FF¹ | CARRY4¹ | MUXF7/F8¹ | BRAM¹ | DSP¹ | Area² (µm²) | kGE³ |
 |---|---|---|---|---|---|---|---|---|---|
 | `syn_default` (core, no debug unit) | 985 | 48 | 325 | 13 | 152 | 0 | 0 | 66461.24 | 17.706 |
-| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 1925 | 48 | 780 | 20 | 289 | 0 | 0 | 90222.78 | 24.036 |
-| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 4503 | 48 | 2022 | 133 | 591 | 0 | 0 | 163352.92 | 43.519 |
+| `syn_debug` (debug unit: program buffer 2, 2 data, no trigger, no SBA) | 1890 | 48 | 780 | 20 | 184 | 0 | 0 | 90106.42 | 24.005 |
+| `syn_debug_max` (program buffer 16, 12 data, 8 triggers with ranges, SBA, every option) | 4417 | 48 | 2022 | 133 | 598 | 0 | 0 | 163754.55 | 43.626 |
 
 ¹ Xilinx Artix-7 (LUT6), Yosys 0.33 `synth_xilinx -flatten -noiopad -noclkbuf`, before place and route: every cell of the netlist is counted, Vivado may differ. Identical cells are merged as a vendor tool does (`opt_merge -share_all`): the inverters of an active-low reset net become one; every remaining cell is counted, an `INV` as a `LUT1`. The register file (`ram_2r1w`, 32 x 32 bits, asynchronous read) is in LUTRAM, not in BRAM.
 
@@ -328,7 +328,7 @@ RISC-V Debug Specification 1.0, execution-based (the core executes the debug cod
                                                   +----------------------------------+
 ```
 
-The TAP is `jtag_tap` of [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag) (IEEE 1149.1, IR of `JTAG_IR_WIDTH` = 5 bits, IDCODE `00001` selected after reset, BYPASS). `WardRV_dbg_jtag` decodes its two user instructions, DTMCS (`10000`) and DMI (`10001`): `user_tdo_en_i` selects the TDO of `WardRV_dbg_dtm`, every other opcode is BYPASS.
+The TAP is `jtag_tap` of [asylum-debug-jtag](https://github.com/deuskane/asylum-debug-jtag) (IEEE 1149.1, IR of `JTAG_IR_WIDTH` = 5 bits, IDCODE `00001` selected after reset, BYPASS). `WardRV_dbg_dtm` decodes its two user instructions, DTMCS (`10000`) and DMI (`10001`), next to their data registers: its `tdo_en_o`, wired by `WardRV_dbg_jtag` to `user_tdo_en_i` of the TAP, selects its TDO; every other opcode is BYPASS.
 
 How a debugger uses it:
 
@@ -600,8 +600,8 @@ To run a list of scenarios, build the testbench once, then run the list without 
 
 ```bash
 make sim_dbg_system                          # build and elaboration (TESTS_LIST empty)
-fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.2.0 --TESTS_LIST=halt_resume,step,halt_resume
-fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.2.0 --TESTS_LIST=trigger_ge,trigger_lt --TRIGGER_RANGE_ENABLE=true
+fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.3.0 --TESTS_LIST=halt_resume,step,halt_resume
+fusesoc --cores-root . run --build-root build --no-export --run --target sim_dbg_system asylum:processor:WardRV:1.3.0 --TESTS_LIST=trigger_ge,trigger_lt --TRIGGER_RANGE_ENABLE=true
 ```
 
 To add a scenario: a `tb_<tb>_<name>_pkg.vhd` with its procedure `run`, its name in `C_TESTS` and its case in `run_test` of the `tests_pkg`, the file in the `files_sim_debug` fileset and a `sim_dbg_<tb>_<name>` target in [WardRV.core](WardRV.core), then `make mk/targets.txt` and `make ci_generate`.

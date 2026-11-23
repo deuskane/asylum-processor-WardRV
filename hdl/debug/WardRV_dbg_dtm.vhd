@@ -7,7 +7,8 @@
 -------------------------------------------------------------------------------
 -- Description:
 -- RISC-V JTAG Debug Transport Module (Debug Spec 1.0 chapter 6.1.4 / 6.1.5),
--- TCK domain : the user data registers of jtag_tap (asylum-debug-jtag).
+-- TCK domain : the user data registers of jtag_tap (asylum-debug-jtag) and
+-- the decoder of their two instructions (tdo_en_o).
 --  * dtmcs (32 bits) : version 1, abits 7, dmistat, idle, dmireset and
 --    dmihardreset (both clear the sticky busy status).
 --  * dmi (41 bits)   : address[40:34], data[33:2], op[1:0].
@@ -23,6 +24,7 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-22  1.1      mrosiere tdo_en_o : DTMCS / DMI decoder (was in WardRV_dbg_jtag)
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -47,6 +49,7 @@ entity WardRV_dbg_dtm is
    ;update_dr_i    : in  std_logic
    ;tdi_i          : in  std_logic
    ;tdo_o          : out std_logic
+   ;tdo_en_o       : out std_logic                                -- DTMCS or DMI : tdo_o selected
     -- DMI (TCK side of WardRV_dbg_dmi_cdc)
    ;dmi_req_o      : out dmi_req_t                                -- valid during Update-DR
    ;dmi_busy_i     : in  std_logic                                -- Request in progress
@@ -113,7 +116,10 @@ begin  -- architecture rtl
     end if;
   end process;
 
+  -- DTMCS and DMI select tdo_o in jtag_tap, every other opcode but IDCODE
+  -- is BYPASS
   tdo_o      <= dr_r(0);
+  tdo_en_o   <= sel_dtmcs or sel_dmi;
 
   -----------------------------------------------------------------------------
   -- DMI request : Update-DR of dmi, sampled on the falling edge of TCK
