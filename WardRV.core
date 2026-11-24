@@ -179,18 +179,18 @@ filesets:
   files_sim_openocd:
   #---------------------------------------
     files        :
-      - sim/openocd/rbb_pkg.vhd
       - sim/openocd/tb_WardRV_openocd.vhd
-      - sim/openocd/remote_bitbang.c                                 : {file_type : user, copyto : openocd/remote_bitbang.c}
       - sim/openocd/wardrv.cfg                                       : {file_type : user, copyto : openocd/wardrv.cfg}
       - sim/openocd/scenario.py                                      : {file_type : user, copyto : openocd/scenario.py}
-      - sim/openocd/cosim.sh                                         : {file_type : user, copyto : openocd/cosim.sh}
       - esw/openocd/start.S                                          : {file_type : user, copyto : openocd/fw/start.S}
       - esw/openocd/main.c                                           : {file_type : user, copyto : openocd/fw/main.c}
       - esw/openocd/link.ld                                          : {file_type : user, copyto : openocd/fw/link.ld}
       - esw/openocd/Makefile                                         : {file_type : user, copyto : openocd/fw/Makefile}
 
     file_type    : vhdlSource-2008
+    depend :
+      # OpenOCD co-simulation kit : rbb_jtag (PIN mode), rbb_server.c, cosim.sh
+      - ">=asylum:verification:openocd:1.0.0"
 
   #---------------------------------------
   files_sim_bridge:
@@ -1060,7 +1060,8 @@ targets:
   #---------------------------------------
   # OpenOCD + GDB co-simulation : one target per configuration of the debug
   # unit (program buffer, System Bus Access, triggers). Needs openocd and
-  # gdb-multiarch (sim/openocd/cosim.sh, hooks run in the work root).
+  # gdb-multiarch (hooks rbb/cosim.sh of the kit asylum:verification:openocd,
+  # run in the work root).
   #---------------------------------------
   dbg_openocd: &dbg_openocd
   #---------------------------------------
@@ -1070,7 +1071,7 @@ targets:
     filesets_append : [files_sim, files_sim_openocd]
     parameters      : [PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE, NB_TRIGGERS, AARPOSTINCREMENT_ENABLE, TRIGGER_RANGE_ENABLE]
     hooks :
-      pre_build     : [cosim_build]
+      pre_build     : [cosim_build, fw_build]
       pre_run       : [cosim_start]
       post_run      : [cosim_check]
 
@@ -1646,16 +1647,21 @@ scripts :
     cmd : [bash, yosys_synth.sh]
 
   #---------------------------------------
-  # Hooks of sim_dbg_openocd_* (cwd = work_root)
+  # Hooks of sim_dbg_openocd_* (cwd = work_root, rbb/cosim.sh of the kit
+  # asylum:verification:openocd) : librbb.so, the firmware, OpenOCD + GDB
+  # in the background, PASS line of the scenario
   #---------------------------------------
   cosim_build :
-    cmd : [bash, openocd/cosim.sh, build]
+    cmd : [bash, rbb/cosim.sh, build]
+
+  fw_build :
+    cmd : [make, -C, openocd/fw]
 
   cosim_start :
-    cmd : [bash, openocd/cosim.sh, start]
+    cmd : [bash, rbb/cosim.sh, start, openocd/wardrv.cfg, openocd/scenario.py]
 
   cosim_check :
-    cmd : [bash, openocd/cosim.sh, check]
+    cmd : [bash, rbb/cosim.sh, check]
 
 #=========================================
 parameters :

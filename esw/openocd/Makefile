@@ -2,7 +2,7 @@
 # Firmware of the OpenOCD + GDB co-simulation (sim_dbg_openocd_*) :
 # start.S + main.c -> fw.elf (loaded by GDB), fw.hex (initial content of the
 # RAM of tb_WardRV_openocd), fw.lst. Built by the pre_build hook of the
-# targets (sim/openocd/cosim.sh) with the toolchain of the asylum-env image :
+# targets (fw_build) with the toolchain of the asylum-env image :
 # nothing is committed.
 # -----------------------------------------------------------------------------
 RISCV_PREFIX ?= riscv64-unknown-elf-
