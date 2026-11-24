@@ -39,9 +39,12 @@ CAPI=2:
 # 2026-11-23  1.4.0    mrosiere pkg : vote of imem_ini_t, imem_tgt_t, dmem_ini_t and dmem_tgt_t (TMR, ft_pkg :
 #                               asylum:utils:pkg >= 1.8.0),
 #                               tb : tb_pkg, sim_pkg_vote
+# 2026-11-24  1.5.0    mrosiere tb : sim_dbg_openocd_* on the OpenOCD co-simulation kit
+#                               (asylum:verification:openocd >= 1.0.0, port 9824),
+#                               GDB helpers gdb_lib.py in the default target
 #-----------------------------------------------------------------------------
 
-name        : asylum:processor:WardRV:1.4.0
+name        : asylum:processor:WardRV:1.5.0
 description : WardRV - Academic RISCV processor
 
 #=========================================
