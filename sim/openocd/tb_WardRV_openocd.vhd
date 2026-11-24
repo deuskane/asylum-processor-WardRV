@@ -7,10 +7,12 @@
 -------------------------------------------------------------------------------
 -- Description: WardRV_fsm (DEBUG_ENABLE, RESETHALTREQ_ENABLE, NB_TRIGGERS) +
 --              WardRV_debug (PROGBUF_SIZE, DATA_COUNT, SBA_ENABLE) driven
---              by a real debugger : OpenOCD (remote_bitbang adapter) talks to
---              sim/openocd/remote_bitbang.c, called at each clk cycle
---              through VHPIDIRECT (TCK = clk / 2), and GDB runs
---              sim/openocd/scenario.py (hooks in sim/openocd/cosim.sh).
+--              by a real debugger : OpenOCD (remote_bitbang adapter) drives
+--              the JTAG pins through rbb_jtag of the co-simulation kit
+--              asylum:verification:openocd (rbb_server.c in PIN mode,
+--              called at each clk cycle through VHPIDIRECT, TCK = clk / 2),
+--              and GDB runs sim/openocd/scenario.py (hooks rbb/cosim.sh of
+--              the kit).
 --              - The debug options are written in cosim.cfg for the
 --                scenario, which checks them against OpenOCD.
 --              - RAM of 64 KB at C_FIRMWARE_ADDR loaded with FIRMWARE_FILE,
@@ -23,6 +25,8 @@
 -- Revisions  :
 -- Date        Version  Author   Description
 -- 2026-11-17  1.0      mrosiere Created
+-- 2026-11-24  1.1      mrosiere JTAG pins driven by rbb_jtag of the co-simulation
+--                               kit asylum:verification:openocd
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -38,8 +42,9 @@ use     asylum.jtag_pkg.all;
 use     asylum.WardRV_pkg.all;
 use     asylum.WardRV_debug_pkg.all;
 
+library asylum_uvvm;
+
 use     work.tb_WardRV_pkg.all;
-use     work.rbb_pkg.all;
 
 entity tb_WardRV_openocd is
   generic (
@@ -67,6 +72,8 @@ architecture sim of tb_WardRV_openocd is
   signal   hart_rst_b  : std_logic;
   signal   ndmreset    : std_logic;
   signal   quit        : boolean := false;
+  signal   rbb_quit    : std_logic;
+  signal   rbb_tdo     : std_logic;
 
   signal   mem         : ram_t(0 to C_RAM_SIZE-1);
   signal   imem_ini    : imem_ini_t;
@@ -176,25 +183,27 @@ begin  -- architecture sim
   end process;
 
   -----------------------------------------------------------------------------
-  -- JTAG : OpenOCD remote_bitbang, one call per clk cycle
+  -- JTAG : OpenOCD remote_bitbang (PIN mode of the kit), one call per clk cycle
   -----------------------------------------------------------------------------
-  p_rbb : process
-    variable v_pins : std_logic_vector(RBB_QUIT downto 0);
-    variable v_tdo  : integer;
-  begin
-    wait until arst_b_i = '1';
-    while not quit loop
-      wait until rising_edge(clk_i);
-      -- TDO is driven in Shift-IR / Shift-DR only (pull-up otherwise)
-      v_tdo  := 0 when jtag_tgt.tdo_en = '1' and jtag_tgt.tdo = '0' else 1;
-      v_pins := std_logic_vector(to_unsigned(rbb_tick(v_tdo), RBB_QUIT+1));
-      jtag_ini.tck <= v_pins(RBB_TCK);
-      jtag_ini.tms <= v_pins(RBB_TMS);
-      jtag_ini.tdi <= v_pins(RBB_TDI);
-      quit         <= v_pins(RBB_QUIT) = '1';
-    end loop;
-    wait;
-  end process;
+  ins_rbb : entity asylum_uvvm.rbb_jtag
+    generic map
+    (CLK_DIV         => 1
+    )
+    port map
+    (clk_i           => clk_i
+    ,arst_b_i        => arst_b_i
+    ,tck_o           => jtag_ini.tck
+    ,tms_o           => jtag_ini.tms
+    ,tdi_o           => jtag_ini.tdi
+    ,trst_b_o        => open                               -- reset_config none
+    ,srst_b_o        => open
+    ,tdo_i           => rbb_tdo
+    ,quit_o          => rbb_quit
+    );
+
+  -- TDO is driven in Shift-IR / Shift-DR only (pull-up otherwise)
+  rbb_tdo <= jtag_tgt.tdo when jtag_tgt.tdo_en = '1' else '1';
+  quit    <= rbb_quit = '1';
 
   -----------------------------------------------------------------------------
   -- Debug options for the scenario, end of the simulation
