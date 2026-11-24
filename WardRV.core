@@ -100,6 +100,17 @@ filesets:
       - ">=asylum:debug:jtag:1.0.0"
 
   #---------------------------------------
+  # GDB helpers of the OpenOCD co-simulations (check, halt, resume, ...),
+  # in the default target : the co-simulations of the cores that depend on
+  # WardRV (PicoSoC) import the same openocd/gdb_lib.py
+  #---------------------------------------
+  files_gdb:
+  #---------------------------------------
+    files        :
+      - sim/openocd/gdb_lib.py                                       : {copyto : openocd/gdb_lib.py}
+    file_type    : user
+
+  #---------------------------------------
   files_sim:
   #---------------------------------------
     files        :
@@ -622,6 +633,7 @@ targets:
     description     : Default Target
     filesets        :
       - files_hdl
+      - files_gdb
     toplevel        : sbi_WardRV_fsm
     default_tool    : ghdl
 

@@ -16,17 +16,25 @@
 #                              there are)
 #                without     : halt, resume, registers, monitor step
 #              Prints ok / ERROR for each check, then SCENARIO PASS / FAIL.
+#              Generic helpers in gdb_lib.py (next to this file).
 #-----------------------------------------------------------------------------
 # Copyright (c) 2026
 #-----------------------------------------------------------------------------
 # Revisions  :
 # Date        Version  Author   Description
 # 2026-11-17  1.0      mrosiere Created
+# 2026-11-24  1.1      mrosiere Generic helpers moved to gdb_lib.py
 #-----------------------------------------------------------------------------
 
 import os
 import re
+import sys
 import gdb
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from   gdb_lib import check, run, fails, u32, flush, monitor_value, mdw, cause
+from   gdb_lib import connect, halt, resume, stop_at, openocd_log, main
+from   gdb_lib import EBREAK, TRIGGER, HALTREQ, STEP, RESETHALTREQ
 
 PROGBUF       = int(os.environ["PROGBUF_SIZE"])
 DATA_COUNT    = int(os.environ["DATA_COUNT"])
@@ -38,105 +46,13 @@ IDCODE        = 0x1DEB0001                         # tb_WardRV_openocd
 HARTID        = 0x900DC0DE
 RESET_ADDR    = 0x80000000
 PATTERN       = [0x11111111, 0x22222222, 0x33333333, 0x44444444]
-EBREAK, TRIGGER, HALTREQ, STEP, RESETHALTREQ = 1, 2, 3, 4, 5
-
-errors        = 0
-
-#--------------------------------------------
-#--------------------------------------------
-def check(cond, msg):
-    global errors
-    print(("  ok    : " if cond else "  ERROR : ") + msg, flush=True)
-    errors += not cond
-
-#--------------------------------------------
-#--------------------------------------------
-def run(cmd):
-    """
-    Execute a GDB command
-    :param cmd: GDB command
-    :return: its output
-    """
-    print(f"(gdb) {cmd}", flush=True)
-    out = gdb.execute(cmd, to_string=True)
-    print(out, end="", flush=True)
-    return out
-
-#--------------------------------------------
-#--------------------------------------------
-def fails(cmd):
-    """
-    Execute a GDB command that must fail
-    :param cmd: GDB command
-    :return: True when the command raised an error
-    """
-    try:
-        run(cmd)
-    except gdb.error as e:
-        print(f"      error : {e}", flush=True)
-        return True
-    return False
-
-#--------------------------------------------
-#--------------------------------------------
-def u32(expr):
-    return int(gdb.parse_and_eval(expr)) & 0xFFFFFFFF
-
-#--------------------------------------------
-#--------------------------------------------
-def flush():
-    """Forget the registers and the memory cached by GDB (after monitor commands)"""
-    gdb.execute("maintenance flush register-cache", to_string=True)
-    gdb.execute("maintenance flush dcache", to_string=True)
-
-#--------------------------------------------
-#--------------------------------------------
-def monitor_value(cmd):
-    """
-    :param cmd: OpenOCD command
-    :return: the last hexadecimal number it prints
-    """
-    return int(re.findall(r"0x[0-9a-fA-F]+", run(f"monitor {cmd}"))[-1], 16)
-
-#--------------------------------------------
-#--------------------------------------------
-def mdw(addr):
-    """
-    :param addr: address
-    :return: 32-bit word read by OpenOCD ("addr: value"), None if it failed
-    """
-    try:
-        found = re.search(rf"0x{addr:08x}: ([0-9a-f]{{8}})", run(f"monitor mdw 0x{addr:08x}"))
-    except gdb.error as e:
-        print(f"      error : {e}", flush=True)
-        return None
-    return int(found.group(1), 16) if found else None
-
-#--------------------------------------------
-#--------------------------------------------
-def cause():
-    return (u32("$dcsr") >> 6) & 7
-
-#--------------------------------------------
-#--------------------------------------------
-def stop_at(location):
-    """
-    Continue to a temporary breakpoint (software with memory, else hardware)
-    :param location: GDB location (a function : after its prologue)
-    """
-    run(f"{'tbreak' if MEMORY else 'thbreak'} {location}")
-    addr = int(gdb.breakpoints()[-1].locations[0].address)
-    run("continue")
-    check(u32("$pc") == addr, f"stop at {location} : pc 0x{addr:08X}")
 
 #--------------------------------------------
 # Steps
 #--------------------------------------------
 def step_connect():
-    for cmd in ("set pagination off", "set confirm off", "set width 0", "set remotetimeout 300",
-                "file openocd/fw/fw.elf", "target extended-remote localhost:3333"):
-        run(cmd)
-    log = open("openocd.log").read()
+    connect("openocd/fw/fw.elf")
+    log = openocd_log()
     check(f"tap/device found: 0x{IDCODE:08x}" in log, f"IDCODE 0x{IDCODE:08X}")
     check("Examined RISC-V core" in log, "RISC-V core examined")
     check(f"datacount={DATA_COUNT} progbufsize={PROGBUF}" in log, f"OpenOCD found {DATA_COUNT} data, {PROGBUF} program buffer words")
@@ -238,7 +154,7 @@ def step_breakpoints():
 #--------------------------------------------
 def step_stepping():
     if MEMORY or TRIGGERS:
-        stop_at("step_test")
+        stop_at("step_test", not MEMORY)
     else:
         # No breakpoint : jump to step_test, return to end_marker
         run("set $pc = &step_test")
@@ -281,27 +197,26 @@ def step_memory():
 def step_end():
     expected = (0x11111199 + 0x01020304 + 0x3333BEEF) if MEMORY else sum(PATTERN)
     if MEMORY or TRIGGERS:
-        stop_at("end_marker")
+        stop_at("end_marker", not MEMORY)
         check(u32("$a0") == expected & 0xFFFFFFFF, f"result 0x{expected & 0xFFFFFFFF:08X} (argument of end_marker)")
     else:
-        run("monitor resume")
-        run("monitor halt")
-        flush()
+        resume()
+        halt()
         end = u32("(unsigned int)&end_marker")
         check(end <= u32("$pc") < end + 0x40, "the firmware runs in end_marker")
     # Memory while the core runs
     ticks = u32("(unsigned int)&ticks")
-    run("monitor resume")
+    resume()
     if SBA:
         run("monitor riscv set_mem_access sysbus")
         first = mdw(ticks)
         check(first is not None and mdw(ticks) > first, "System Bus Access : ticks read while the core runs")
     else:
         check(mdw(ticks) is None, "no memory access while the core runs")
-    run("monitor halt")
+    halt()
 
     # OpenOCD enumerates the triggers when the first breakpoint is set
-    found = re.search(r"Found (\d+) triggers", open("openocd.log").read())
+    found = re.search(r"Found (\d+) triggers", openocd_log())
     check(found is not None and int(found.group(1)) == TRIGGERS, f"OpenOCD found {TRIGGERS} triggers")
 
 #--------------------------------------------
@@ -341,14 +256,4 @@ print(f"Configuration : PROGBUF_SIZE {PROGBUF}, SBA_ENABLE {SBA}, NB_TRIGGERS {T
 steps = [step_connect, step_reset_halt, step_registers, step_load, step_breakpoints,
          step_stepping, step_memory, step_end]
 steps += [step_many_triggers] * (TRIGGERS > 2) + [step_refused_without_memory] * (not MEMORY)
-for step in steps:
-    print(f"===== {step.__name__}", flush=True)
-    try:
-        step()
-    except gdb.error as e:
-        check(False, f"{step.__name__} : {e}")
-print("SCENARIO PASS" if errors == 0 else f"SCENARIO FAIL ({errors} errors)", flush=True)
-try:
-    run("detach")
-except gdb.error:
-    pass
+main(steps)
