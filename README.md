@@ -565,12 +565,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from   gdb_lib import check, connect, halt, resume, u32, main
 
+HARTID = 0x900DC0DE                              # HARTID generic of the hart (here tb_WardRV_openocd)
+
 def step_halt_resume():
     connect()                                    # GDB port $GDB_PORT (3333): the hart halts
     halt()
     pc = u32("$pc")
     check(u32("$dpc") == pc, f"halted, pc 0x{pc:08X}")
-    check(u32("$mhartid") == 0, "mhartid of the hart")
+    check(u32("$mhartid") == HARTID, f"mhartid = 0x{HARTID:08X}")
     resume()
 
 main([step_halt_resume])
