@@ -555,7 +555,26 @@ The scenarios are chosen at run time with the generic `TESTS_LIST`: names separa
 
 ### OpenOCD + GDB co-simulation
 
-GDB -> OpenOCD (riscv target, `remote_bitbang` adapter) -> TCP -> [sim/openocd/remote_bitbang.c](sim/openocd/remote_bitbang.c), called by `tb_WardRV_openocd` at each clock cycle through GHDL VHPIDIRECT ([rbb_pkg.vhd](sim/openocd/rbb_pkg.vhd)), TCK = clk / 2. The hooks of the targets ([cosim.sh](sim/openocd/cosim.sh)) build `librbb.so` and the firmware [esw/openocd/](esw/openocd/) (`pre_build`), start OpenOCD ([wardrv.cfg](sim/openocd/wardrv.cfg)) and GDB ([scenario.py](sim/openocd/scenario.py)) in the background (`pre_run`), then print the logs and fail unless the scenario passed (`post_run`). The scenario reads the debug options of the testbench (`cosim.cfg`), uses every feature present and checks that every absent one fails with an error (see the table of [Debug unit](#debug-unit)). Needs `openocd` and `gdb-multiarch` (in the asylum-env image). The base `dbg_openocd` cannot run alone (it has no configuration), so it is named without `sim_`.
+GDB -> OpenOCD (riscv target, `remote_bitbang` adapter) -> TCP -> OpenOCD co-simulation kit `asylum:verification:openocd` of [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) in PIN mode: its testbench entity `rbb_jtag` calls the remote_bitbang server `rbb_server.c` at each clock cycle through GHDL VHPIDIRECT and drives the JTAG pins of `tb_WardRV_openocd`, TCK = clk / 2. The hooks of the targets build `librbb.so` (`rbb/cosim.sh build` of the kit) and the firmware [esw/openocd/](esw/openocd/) (`make -C openocd/fw`) in `pre_build`, start OpenOCD ([wardrv.cfg](sim/openocd/wardrv.cfg), port 9824) and GDB ([scenario.py](sim/openocd/scenario.py)) in the background (`rbb/cosim.sh start`, `pre_run`), then print the logs and fail unless the scenario printed `SCENARIO PASS` (`rbb/cosim.sh check`, `post_run`). The scenario reads the debug options of the testbench (`cosim.cfg`), uses every feature present and checks that every absent one fails with an error (see the table of [Debug unit](#debug-unit)). Needs `gcc`, `openocd` and `gdb-multiarch` (in the asylum-env image). The base `dbg_openocd` cannot run alone (it has no configuration), so it is named without `sim_`.
+
+The generic part of the scenario is [sim/openocd/gdb_lib.py](sim/openocd/gdb_lib.py): `check` (one `ok` / `ERROR` line), `run` / `fails` (GDB commands), `u32`, `flush`, `monitor_value`, `mdw` (OpenOCD commands), `connect`, `halt`, `resume`, `stop_at`, `cause` (`dcsr.cause`) and `main` (runs the steps, prints `SCENARIO PASS` / `SCENARIO FAIL`). The default target of the core copies it to `openocd/gdb_lib.py` of the work root: the co-simulation of a core that depends on WardRV (for example PicoSoC) imports it from its own GDB script in `openocd/`, without a copy:
+
+```python
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from   gdb_lib import check, connect, halt, resume, u32, main
+
+def step_halt_resume():
+    connect()                                    # GDB port $GDB_PORT (3333): the hart halts
+    halt()
+    pc = u32("$pc")
+    check(u32("$dpc") == pc, f"halted, pc 0x{pc:08X}")
+    check(u32("$mhartid") == 0, "mhartid of the hart")
+    resume()
+
+main([step_halt_resume])
+```
 
 ### Validation of the testbenches (mutants)
 
@@ -624,6 +643,7 @@ The debug targets do not write a waveform (long simulations): add `--fst=dut.fst
 | `asylum:utils:yosys_synth` | [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators) | Yosys synthesis of the `syn_*` targets (Artix-7 and sky130) |
 | `bitvis:verification:uvvm` | [UVVM](https://github.com/UVVM/UVVM) | Verification library of the testbenches |
 | `asylum:verification:uvvm` | [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) | JTAG BFM `jtag_bfm_pkg` of the debug testbenches (>= 1.1.0: `jtag_trst`, `jtag_ir_capture_monitor`) |
+| `asylum:verification:openocd` | [asylum-verification-uvvm](https://github.com/deuskane/asylum-verification-uvvm) | OpenOCD co-simulation kit of the `sim_dbg_openocd_*` targets (>= 1.0.0: `rbb_jtag`, `rbb_server.c`, `cosim.sh`) |
 
 Used by [asylum-soc-picosoc](https://github.com/deuskane/asylum-soc-picosoc) (with its programs built by `rvcc_gen` of [asylum-utils-generators](https://github.com/deuskane/asylum-utils-generators)). The other CPU of Asylum: [OpenBlaze8](https://github.com/deuskane/asylum-processor-OpenBlaze8). All the IPs: [asylum-project](https://github.com/deuskane/asylum-project).
 
